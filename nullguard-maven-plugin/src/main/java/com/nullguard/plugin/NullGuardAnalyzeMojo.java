@@ -98,6 +98,16 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
                     .append("</tr>");
             }
 
+            StringBuilder apiHtml = new StringBuilder();
+            for (java.util.Map.Entry<String, com.nullguard.analysis.model.ReachData> entry : orchestrator.getApiEndpointAnalyzer().getReachTracker().getReachMap().entrySet()) {
+                com.nullguard.analysis.model.ReachData rd = entry.getValue();
+                apiHtml.append("<tr>")
+                    .append("<td><code style='color:#cbd5e1; font-size:0.9em;'>").append(entry.getKey()).append("</code></td>")
+                    .append("<td>").append(rd.getCount()).append("</td>")
+                    .append("<td>").append(rd.getReachableApis().size()).append(" APIs reachable</td>")
+                    .append("</tr>");
+            }
+
             // Generate an Enhanced HTML Dashboard
             String htmlDashboard = "<!DOCTYPE html>\n" +
                 "<html><head><title>NullGuard Dashboard</title>\n" +
@@ -127,6 +137,10 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
                 "<p>Project: " + project.getName() + " | Run Time: " + timestamp + "</p>\n" +
                 "<div class='card'><h2>Project Risk Summary</h2>\n" +
                 "<div class='stat-grid' id='summaryGrid'></div></div>\n" +
+                "<div class='card'><h2>API Flow Paths & Reachability Tracker</h2>\n" +
+                "<table><thead><tr><th>Endpoint Ref</th><th>Distinct Paths Count</th><th>Reach Metrics</th></tr></thead>\n" +
+                "<tbody>" + (apiHtml.length() > 0 ? apiHtml.toString() : "<tr><td colspan='3' style='color:#94a3b8;'>No distinct API paths detected</td></tr>") + "</tbody></table>\n" +
+                "</div>\n" +
                 "<div class='card'><h2>Architectural Hotspots (API Influence)</h2>\n" +
                 "<table><thead><tr><th>Method Ref</th><th>Hotspot Score</th><th>Severity</th></tr></thead>\n" +
                 "<tbody>" + (hotspotsHtml.length() > 0 ? hotspotsHtml.toString() : "<tr><td colspan='3' style='color:#94a3b8;'>No hotspots detected</td></tr>") + "</tbody></table>\n" +

@@ -40,4 +40,8 @@ public class AnalysisOrchestrator {
     public HotspotDetector getHotspotDetector() {
         return hotspotDetector;
     }
+
+    public ApiEndpointAnalyzer getApiEndpointAnalyzer() {
+        return apiEndpointAnalyzer;
+    }
 }

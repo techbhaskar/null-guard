@@ -28,4 +28,8 @@ public class ApiEndpointAnalyzer {
             reachTracker.track(trace);
         }
     }
+
+    public ReachTracker getReachTracker() {
+        return reachTracker;
+    }
 }

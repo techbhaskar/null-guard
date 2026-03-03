@@ -18,4 +18,8 @@ public class ReachTracker {
     public void track(APIFlowTrace trace) {
         // Count per distinct inter-method path
     }
+
+    public Map<String, ReachData> getReachMap() {
+        return reachMap;
+    }
 }
