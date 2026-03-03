@@ -6,5 +6,85 @@
         <artifactId>nullguard-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
+    
     <artifactId>nullguard-maven-plugin</artifactId>
+    <packaging>maven-plugin</packaging>
+
+    <properties>
+        <maven.plugin.annotations.version>3.11.0</maven.plugin.annotations.version>
+        <maven.plugin.api.version>3.9.6</maven.plugin.api.version>
+        <maven.version>3.9.6</maven.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-plugin-api</artifactId>
+            <version>${maven.plugin.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.plugin-tools</groupId>
+            <artifactId>maven-plugin-annotations</artifactId>
+            <version>${maven.plugin.annotations.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-core</artifactId>
+            <version>${maven.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- NullGuard Dependencies -->
+        <dependency>
+            <groupId>com.nullguard</groupId>
+            <artifactId>nullguard-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.nullguard</groupId>
+            <artifactId>nullguard-analysis</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.nullguard</groupId>
+            <artifactId>nullguard-callgraph</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.nullguard</groupId>
+            <artifactId>nullguard-scoring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.nullguard</groupId>
+            <artifactId>nullguard-suggestions</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.nullguard</groupId>
+            <artifactId>nullguard-visualization</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-plugin</artifactId>
+                <version>3.11.0</version>
+                <executions>
+                    <execution>
+                        <id>default-descriptor</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>descriptor</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

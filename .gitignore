@@ -7,3 +7,14 @@ nullguard/nullguard-cli/target/*
 nullguard/nullguard-parent/target/*
 nullguard/nullguard-scoring/target/*
 nullguard/nullguard-maven-plugin/target/*
+nullguard-maven-plugin/target/*
+nullguard-suggestions/target/*
+nullguard-visualization/target/*
+nullguard-core/target/*
+nullguard-analysis/target/*
+nullguard-callgraph/target/*
+nullguard-scoring/target/*
+nullguard-parent/target/*
+nullguard-cli/target/*
+nullguard-visualization/target/*
+nullguard-visualization/target/*

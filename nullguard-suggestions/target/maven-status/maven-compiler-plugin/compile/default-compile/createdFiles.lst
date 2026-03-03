@@ -1,0 +1,12 @@
+com\nullguard\suggestions\engine\SuggestionEngine.class
+com\nullguard\suggestions\model\SuggestionType.class
+com\nullguard\suggestions\rules\NullGuardRule.class
+com\nullguard\suggestions\exception\SuggestionException.class
+com\nullguard\suggestions\rules\RiskIsolationRule.class
+com\nullguard\suggestions\engine\DefaultSuggestionEngine.class
+com\nullguard\suggestions\ranking\SuggestionRanker.class
+com\nullguard\suggestions\rules\ExternalValidationRule.class
+com\nullguard\suggestions\rules\SuggestionRule.class
+com\nullguard\suggestions\rules\ReturnContractRule.class
+com\nullguard\suggestions\model\Suggestion.class
+com\nullguard\suggestions\rules\BlastRadiusRefactorRule.class

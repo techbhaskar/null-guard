@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.nullguard.core.builder.BasicControlFlowBuilderTest
--------------------------------------------------------------------------------
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.235 s -- in com.nullguard.core.builder.BasicControlFlowBuilderTest
