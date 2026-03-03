@@ -59,6 +59,8 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
             if (!targetDir.exists()) {
                 targetDir.mkdirs();
             }
+            com.nullguard.scoring.scoring.DefaultStabilityScorer scorer = new com.nullguard.scoring.scoring.DefaultStabilityScorer();
+            com.nullguard.scoring.model.ProjectRiskSummary projectSummary = scorer.score(riskModels, callGraph, config);
             
             // Generate timestamp for history tracking
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss");
@@ -68,7 +70,7 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
             com.nullguard.visualization.model.PropagationGraph propGraph = visualBuilder.build(projectModel, callGraph, riskModels);
             
             com.nullguard.visualization.export.JsonGraphExporter jsonExporter = new com.nullguard.visualization.export.JsonGraphExporter();
-            String jsonOutput = jsonExporter.export(propGraph, null);
+            String jsonOutput = jsonExporter.export(propGraph, projectSummary);
             
             // Save JSON with timestamp
             String jsonFilename = "nullguard-report-" + timestamp + ".json";
@@ -87,7 +89,11 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
                 ".container { max-width: 1200px; margin: 0 auto; }\n" +
                 "h1 { color: #38bdf8; }\n" +
                 ".card { background: #1e293b; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #334155; }\n" +
-                ".stat { font-size: 2rem; font-weight: bold; color: #10b981; }\n" +
+                ".stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }\n" +
+                ".stat-box { background: #0f172a; padding: 1rem; border-radius: 6px; border: 1px solid #334155; }\n" +
+                ".stat-label { font-size: 0.85em; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }\n" +
+                ".stat-value { font-size: 1.8rem; font-weight: bold; color: #10b981; margin-top: 0.5rem; }\n" +
+                ".grade-A { color: #10b981; } .grade-B { color: #3b82f6; } .grade-C { color: #f59e0b; } .grade-D { color: #f97316; } .grade-F { color: #ef4444; }\n" +
                 "table { width: 100%; border-collapse: collapse; margin-top: 1rem; }\n" +
                 "th, td { text-align: left; padding: 12px; border-bottom: 1px solid #334155; }\n" +
                 "th { background-color: #0f172a; color: #cbd5e1; }\n" +
@@ -100,18 +106,27 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
                 "<div class='container'>\n" +
                 "<h1>NullGuard Stability Dashboard</h1>\n" +
                 "<p>Project: " + project.getName() + " | Run Time: " + timestamp + "</p>\n" +
-                "<div class='card'><h2>Risk Models Analyzed</h2>\n" +
-                "<div class='stat'>" + riskModels.size() + " Methods</div></div>\n" +
-                "<div class='card'><h2>Method Risk Analysis</h2>\n" +
+                "<div class='card'><h2>Project Risk Summary</h2>\n" +
+                "<div class='stat-grid' id='summaryGrid'></div></div>\n" +
+                "<div class='card'><h2>Method Risk Analysis & Propagation details</h2>\n" +
                 "<table><thead><tr><th>Method ID</th><th>Intrinsic Risk</th><th>Propagated Risk</th><th>Adjusted Risk</th><th>Risk Level</th><th>External</th></tr></thead>\n" +
                 "<tbody id='nodesTable'></tbody></table>\n" +
                 "</div>\n" +
                 "<div class='card'><h2>Raw JSON Output</h2>\n" +
                 "<details><summary style='cursor:pointer; color:#38bdf8;'>View Raw Data</summary>\n" +
-                "<pre style='color: #a5b4fc; overflow-x: auto;'>" + jsonOutput + "</pre>\n" +
+                "<pre style='color: #a5b4fc; overflow-x: auto;'>" + jsonOutput.replace("<", "&lt;").replace(">", "&gt;") + "</pre>\n" +
                 "</details></div></div>\n" +
                 "<script>\n" +
                 "const data = " + jsonOutput + ";\n" +
+                "const sum = data.summary;\n" +
+                "document.getElementById('summaryGrid').innerHTML = `\n" +
+                "  <div class='stat-box'><div class='stat-label'>Stability Grade</div><div class='stat-value grade-${sum.grade}'>${sum.grade}</div></div>\n" +
+                "  <div class='stat-box'><div class='stat-label'>Stability Index</div><div class='stat-value'>${sum.stabilityIndex.toFixed(2)}</div></div>\n" +
+                "  <div class='stat-box'><div class='stat-label'>API Contract / Methods</div><div class='stat-value'>${sum.totalMethods}</div></div>\n" +
+                "  <div class='stat-box'><div class='stat-label'>High Risk Methods</div><div class='stat-value' style='color:#ef4444'>${sum.highRiskMethods}</div></div>\n" +
+                "  <div class='stat-box'><div class='stat-label'>Max Method Risk</div><div class='stat-value' style='color:#f59e0b'>${sum.maxRisk.toFixed(2)}</div></div>\n" +
+                "  <div class='stat-box'><div class='stat-label'>Blast Radius Scope</div><div class='stat-value' style='color:#3b82f6'>${sum.blastRadiusScore.toFixed(2)}</div></div>\n" +
+                "`;\n" +
                 "const nodes = data.graph.nodes;\n" +
                 "const tbody = document.getElementById('nodesTable');\n" +
                 "const nodesArray = Object.values(nodes).sort((a,b) => b.adjustedRisk - a.adjustedRisk);\n" +
