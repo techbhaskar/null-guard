@@ -189,8 +189,8 @@ public final class NullGuardCliApplication {
 
         if (!result.getSuggestions().isEmpty()) {
             System.out.println("\nTop Suggestions:");
-            result.getSuggestions().stream().limit(5).forEach(s ->
-                System.out.println("  → [" + s.getSuggestionType() + "] " + s.getMessage()));
+            result.getSuggestions().stream().limit(5).forEach(sug ->
+                System.out.println("  → [" + sug.getSuggestionType() + "] " + sug.getMessage()));
         }
 
         System.out.println("\nStep Timings:");

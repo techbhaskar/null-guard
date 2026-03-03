@@ -21,14 +21,18 @@
     </properties>
 
     <dependencies>
-        <!-- Bootstrap layer (contains EngineBootstrap + all orchestration classes) -->
+        <!--
+             The bootstrap orchestration layer lives in nullguard-maven-plugin.
+             We declare it with type=maven-plugin so Maven resolves its JAR artifact.
+        -->
         <dependency>
             <groupId>com.nullguard</groupId>
             <artifactId>nullguard-maven-plugin</artifactId>
             <version>${project.version}</version>
+            <type>maven-plugin</type>
         </dependency>
 
-        <!-- Direct module dependencies (transitive via maven-plugin, but explicit for clarity) -->
+        <!-- All module JARs (transitive via maven-plugin, but listed explicitly for clarity) -->
         <dependency>
             <groupId>com.nullguard</groupId>
             <artifactId>nullguard-core</artifactId>
@@ -59,11 +63,23 @@
             <artifactId>nullguard-visualization</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Maven plugin API jars (needed since maven-plugin declares them provided) -->
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-plugin-api</artifactId>
+            <version>3.9.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-core</artifactId>
+            <version>3.9.6</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Produce a fat-JAR for standalone CLI execution -->
+            <!-- Fat JAR for standalone CLI execution -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
