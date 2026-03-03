@@ -35,6 +35,14 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
             com.nullguard.core.parser.JavaParserAstParser parser = new com.nullguard.core.parser.JavaParserAstParser();
             com.nullguard.core.model.ProjectModel projectModel = parser.parse(sourcePath);
             
+            // 1.5 Run Analysis Pipeline
+            getLog().info("Running Analysis Pipeline...");
+            com.nullguard.analysis.config.AnalysisConfig analysisConfig = new com.nullguard.analysis.config.AnalysisConfig(
+                10, 2.0, 0.3, 0.7, 5
+            );
+            com.nullguard.analysis.orchestrator.AnalysisOrchestrator orchestrator = new com.nullguard.analysis.orchestrator.AnalysisOrchestrator(analysisConfig);
+            orchestrator.analyze(projectModel);
+            
             // 2. Build Call Graph
             getLog().info("Building Global Call Graph...");
             com.nullguard.callgraph.builder.BasicCallGraphBuilder cgBuilder = new com.nullguard.callgraph.builder.BasicCallGraphBuilder();
@@ -81,6 +89,15 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
             java.io.File latestReportFile = new java.io.File(targetDir, "nullguard-report-latest.json");
             java.nio.file.Files.writeString(latestReportFile.toPath(), jsonOutput);
             
+            StringBuilder hotspotsHtml = new StringBuilder();
+            for (com.nullguard.analysis.model.ArchitecturalHotspot hotspot : orchestrator.getHotspotDetector().getArchitecturalHotspots()) {
+                hotspotsHtml.append("<tr>")
+                    .append("<td><code style='color:#cbd5e1; font-size:0.9em;'>").append(hotspot.getMethodRef()).append("</code></td>")
+                    .append("<td>").append(String.format("%.2f", hotspot.getHotspotScore())).append("</td>")
+                    .append("<td><span class='badge badge-").append(hotspot.getSeverity()).append("'>").append(hotspot.getSeverity()).append("</span></td>")
+                    .append("</tr>");
+            }
+
             // Generate an Enhanced HTML Dashboard
             String htmlDashboard = "<!DOCTYPE html>\n" +
                 "<html><head><title>NullGuard Dashboard</title>\n" +
@@ -99,8 +116,10 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
                 "th { background-color: #0f172a; color: #cbd5e1; }\n" +
                 "tr:hover { background-color: #334155; }\n" +
                 ".badge { padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }\n" +
+                ".badge-CRITICAL { background: #991b1b; color: #fff; }\n" +
                 ".badge-HIGH { background: #ef4444; color: #fff; }\n" +
                 ".badge-MEDIUM { background: #f59e0b; color: #fff; }\n" +
+                ".badge-MODERATE { background: #f59e0b; color: #fff; }\n" +
                 ".badge-LOW { background: #10b981; color: #fff; }\n" +
                 "</style></head><body>\n" +
                 "<div class='container'>\n" +
@@ -108,6 +127,10 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
                 "<p>Project: " + project.getName() + " | Run Time: " + timestamp + "</p>\n" +
                 "<div class='card'><h2>Project Risk Summary</h2>\n" +
                 "<div class='stat-grid' id='summaryGrid'></div></div>\n" +
+                "<div class='card'><h2>Architectural Hotspots (API Influence)</h2>\n" +
+                "<table><thead><tr><th>Method Ref</th><th>Hotspot Score</th><th>Severity</th></tr></thead>\n" +
+                "<tbody>" + (hotspotsHtml.length() > 0 ? hotspotsHtml.toString() : "<tr><td colspan='3' style='color:#94a3b8;'>No hotspots detected</td></tr>") + "</tbody></table>\n" +
+                "</div>\n" +
                 "<div class='card'><h2>Method Risk Analysis & Propagation details</h2>\n" +
                 "<table><thead><tr><th>Method ID</th><th>Intrinsic Risk</th><th>Propagated Risk</th><th>Adjusted Risk</th><th>Risk Level</th><th>External</th></tr></thead>\n" +
                 "<tbody id='nodesTable'></tbody></table>\n" +

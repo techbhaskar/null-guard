@@ -36,4 +36,8 @@ public class AnalysisOrchestrator {
         
         hotspotDetector.finalize(project);
     }
+
+    public HotspotDetector getHotspotDetector() {
+        return hotspotDetector;
+    }
 }
