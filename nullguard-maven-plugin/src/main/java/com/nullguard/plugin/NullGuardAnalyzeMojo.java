@@ -79,7 +79,7 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
             java.io.File latestReportFile = new java.io.File(targetDir, "nullguard-report-latest.json");
             java.nio.file.Files.writeString(latestReportFile.toPath(), jsonOutput);
             
-            // Generate a simple HTML Dashboard
+            // Generate an Enhanced HTML Dashboard
             String htmlDashboard = "<!DOCTYPE html>\n" +
                 "<html><head><title>NullGuard Dashboard</title>\n" +
                 "<style>\n" +
@@ -88,15 +88,46 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
                 "h1 { color: #38bdf8; }\n" +
                 ".card { background: #1e293b; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #334155; }\n" +
                 ".stat { font-size: 2rem; font-weight: bold; color: #10b981; }\n" +
+                "table { width: 100%; border-collapse: collapse; margin-top: 1rem; }\n" +
+                "th, td { text-align: left; padding: 12px; border-bottom: 1px solid #334155; }\n" +
+                "th { background-color: #0f172a; color: #cbd5e1; }\n" +
+                "tr:hover { background-color: #334155; }\n" +
+                ".badge { padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }\n" +
+                ".badge-HIGH { background: #ef4444; color: #fff; }\n" +
+                ".badge-MEDIUM { background: #f59e0b; color: #fff; }\n" +
+                ".badge-LOW { background: #10b981; color: #fff; }\n" +
                 "</style></head><body>\n" +
                 "<div class='container'>\n" +
                 "<h1>NullGuard Stability Dashboard</h1>\n" +
                 "<p>Project: " + project.getName() + " | Run Time: " + timestamp + "</p>\n" +
                 "<div class='card'><h2>Risk Models Analyzed</h2>\n" +
                 "<div class='stat'>" + riskModels.size() + " Methods</div></div>\n" +
+                "<div class='card'><h2>Method Risk Analysis</h2>\n" +
+                "<table><thead><tr><th>Method ID</th><th>Intrinsic Risk</th><th>Propagated Risk</th><th>Adjusted Risk</th><th>Risk Level</th><th>External</th></tr></thead>\n" +
+                "<tbody id='nodesTable'></tbody></table>\n" +
+                "</div>\n" +
                 "<div class='card'><h2>Raw JSON Output</h2>\n" +
+                "<details><summary style='cursor:pointer; color:#38bdf8;'>View Raw Data</summary>\n" +
                 "<pre style='color: #a5b4fc; overflow-x: auto;'>" + jsonOutput + "</pre>\n" +
-                "</div></div></body></html>";
+                "</details></div></div>\n" +
+                "<script>\n" +
+                "const data = " + jsonOutput + ";\n" +
+                "const nodes = data.graph.nodes;\n" +
+                "const tbody = document.getElementById('nodesTable');\n" +
+                "const nodesArray = Object.values(nodes).sort((a,b) => b.adjustedRisk - a.adjustedRisk);\n" +
+                "nodesArray.forEach(node => {\n" +
+                "  const tr = document.createElement('tr');\n" +
+                "  tr.innerHTML = `\n" +
+                "    <td><code style='color:#cbd5e1; font-size:0.9em;'>${node.methodId}</code></td>\n" +
+                "    <td>${node.intrinsicRisk.toFixed(2)}</td>\n" +
+                "    <td>${node.propagatedRisk.toFixed(2)}</td>\n" +
+                "    <td>${node.adjustedRisk.toFixed(2)}</td>\n" +
+                "    <td><span class='badge badge-${node.riskLevel}'>${node.riskLevel}</span></td>\n" +
+                "    <td>${node.external ? 'Yes' : 'No'}</td>\n" +
+                "  `;\n" +
+                "  tbody.appendChild(tr);\n" +
+                "});\n" +
+                "</script></body></html>";
                 
             java.io.File htmlFile = new java.io.File(targetDir, "nullguard-dashboard-" + timestamp + ".html");
             java.nio.file.Files.writeString(htmlFile.toPath(), htmlDashboard);
