@@ -1,7 +1,0 @@
-com\nullguard\callgraph\model\ExternalReason.class
-com\nullguard\callgraph\builder\CallGraphBuilder.class
-com\nullguard\callgraph\model\ExternalMethodNode.class
-com\nullguard\callgraph\exception\CallGraphException.class
-com\nullguard\callgraph\model\GlobalCallGraph.class
-com\nullguard\callgraph\builder\BasicCallGraphBuilder.class
-com\nullguard\callgraph\resolver\MethodResolver.class
