@@ -22,8 +22,37 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
         getLog().info("Analyzing project: " + project.getName());
         getLog().info("Source directory: " + project.getBuild().getSourceDirectory());
         
-        // TODO: Wire up actual NullGuard Engine here
-        
+        try {
+            java.nio.file.Path sourcePath = java.nio.file.Paths.get(project.getBuild().getSourceDirectory());
+            
+            // 1. Parse AST
+            getLog().info("Parsing Source Trees...");
+            com.nullguard.core.parser.JavaParserAstParser parser = new com.nullguard.core.parser.JavaParserAstParser();
+            com.nullguard.core.model.ProjectModel projectModel = parser.parse(sourcePath);
+            
+            // 2. Build Call Graph
+            getLog().info("Building Global Call Graph...");
+            com.nullguard.callgraph.builder.BasicCallGraphBuilder cgBuilder = new com.nullguard.callgraph.builder.BasicCallGraphBuilder();
+            com.nullguard.callgraph.model.GlobalCallGraph callGraph = cgBuilder.build(projectModel);
+            
+            // 3. Propagate Risk
+            getLog().info("Propagating Risk Scores...");
+            com.nullguard.scoring.propagation.FixpointRiskPropagationEngine riskEngine = new com.nullguard.scoring.propagation.FixpointRiskPropagationEngine();
+            com.nullguard.scoring.config.ScoringConfig config = com.nullguard.scoring.config.ScoringConfig.builder()
+                .decayFactor(0.85)
+                .externalPenaltyMultiplier(1.2)
+                .convergenceThreshold(0.001)
+                .maxIterations(100)
+                .build();
+            java.util.Map<String, com.nullguard.scoring.model.AdjustedRiskModel> riskModels = riskEngine.propagate(projectModel, callGraph, config);
+            
+            getLog().info("Risk models computed for " + riskModels.size() + " methods.");
+            
+        } catch (Exception e) {
+            getLog().error("NullGuard analysis failed", e);
+            throw new MojoExecutionException("Error during NullGuard analysis", e);
+        }
+
         getLog().info("NullGuard analysis completed successfully.");
     }
 }
