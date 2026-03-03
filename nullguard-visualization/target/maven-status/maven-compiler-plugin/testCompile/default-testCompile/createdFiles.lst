@@ -1,0 +1,4 @@
+com\nullguard\visualization\export\DotGraphExporterTest.class
+com\nullguard\visualization\export\JsonGraphExporterTest.class
+com\nullguard\visualization\graph\DefaultPropagationGraphBuilderTest.class
+com\nullguard\visualization\trace\ImpactTracerTest.class

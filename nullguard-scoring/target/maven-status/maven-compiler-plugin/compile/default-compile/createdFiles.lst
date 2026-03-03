@@ -1,0 +1,10 @@
+com\nullguard\scoring\model\AdjustedRiskModel.class
+com\nullguard\scoring\config\ScoringConfig$Builder.class
+com\nullguard\scoring\config\ScoringConfig.class
+com\nullguard\scoring\exception\ScoringException.class
+com\nullguard\scoring\model\ProjectRiskSummary.class
+com\nullguard\scoring\model\RiskLevel.class
+com\nullguard\scoring\propagation\RiskPropagationEngine.class
+com\nullguard\scoring\propagation\FixpointRiskPropagationEngine.class
+com\nullguard\scoring\scoring\StabilityScorer.class
+com\nullguard\scoring\scoring\DefaultStabilityScorer.class

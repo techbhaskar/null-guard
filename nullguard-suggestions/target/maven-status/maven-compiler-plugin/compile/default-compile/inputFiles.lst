@@ -1,0 +1,10 @@
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\engine\DefaultSuggestionEngine.java
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\engine\SuggestionEngine.java
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\exception\SuggestionException.java
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\model\Suggestion.java
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\model\SuggestionType.java
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\rules\ExternalValidationRule.java
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\rules\NullGuardRule.java
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\rules\ReturnContractRule.java
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\rules\RiskIsolationRule.java
+D:\react_learn\null-guard\nullguard-suggestions\src\main\java\com\nullguard\suggestions\rules\SuggestionRule.java
