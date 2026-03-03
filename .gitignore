@@ -1,0 +1,9 @@
+nullguard/nullguard-suggestions/target/*
+nullguard/nullguard-visualization/target/*
+nullguard/nullguard-core/target/*
+nullguard/nullguard-analysis/target/*
+nullguard/nullguard-callgraph/target/*
+nullguard/nullguard-cli/target/*
+nullguard/nullguard-parent/target/*
+nullguard/nullguard-scoring/target/*
+nullguard/nullguard-maven-plugin/target/*
