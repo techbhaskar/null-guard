@@ -25,6 +25,11 @@ public class NullGuardAnalyzeMojo extends AbstractMojo {
         try {
             java.nio.file.Path sourcePath = java.nio.file.Paths.get(project.getBuild().getSourceDirectory());
             
+            if (!java.nio.file.Files.exists(sourcePath)) {
+                getLog().info("Source directory does not exist, skipping analysis: " + sourcePath);
+                return;
+            }
+            
             // 1. Parse AST
             getLog().info("Parsing Source Trees...");
             com.nullguard.core.parser.JavaParserAstParser parser = new com.nullguard.core.parser.JavaParserAstParser();
