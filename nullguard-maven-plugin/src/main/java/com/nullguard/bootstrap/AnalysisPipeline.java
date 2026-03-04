@@ -124,6 +124,14 @@ public final class AnalysisPipeline {
                 () -> riskPropagationEngine.propagate(projectModel, callGraph, config.toScoringConfig()));
         ctx.setAdjustedRiskMap(riskMap);
 
+        // Store per-method risk contributor explanations for dashboard rendering
+        if (riskPropagationEngine instanceof com.nullguard.scoring.propagation.FixpointRiskPropagationEngine) {
+            com.nullguard.scoring.propagation.FixpointRiskPropagationEngine fpe =
+                (com.nullguard.scoring.propagation.FixpointRiskPropagationEngine) riskPropagationEngine;
+            ctx.setRiskReasonMap(fpe.getRiskContributors());
+        }
+
+
         // ── Step 5: Stability Scoring ─────────────────────────────────────────
         ProjectRiskSummary riskSummary = timed(ctx, "scoring",
                 () -> stabilityScorer.score(riskMap, callGraph, config.toScoringConfig()));

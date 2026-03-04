@@ -11,12 +11,27 @@ import com.nullguard.scoring.config.ScoringConfig;
 import com.nullguard.scoring.model.AdjustedRiskModel;
 import com.nullguard.scoring.model.RiskLevel;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
+
+    /**
+     * After propagate() completes, this map holds the per-method explanation:
+     * methodId → ordered list of "callee (contributed +N.NN pts)" strings,
+     * top-3 contributors only.
+     */
+    private Map<String, List<String>> riskContributors = new LinkedHashMap<>();
+
+    public Map<String, List<String>> getRiskContributors() {
+        return Collections.unmodifiableMap(riskContributors);
+    }
 
     @Override
     public Map<String, AdjustedRiskModel> propagate(ProjectModel project, GlobalCallGraph callGraph, ScoringConfig config) {
@@ -105,15 +120,64 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
             }
         }
         
-        // Step 3: Build models
+        // Step 3: Build models + collect contributor explanations
         Map<String, AdjustedRiskModel> finalModels = new LinkedHashMap<>();
+        Map<String, List<String>> contributors = new LinkedHashMap<>();
+
         for (String methodId : allMethods) {
             double intrinsic = intrinsicRisk.get(methodId);
             double propagated = propagatedRisk.get(methodId);
             double adjusted = clamp(intrinsic + propagated);
             finalModels.put(methodId, new AdjustedRiskModel(intrinsic, propagated, adjusted, RiskLevel.from(adjusted)));
+
+            // Build contributor list: which callees drove the propagated risk the most
+            List<String[]> calleeScores = new ArrayList<>();
+            for (String callee : callGraph.getCallees(methodId)) {
+                if (callee.equals(methodId)) continue; // skip self-loops from cycles
+                double calleeAdj = clamp(
+                    intrinsicRisk.getOrDefault(callee, 0.0)
+                    + propagatedRisk.getOrDefault(callee, 0.0));
+                double contribution = calleeAdj * decayFactor;
+                if (contribution > 0.001) {
+                    calleeScores.add(new String[]{callee, String.format("%.2f", contribution)});
+                }
+            }
+            // Sort descending by contribution magnitude
+            calleeScores.sort(Comparator.comparingDouble((String[] a) -> Double.parseDouble(a[1])).reversed());
+            List<String> reasons = new ArrayList<>();
+            // Intrinsic reason first
+            if (intrinsic > 0.001) {
+                reasons.add("Own null-risk: +" + String.format("%.2f", intrinsic));
+            }
+            // Top-3 callee contributors
+            int shown = 0;
+            for (String[] cs : calleeScores) {
+                if (shown++ >= 3) break;
+                // Format: ClassName#methodName(params) — trim params for readability
+                String shortCallee;
+                int hash = cs[0].lastIndexOf('#');
+                if (hash >= 0) {
+                    String classSimple = cs[0].substring(cs[0].lastIndexOf('.', hash) + 1, hash);
+                    String methodSig   = cs[0].substring(hash + 1);
+                    // Trim long parameter lists
+                    if (methodSig.length() > 40) {
+                        int paren = methodSig.indexOf('(');
+                        if (paren > 0) methodSig = methodSig.substring(0, paren) + "(…)";
+                    }
+                    shortCallee = classSimple + "#" + methodSig;
+                } else {
+                    shortCallee = cs[0];
+                }
+                reasons.add("\u2190 calls " + shortCallee + " (+" + cs[1] + ")");
+            }
+            if (calleeScores.size() > 3) {
+                reasons.add("… +" + (calleeScores.size() - 3) + " more high-risk callees");
+            }
+            contributors.put(methodId, Collections.unmodifiableList(reasons));
+
         }
-        
+
+        this.riskContributors = contributors;
         return Map.copyOf(finalModels);
     }
     

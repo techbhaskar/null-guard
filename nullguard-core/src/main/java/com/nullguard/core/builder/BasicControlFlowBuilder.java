@@ -23,8 +23,16 @@ public final class BasicControlFlowBuilder implements ControlFlowBuilder {
         LinkedHashMap<String, ControlFlowNode> nodes = new LinkedHashMap<>();
         LinkedHashSet<ControlFlowEdge> edges = new LinkedHashSet<>();
 
+        // Entry node source = annotation lines + access modifier prefix.
+        // FlowPathExtractor reads this to detect REST annotations (@GetMapping etc.)
+        // and to determine access visibility (exclude private/protected methods from API detection).
+        StringBuilder entrySource = new StringBuilder();
+        method.getAnnotations().forEach(ann -> entrySource.append(ann.toString()).append(" "));
+        method.getModifiers().forEach(mod -> entrySource.append(mod.toString()).append(" "));
+        entrySource.append(method.getNameAsString());
+
         String entryId = methodName + "_0_0";
-        ControlFlowNode entryNode = new ControlFlowNode(entryId, NodeType.ENTRY, "ENTRY", 0);
+        ControlFlowNode entryNode = new ControlFlowNode(entryId, NodeType.ENTRY, entrySource.toString().trim(), 0);
         nodes.put(entryId, entryNode);
 
         String exitId = methodName + "_-1_0";

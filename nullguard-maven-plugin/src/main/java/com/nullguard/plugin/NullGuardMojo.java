@@ -235,8 +235,37 @@ public class NullGuardMojo extends AbstractMojo {
                 .append("<td>").append(String.format("%.2f", s.getFinalScore())).append("</td>")
                 .append("</tr>\n");
         }
+        // ── Cycle warnings panel ───────────────────────────────────────────────
+        String cycleSection = "";
+        if (!result.getCycleWarnings().isEmpty()) {
+            StringBuilder cwHtml = new StringBuilder();
+            cwHtml.append("<div class='warn-panel'><h2>&#9888; Call Graph Cycle Warnings</h2><ul>\n");
+            for (String w : result.getCycleWarnings()) {
+                cwHtml.append("<li>").append(sanitize(w)).append("</li>\n");
+            }
+            cwHtml.append("</ul><p class='warn-note'>These cycles are handled safely by the fixpoint "
+                    + "propagation engine &ndash; risk scores are still accurate.</p></div>\n");
+            cycleSection = cwHtml.toString();
+        }
 
-        // ── API Endpoint rows ─────────────────────────────────────────────────
+        // ── Risk reason JSON (for JS rendering in the table) ───────────────────
+        StringBuilder reasonJson = new StringBuilder("{\n");
+        boolean firstEntry = true;
+        for (java.util.Map.Entry<String, java.util.List<String>> e : result.getRiskReasonMap().entrySet()) {
+            if (!firstEntry) reasonJson.append(",\n");
+            firstEntry = false;
+            reasonJson.append("  ").append(jsonStr(e.getKey())).append(": [");
+            boolean firstR = true;
+            for (String r : e.getValue()) {
+                if (!firstR) reasonJson.append(", ");
+                firstR = false;
+                reasonJson.append(jsonStr(r));
+            }
+            reasonJson.append("]");
+        }
+        reasonJson.append("\n}");
+
+
         StringBuilder apiRows = new StringBuilder();
         for (com.nullguard.analysis.model.ApiEndpointModel ep : result.getApiEndpoints()) {
             String chainHtml = buildChainHtml(ep.getPropagationChain());
@@ -256,18 +285,21 @@ public class NullGuardMojo extends AbstractMojo {
         return "<!DOCTYPE html>\n<html><head><title>NullGuard Dashboard</title>\n" +
             "<style>\n" +
             "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#f8fafc;margin:0;padding:2rem}\n" +
-            ".container{max-width:1300px;margin:0 auto}\n" +
+            ".container{max-width:1400px;margin:0 auto}\n" +
             "h1{color:#38bdf8}h2{color:#94a3b8;font-size:1rem;text-transform:uppercase;letter-spacing:.05em}\n" +
             ".card{background:#1e293b;padding:1.5rem;border-radius:8px;margin-bottom:1rem;border:1px solid #334155}\n" +
+            ".warn-panel{background:#2d1f07;padding:1.5rem;border-radius:8px;margin-bottom:1rem;border:1px solid #d97706}\n" +
+            ".warn-panel h2{color:#f59e0b}.warn-panel li{color:#fcd34d;margin:.3rem 0;font-size:.9em}\n" +
+            ".warn-note{color:#94a3b8;font-size:.85em;margin-top:.5rem}\n" +
             ".stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:1rem}\n" +
             ".stat-box{background:#0f172a;padding:1rem;border-radius:6px;border:1px solid #334155}\n" +
             ".stat-label{font-size:.85em;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}\n" +
             ".stat-value{font-size:1.8rem;font-weight:bold;color:#10b981;margin-top:.5rem}\n" +
             ".grade-A{color:#10b981}.grade-B{color:#3b82f6}.grade-C{color:#f59e0b}.grade-D{color:#f97316}.grade-F{color:#ef4444}\n" +
             "table{width:100%;border-collapse:collapse;margin-top:1rem}\n" +
-            "th,td{text-align:left;padding:12px;border-bottom:1px solid #334155}\n" +
-            "th{background:#0f172a;color:#cbd5e1}tr:hover{background:#334155}\n" +
-            ".badge{padding:4px 8px;border-radius:4px;font-size:.85em;font-weight:bold}\n" +
+            "th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #334155;vertical-align:top}\n" +
+            "th{background:#0f172a;color:#cbd5e1}tr:hover{background:#1e3a5f55}\n" +
+            ".badge{padding:3px 7px;border-radius:4px;font-size:.8em;font-weight:bold}\n" +
             ".badge-CRITICAL{background:#991b1b;color:#fff}.badge-HIGH{background:#ef4444;color:#fff}\n" +
             ".badge-MODERATE{background:#f59e0b;color:#fff}.badge-LOW{background:#10b981;color:#fff}\n" +
             ".badge-http-GET{background:#3b82f6;color:#fff}.badge-http-POST{background:#10b981;color:#fff}\n" +
@@ -277,10 +309,13 @@ public class NullGuardMojo extends AbstractMojo {
             ".chain-node{padding:2px 0;color:#a5b4fc}\n" +
             ".chain-node::before{content:'↳ ';color:#38bdf8}\n" +
             ".chain-node:first-child::before{content:'⬡ ';color:#10b981}\n" +
+            ".reason-list{margin:4px 0;padding-left:1.2em;color:#a5b4fc;font-size:.8em}\n" +
+            ".reason-list li{margin:2px 0}\n" +
             "</style></head><body>\n" +
             "<div class='container'>\n" +
             "<h1>NullGuard Stability Dashboard</h1>\n" +
             "<p>Project: " + project.getName() + " &nbsp;|&nbsp; Analysed: " + timestamp + "</p>\n" +
+            cycleSection +
             "<div class='card'><h2>Project Risk Summary</h2>\n" +
             "<div class='stat-grid' id='summaryGrid'></div></div>\n" +
             "<div class='card'><h2>API Endpoints &amp; Propagation Chains</h2>\n" +
@@ -295,7 +330,7 @@ public class NullGuardMojo extends AbstractMojo {
             "<tbody>" + (suggestionRows.length() > 0 ? suggestionRows
                 : "<tr><td colspan='4' style='color:#94a3b8'>No suggestions generated</td></tr>") + "</tbody></table></div>\n" +
             "<div class='card'><h2>Method Risk Table</h2>\n" +
-            "<table><thead><tr><th>Method ID</th><th>Intrinsic</th><th>Propagated</th><th>Adjusted</th><th>Level</th><th>External</th></tr></thead>\n" +
+            "<table><thead><tr><th>Method ID</th><th>Intrinsic</th><th>Propagated</th><th>Adjusted</th><th>Level</th><th>Ext.</th><th>Why this score?</th></tr></thead>\n" +
             "<tbody id='riskTable'></tbody></table></div>\n" +
             "<div class='card'><h2>Raw JSON</h2>\n" +
             "<details><summary style='cursor:pointer;color:#38bdf8'>View Raw Data</summary>\n" +
@@ -303,6 +338,7 @@ public class NullGuardMojo extends AbstractMojo {
             "</details></div></div>\n" +
             "<script>\n" +
             "const data=" + jsonOutput + ";\n" +
+            "const reasons=" + reasonJson.toString() + ";\n" +
             "const s=data.summary;\n" +
             "document.getElementById('summaryGrid').innerHTML=`\n" +
             "<div class='stat-box'><div class='stat-label'>Grade</div><div class='stat-value grade-${s.grade}'>${s.grade}</div></div>\n" +
@@ -315,12 +351,18 @@ public class NullGuardMojo extends AbstractMojo {
             "const nodes=Object.values(data.graph.nodes).sort((a,b)=>b.adjustedRisk-a.adjustedRisk);\n" +
             "const tb=document.getElementById('riskTable');\n" +
             "nodes.forEach(n=>{\n" +
+            "  const rs=reasons[n.methodId]||[];\n" +
+            "  const whyHtml=rs.length\n" +
+            "    ?`<details><summary style='cursor:pointer;color:#64748b;font-size:.85em'>${rs.length} factor(s)</summary>" +
+            "<ul class='reason-list'>${rs.map(r=>`<li>${r}</li>`).join('')}</ul></details>`\n" +
+            "    :`<span style='color:#334155;font-size:.8em'>no risk</span>`;\n" +
             "  const tr=document.createElement('tr');\n" +
-            "  tr.innerHTML=`<td><code style='color:#cbd5e1;font-size:.9em'>${n.methodId}</code></td>" +
+            "  tr.innerHTML=`<td><code style='color:#cbd5e1;font-size:.85em'>${n.methodId}</code></td>" +
             "<td>${n.intrinsicRisk.toFixed(2)}</td><td>${n.propagatedRisk.toFixed(2)}</td>" +
-            "<td>${n.adjustedRisk.toFixed(2)}</td>" +
+            "<td><strong>${n.adjustedRisk.toFixed(2)}</strong></td>" +
             "<td><span class='badge badge-${n.riskLevel}'>${n.riskLevel}</span></td>" +
-            "<td>${n.external?'Yes':'No'}</td>`;\n" +
+            "<td>${n.external?'&#9679;':''}</td>" +
+            "<td>${whyHtml}</td>`;\n" +
             "  tb.appendChild(tr);\n" +
             "});\n" +
             "</script></body></html>";
@@ -337,5 +379,15 @@ public class NullGuardMojo extends AbstractMojo {
     private static String sanitize(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    private static String jsonStr(String s) {
+        if (s == null) return "null";
+        return "\"" + s.replace("\\", "\\\\")
+                       .replace("\"", "\\\"")
+                       .replace("\n", "\\n")
+                       .replace("\r", "")
+                       .replace("←", "<-")    // safe ASCII for JSON
+               + "\"";
     }
 }

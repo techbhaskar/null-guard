@@ -9,6 +9,7 @@ import com.nullguard.scoring.model.ProjectRiskSummary;
 import com.nullguard.suggestions.model.Suggestion;
 import com.nullguard.visualization.model.PropagationGraph;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,6 +39,10 @@ public final class PipelineContext {
     private List<Suggestion>                    suggestions;
     private PropagationGraph                    propagationGraph;
     private VisualizationBundle                 visualizationBundle;
+    /** Cycle sites detected during architecture validation. */
+    private List<String>                        cycleWarnings     = new ArrayList<>();
+    /** Per-method explanation: which callees drove the propagated risk. */
+    private Map<String, List<String>>           riskReasonMap     = new LinkedHashMap<>();
 
     PipelineContext(NullGuardConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
@@ -80,6 +85,16 @@ public final class PipelineContext {
 
     void setVisualizationBundle(VisualizationBundle visualizationBundle) {
         this.visualizationBundle = Objects.requireNonNull(visualizationBundle);
+    }
+
+    /** Called by ArchitectureValidator to record cycle warning messages. */
+    public void addCycleWarning(String warning) {
+        this.cycleWarnings.add(Objects.requireNonNull(warning));
+    }
+
+    /** Called by FixpointRiskPropagationEngine to store per-method risk contributors. */
+    public void setRiskReasonMap(Map<String, List<String>> map) {
+        this.riskReasonMap = new LinkedHashMap<>(Objects.requireNonNull(map));
     }
 
     // ── Public read accessors ────────────────────────────────────────────────
@@ -130,6 +145,16 @@ public final class PipelineContext {
     public VisualizationBundle getVisualizationBundle() {
         requireSet(visualizationBundle, "visualizationBundle");
         return visualizationBundle;
+    }
+
+    /** Returns the list of cycle warning messages (may be empty). */
+    public List<String> getCycleWarnings() {
+        return Collections.unmodifiableList(cycleWarnings);
+    }
+
+    /** Returns per-method risk contributor map (may be empty). */
+    public Map<String, List<String>> getRiskReasonMap() {
+        return Collections.unmodifiableMap(riskReasonMap);
     }
 
     // ── Helper ───────────────────────────────────────────────────────────────

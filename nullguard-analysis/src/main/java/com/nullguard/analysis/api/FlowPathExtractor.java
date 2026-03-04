@@ -22,20 +22,22 @@ import java.util.Set;
  * propagation chains down to leaf methods using iterative DFS.
  *
  * <h3>API detection heuristics (no annotation processor required)</h3>
- * A method is treated as an API entry point when its containing class name ends
- * with {@code Controller}, or when the method name matches common REST naming
- * conventions ({@code get*}, {@code post*}, {@code put*}, {@code delete*},
- * {@code create*}, {@code update*}, {@code find*}, {@code fetch*}, {@code list*},
- * {@code search*}, {@code handle*}).
+ * A method is treated as an API entry point when <strong>either</strong>:
+ * <ol>
+ *   <li>Its containing class name ends with {@code Controller} or {@code Resource}
+ *       (the canonical Spring/JAX-RS naming convention), <strong>or</strong></li>
+ *   <li>Any CFG node's source text contains a Spring/JAX-RS mapping annotation keyword
+ *       ({@code @GetMapping}, {@code @PostMapping}, {@code @RequestMapping}, etc.).</li>
+ * </ol>
  *
- * <p>Additionally, if the CFG source text of the entry node contains any of the
- * Spring/JAX-RS annotation keywords ({@code @GetMapping}, {@code @PostMapping},
- * {@code @RequestMapping}, {@code @Path}, etc.) the method is unconditionally
- * included.
+ * <p><strong>Note:</strong> method-name prefix heuristics ({@code get*}, {@code find*},
+ * {@code update*}, etc.) are intentionally <em>not</em> used for entry point detection
+ * because they produce too many false positives (repositories, mappers, clients, services).
+ * The VERB_MAP is still used to infer the HTTP verb for display purposes only.
  *
  * <h3>Call-chain traversal</h3>
  * For each entry point the extractor performs an iterative DFS through the
- * {@link MethodCallInstruction}s extracted from each CFG, following the
+ * {@code MethodCallInstruction}s extracted from each CFG, following the
  * callee chain until {@code depthLimit} or a leaf (no outgoing calls) is reached.
  * Cycles are broken with a per-path visited set.
  */
@@ -214,7 +216,28 @@ public class FlowPathExtractor {
         return methodId;
     }
 
-    /** Infers the HTTP verb from the method name prefix. */
+    /**
+     * Infers the HTTP verb from the entry node source text (annotation-first),
+     * falling back to method-name prefix heuristics.
+     */
+    public static String inferHttpMethod(String methodId, MethodModel method) {
+        String entrySource = getEntrySource(method);
+        // Annotation-based detection (most reliable)
+        if (entrySource.contains("@GetMapping")    || entrySource.contains("@GET"))    return "GET";
+        if (entrySource.contains("@PostMapping")   || entrySource.contains("@POST"))   return "POST";
+        if (entrySource.contains("@PutMapping")    || entrySource.contains("@PUT"))    return "PUT";
+        if (entrySource.contains("@DeleteMapping") || entrySource.contains("@DELETE")) return "DELETE";
+        if (entrySource.contains("@PatchMapping")  || entrySource.contains("@PATCH"))  return "PATCH";
+        if (entrySource.contains("@RequestMapping")) return "UNKNOWN"; // verb unspecified
+        // Fallback: method name prefix
+        String name = shortName(methodId).toLowerCase();
+        for (Map.Entry<String, String> e : VERB_MAP.entrySet()) {
+            if (name.startsWith(e.getKey())) return e.getValue();
+        }
+        return "UNKNOWN";
+    }
+
+    /** Backward-compat overload (used from ApiEndpointAnalyzer via methodId only) */
     public static String inferHttpMethod(String methodId) {
         String name = shortName(methodId).toLowerCase();
         for (Map.Entry<String, String> e : VERB_MAP.entrySet()) {
@@ -224,37 +247,81 @@ public class FlowPathExtractor {
     }
 
     /**
-     * Returns {@code true} when the method should be treated as an API entry point:
-     * <ul>
-     *   <li>Its class name ends with {@code Controller} or {@code Resource}</li>
-     *   <li>OR the method signature starts with a REST verb prefix</li>
-     *   <li>OR the CFG entry node contains a mapping annotation keyword</li>
-     * </ul>
+     * Extracts the actual URL path from a mapping annotation value, e.g.
+     * {@code @PostMapping("/{id}/reject")} → {@code "/{id}/reject"}.
+     * Falls back to {@code "/" + methodName} if no annotation value is found.
+     */
+    public static String inferPath(String methodId, MethodModel method) {
+        String entrySource = getEntrySource(method);
+        // Try to find annotation value string: @XxxMapping("...value...")
+        java.util.regex.Matcher m = ANNOTATION_PATH_PATTERN.matcher(entrySource);
+        if (m.find()) {
+            String rawPath = m.group(1);
+            // Strip quotes if present
+            rawPath = rawPath.replaceAll("^\"|\"$", "");
+            return rawPath.startsWith("/") ? rawPath : "/" + rawPath;
+        }
+        // No annotation path found — derive from method name
+        String name = shortName(methodId);
+        return "/" + name;
+    }
+
+    /** Pattern to capture the string value inside a mapping annotation. */
+    private static final java.util.regex.Pattern ANNOTATION_PATH_PATTERN =
+        java.util.regex.Pattern.compile(
+            "@(?:Get|Post|Put|Delete|Patch|Request)Mapping\\s*\\(\\s*(?:value\\s*=\\s*)?\"([^\"]+)\"");
+
+    /** Returns the entry node's source text (annotations + modifiers), or empty string. */
+    private static String getEntrySource(MethodModel method) {
+        return method.getControlFlowModel()
+                .map(cfg -> {
+                    String entryId = cfg.getEntryNodeId();
+                    com.nullguard.core.cfg.ControlFlowNode n = cfg.getNodes().get(entryId);
+                    return n != null && n.getSourceCode() != null ? n.getSourceCode() : "";
+                })
+                .orElse("");
+    }
+
+    /**
+     * Returns {@code true} when the method should be treated as a REST API entry point.
+     *
+     * <p><strong>Rules:</strong>
+     * <ol>
+     *   <li><strong>Visibility filter first:</strong> {@code private} and {@code protected}
+     *       methods are unconditionally excluded — they cannot be HTTP endpoints.</li>
+     *   <li>The containing class name ends with {@code Controller} or {@code Resource}
+     *       AND the method is {@code public}.</li>
+     *   <li>Any mapping annotation keyword is present in the entry node source text
+     *       ({@code @GetMapping}, {@code @PostMapping}, {@code @RequestMapping}, etc.).</li>
+     * </ol>
      */
     private static boolean isApiEntryPoint(String methodId, MethodModel method) {
-        // 1. Controller class suffix
+        String entrySource = getEntrySource(method);
+
+        // ── Rule 0: Skip private / protected methods ──────────────────────────
+        // Entry source is: "@Annotation public|private|protected methodName"
+        // A private or protected method is NEVER an HTTP endpoint.
+        if (entrySource.contains("private ") || entrySource.contains("protected ")) {
+            return false;
+        }
+
+        // ── Rule 1: Has a mapping annotation (most reliable) ──────────────────
+        if (MAPPING_ANNOTATIONS.stream().anyMatch(entrySource::contains)) {
+            return true;
+        }
+
+        // ── Rule 2: Public method in a Controller/Resource class ──────────────
         int hash = methodId.lastIndexOf('#');
         int dot  = methodId.lastIndexOf('.', hash);
         if (hash > 0 && dot >= 0) {
             String className = methodId.substring(dot + 1, hash);
-            if (className.endsWith("Controller") || className.endsWith("Resource")) {
+            if ((className.endsWith("Controller") || className.endsWith("Resource"))
+                    && entrySource.contains("public ")) {
                 return true;
             }
         }
 
-        // 2. Method name prefix heuristic
-        String name = shortName(methodId).toLowerCase();
-        for (String prefix : VERB_MAP.keySet()) {
-            if (name.startsWith(prefix)) return true;
-        }
-
-        // 3. Annotation keyword in CFG source text
-        return method.getControlFlowModel()
-                .map(cfg -> cfg.getNodes().values().stream()
-                        .anyMatch(node -> {
-                            String src = node.getSourceCode();
-                            return MAPPING_ANNOTATIONS.stream().anyMatch(src::contains);
-                        }))
-                .orElse(false);
+        return false;
     }
+
 }

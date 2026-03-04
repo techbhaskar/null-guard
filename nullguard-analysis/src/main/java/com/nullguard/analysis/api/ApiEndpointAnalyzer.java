@@ -4,6 +4,10 @@ import com.nullguard.analysis.config.AnalysisConfig;
 import com.nullguard.analysis.model.APIFlowTrace;
 import com.nullguard.analysis.model.ApiEndpointModel;
 import com.nullguard.analysis.model.ReachData;
+import com.nullguard.core.model.ClassModel;
+import com.nullguard.core.model.MethodModel;
+import com.nullguard.core.model.ModuleModel;
+import com.nullguard.core.model.PackageModel;
 import com.nullguard.core.model.ProjectModel;
 
 import java.util.ArrayList;
@@ -32,6 +36,10 @@ public class ApiEndpointAnalyzer {
      * Extracts API entry points and their full downstream propagation chains.
      */
     public void build(ProjectModel project) {
+        // Build a methodId → MethodModel index so we can resolve the MethodModel
+        // for each trace entry point and use its annotation/modifier data.
+        Map<String, MethodModel> methodIndex = buildMethodIndex(project);
+
         List<APIFlowTrace> traces = flowPathExtractor.extractDistinctPaths(
                 project, config.getPropagationDepthLimit());
 
@@ -42,8 +50,15 @@ public class ApiEndpointAnalyzer {
             if (trace.getPath().isEmpty()) continue;
 
             String entryPoint = trace.getPath().get(0);
-            String httpMethod = FlowPathExtractor.inferHttpMethod(entryPoint);
-            String apiPath    = inferPath(entryPoint);
+            MethodModel entryMethod = methodIndex.get(entryPoint);
+
+            // Use annotation-aware overloads if MethodModel is available
+            String httpMethod = (entryMethod != null)
+                    ? FlowPathExtractor.inferHttpMethod(entryPoint, entryMethod)
+                    : FlowPathExtractor.inferHttpMethod(entryPoint);
+            String apiPath = (entryMethod != null)
+                    ? FlowPathExtractor.inferPath(entryPoint, entryMethod)
+                    : inferPathFromId(entryPoint);
 
             built.add(new ApiEndpointModel(
                     entryPoint,
@@ -66,12 +81,29 @@ public class ApiEndpointAnalyzer {
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
+    /** Builds a flat methodId → MethodModel index across the whole project. */
+    private static Map<String, MethodModel> buildMethodIndex(ProjectModel project) {
+        Map<String, MethodModel> index = new LinkedHashMap<>();
+        for (ModuleModel mod : project.getModules().values()) {
+            for (PackageModel pkg : mod.getPackages().values()) {
+                for (ClassModel cls : pkg.getClasses().values()) {
+                    for (MethodModel m : cls.getMethods().values()) {
+                        String id = pkg.getPackageName() + "." + cls.getClassName()
+                                    + "#" + m.getSignature();
+                        index.put(id, m);
+                    }
+                }
+            }
+        }
+        return index;
+    }
+
     /**
-     * Infers a rough URL path from the method ID.
-     * e.g. "com.nova.user.web.UserController#findOrCreateUser(String, String)"
-     *   →  "/user/findOrCreateUser"
+     * Fallback path inference from the method ID only (no MethodModel available).
+     * e.g. "com.nova.user.web.UserController#rejectVerification(UUID, ...)"
+     *   →  "/user/rejectVerification"
      */
-    private static String inferPath(String methodId) {
+    private static String inferPathFromId(String methodId) {
         int hash = methodId.lastIndexOf('#');
         int dot  = methodId.lastIndexOf('.', hash);
         if (hash < 0 || dot < 0) return "/" + methodId;
@@ -79,7 +111,6 @@ public class ApiEndpointAnalyzer {
         String className  = methodId.substring(dot + 1, hash);
         String methodName = methodId.substring(hash + 1, methodId.indexOf('(', hash));
 
-        // Strip "Controller" / "Resource" suffix from class name
         String resource = className
                 .replace("Controller", "")
                 .replace("Resource", "")
@@ -88,3 +119,4 @@ public class ApiEndpointAnalyzer {
         return "/" + resource + "/" + methodName;
     }
 }
+

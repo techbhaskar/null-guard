@@ -56,40 +56,70 @@ public final class ArchitectureValidator {
     // ── 2. No Circular Dependencies ───────────────────────────────────────────
 
     /**
-     * Checks that internal (non-external) call graph edges contain no cycles
-     * using iterative DFS with three-colour marking.
+     * Checks that internal (non-external) call graph edges contain no cycles.
+     *
+     * <p><strong>Policy (changed from fail → warn):</strong><br>
+     * Real-world Java method call graphs are almost always cyclic (mutual
+     * recursion, callback patterns, Spring proxy chains, etc.).
+     * {@link com.nullguard.scoring.propagation.FixpointRiskPropagationEngine}
+     * already handles cycles safely via its convergence loop.
+     * Crashing the pipeline here prevents legitimate projects from being analysed.
+     * We therefore log up to {@value #MAX_CYCLE_LOG} cycle sites as warnings
+     * and continue – consistent with how popular static-analysis tools behave.
      */
     public void validateNoCircularDependencies(PipelineContext ctx) {
         GlobalCallGraph callGraph = ctx.getCallGraph();
 
-        // Collect internal nodes only (external nodes are leaves and cannot form cycles)
         Set<String> internalNodes = new HashSet<>(callGraph.getOutgoing().keySet());
         internalNodes.removeAll(callGraph.getExternalNodes());
 
-        // Three-colour DFS: WHITE=0 (unvisited), GRAY=1 (in stack), BLACK=2 (done)
         Map<String, Integer> colour = new HashMap<>();
         for (String node : internalNodes) {
             colour.put(node, 0);
         }
 
+        Set<String> cycleNodes = new java.util.LinkedHashSet<>();
         for (String start : internalNodes) {
             if (colour.getOrDefault(start, 0) == 0) {
-                detectCycle(start, callGraph, colour, internalNodes);
+                collectCycles(start, callGraph, colour, internalNodes, cycleNodes);
             }
         }
+
+        if (!cycleNodes.isEmpty()) {
+            int reported = 0;
+            for (String n : cycleNodes) {
+                String msg = "Call graph cycle at: " + n;
+                ctx.addCycleWarning(msg);
+                if (reported++ < MAX_CYCLE_LOG) {
+                    System.out.println("[NullGuard][WARN] " + msg);
+                }
+            }
+            if (cycleNodes.size() > MAX_CYCLE_LOG) {
+                String extra = "... and " + (cycleNodes.size() - MAX_CYCLE_LOG) + " more cycle sites";
+                ctx.addCycleWarning(extra);
+                System.out.println("[NullGuard][WARN] " + extra);
+            }
+            String safe = "Cycles handled safely by the fixpoint propagation engine. Analysis continues normally.";
+            ctx.addCycleWarning(safe);
+            System.out.println("[NullGuard][WARN] " + safe);
+        }
+
     }
 
-    private void detectCycle(String start, GlobalCallGraph callGraph,
-                              Map<String, Integer> colour, Set<String> internalNodes) {
-        // Iterative DFS to avoid stack overflow on large graphs
-        Deque<String> stack = new ArrayDeque<>();
+    private static final int MAX_CYCLE_LOG = 5;
+
+    private void collectCycles(String start, GlobalCallGraph callGraph,
+                                Map<String, Integer> colour,
+                                Set<String> internalNodes,
+                                Set<String> cycleNodes) {
+        Deque<String>  stack     = new ArrayDeque<>();
         Deque<Boolean> returning = new ArrayDeque<>();
 
         stack.push(start);
         returning.push(false);
 
         while (!stack.isEmpty()) {
-            String node = stack.peek();
+            String  node     = stack.peek();
             boolean isReturn = returning.peek();
 
             if (isReturn) {
@@ -106,14 +136,16 @@ public final class ArchitectureValidator {
                 continue;
             }
             if (c == 1) {
-                throw new ArchitectureViolationException(
-                        "Circular dependency detected at method: " + node +
-                        ". The call graph must be acyclic for deterministic propagation.");
+                // Cycle detected – record it and skip (don't throw)
+                cycleNodes.add(node);
+                stack.pop();
+                returning.pop();
+                continue;
             }
 
             colour.put(node, 1); // GRAY – in stack
             returning.pop();
-            returning.push(true); // mark for post-processing
+            returning.push(true);
 
             Set<String> callees = callGraph.getCallees(node);
             if (callees != null) {

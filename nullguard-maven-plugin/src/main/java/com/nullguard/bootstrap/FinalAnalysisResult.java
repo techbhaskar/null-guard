@@ -7,6 +7,7 @@ import com.nullguard.suggestions.model.Suggestion;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -25,6 +26,8 @@ public final class FinalAnalysisResult implements Serializable {
     private final List<Suggestion>          suggestions;
     private final VisualizationBundle       visualizations;
     private final TimingMetrics             timing;
+    private final List<String>              cycleWarnings;
+    private final Map<String, List<String>> riskReasonMap;
 
     FinalAnalysisResult(
             ProjectRiskSummary        riskSummary,
@@ -32,7 +35,9 @@ public final class FinalAnalysisResult implements Serializable {
             List<ArchitecturalHotspot> hotspots,
             List<Suggestion>          suggestions,
             VisualizationBundle       visualizations,
-            TimingMetrics             timing) {
+            TimingMetrics             timing,
+            List<String>              cycleWarnings,
+            Map<String, List<String>> riskReasonMap) {
 
         this.riskSummary    = Objects.requireNonNull(riskSummary,    "riskSummary");
         this.apiEndpoints   = List.copyOf(Objects.requireNonNull(apiEndpoints,   "apiEndpoints"));
@@ -40,6 +45,8 @@ public final class FinalAnalysisResult implements Serializable {
         this.suggestions    = List.copyOf(Objects.requireNonNull(suggestions,    "suggestions"));
         this.visualizations = Objects.requireNonNull(visualizations, "visualizations");
         this.timing         = Objects.requireNonNull(timing,         "timing");
+        this.cycleWarnings  = List.copyOf(Objects.requireNonNull(cycleWarnings,  "cycleWarnings"));
+        this.riskReasonMap  = Map.copyOf(Objects.requireNonNull(riskReasonMap,   "riskReasonMap"));
     }
 
     // ── Accessors ────────────────────────────────────────────────────────────
@@ -50,6 +57,8 @@ public final class FinalAnalysisResult implements Serializable {
     public List<Suggestion> getSuggestions()             { return suggestions; }
     public VisualizationBundle getVisualizations()       { return visualizations; }
     public TimingMetrics getTiming()                     { return timing; }
+    public List<String> getCycleWarnings()               { return cycleWarnings; }
+    public Map<String, List<String>> getRiskReasonMap()  { return riskReasonMap; }
 
     // ── Convenience ─────────────────────────────────────────────────────────
 

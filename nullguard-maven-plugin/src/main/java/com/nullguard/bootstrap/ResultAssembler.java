@@ -39,8 +39,11 @@ public final class ResultAssembler {
                 hotspots,
                 suggestions,
                 visualizations,
-                timing
+                timing,
+                ctx.getCycleWarnings(),
+                ctx.getRiskReasonMap()
         );
+
     }
 
     /**
