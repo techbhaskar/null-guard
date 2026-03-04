@@ -13,4 +13,13 @@ public interface RiskPropagationEngine {
             GlobalCallGraph callGraph,
             ScoringConfig config
     );
+
+    default Map<String, AdjustedRiskModel> propagate(
+            ProjectModel project,
+            GlobalCallGraph callGraph,
+            ScoringConfig config,
+            java.util.List<com.nullguard.analysis.model.ApiEndpointModel> endpoints
+    ) {
+        return propagate(project, callGraph, config);
+    }
 }

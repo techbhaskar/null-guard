@@ -17,7 +17,7 @@ class JsonGraphExporterTest {
     @Test
     void testJsonStructureValidation() {
         LinkedHashMap<String, GraphNode> nodes = new LinkedHashMap<>();
-        nodes.put("A", new GraphNode("A", 10.0, 5.0, 15.0, RiskLevel.LOW, false));
+        nodes.put("A", new GraphNode("A", 10.0, 5.0, 0.0, 0.0, 15.0, RiskLevel.LOW, false, java.util.List.of()));
         LinkedHashSet<GraphEdge> edges = new LinkedHashSet<>();
         edges.add(new GraphEdge("A", "B"));
         

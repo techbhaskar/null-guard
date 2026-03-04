@@ -67,11 +67,7 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
     
     private String extractCalledName(String methodCallString) {
         int parenIndex = methodCallString.indexOf('(');
-        if (parenIndex == -1) return methodCallString;
-        int dotIndex = methodCallString.lastIndexOf('.', parenIndex);
-        if (dotIndex != -1) {
-            return methodCallString.substring(dotIndex + 1, parenIndex).trim();
-        }
+        if (parenIndex == -1) return methodCallString.trim();
         return methodCallString.substring(0, parenIndex).trim();
     }
 }

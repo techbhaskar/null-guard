@@ -10,6 +10,9 @@ import com.nullguard.core.model.ProjectModel;
 import com.nullguard.scoring.config.ScoringConfig;
 import com.nullguard.scoring.model.AdjustedRiskModel;
 import com.nullguard.scoring.model.RiskLevel;
+import com.nullguard.scoring.analysis.FailureImpactAnalyzer;
+import com.nullguard.analysis.model.ApiEndpointModel;
+import com.nullguard.scoring.model.ImpactChain;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +38,15 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
 
     @Override
     public Map<String, AdjustedRiskModel> propagate(ProjectModel project, GlobalCallGraph callGraph, ScoringConfig config) {
+        return propagate(project, callGraph, config, Collections.emptyList());
+    }
+
+    @Override
+    public Map<String, AdjustedRiskModel> propagate(ProjectModel project, GlobalCallGraph callGraph, ScoringConfig config, List<ApiEndpointModel> endpoints) {
+        // Build impact map (Failure Impact Analyzer)
+        FailureImpactAnalyzer impactAnalyzer = new FailureImpactAnalyzer();
+        Map<String, List<ImpactChain>> fullImpactMap = impactAnalyzer.analyze(callGraph, endpoints);
+
         Map<String, Double> intrinsicRiskMap = new LinkedHashMap<>();
         
         for (ModuleModel mod : project.getModules().values()) {
@@ -136,14 +148,58 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
         }
         
         // Step 3: Build models + collect contributor explanations
+        // Also wire ApiRiskAggregator for the v1.1 APIExposureWeight term
+        //   AdjustedRisk = IntrinsicRisk + PropagatedRisk + APIExposureWeight + ContractPenalty
         Map<String, AdjustedRiskModel> finalModels = new LinkedHashMap<>();
         Map<String, List<String>> contributors = new LinkedHashMap<>();
 
+        // Build reverse map: methodId → list of methods that call it (callers)
+        // Used to compute approximate API reach count per method.
+        Map<String, Integer> callerCount = new LinkedHashMap<>();
+        for (String m : allMethods) {
+            for (String callee : callGraph.getCallees(m)) {
+                callerCount.merge(callee, 1, Integer::sum);
+            }
+        }
+
+        // Also iterate all MethodModel objects to build a methodId→MethodModel index
+        // so we can call setAdjustedRiskModel() and read contractPenalty.
+        Map<String, MethodModel> methodModelIndex = buildMethodModelIndex(project);
+
         for (String methodId : allMethods) {
-            double intrinsic = intrinsicRisk.get(methodId);
+            double intrinsic  = intrinsicRisk.get(methodId);
             double propagated = propagatedRisk.get(methodId);
-            double adjusted = clamp(intrinsic + propagated);
-            finalModels.put(methodId, new AdjustedRiskModel(intrinsic, propagated, adjusted, RiskLevel.from(adjusted)));
+
+            // v1.1 APIExposureWeight: BaseRisk × log(1 + N) where N = number of unique affected APIs
+            List<ImpactChain> impactChains = fullImpactMap.getOrDefault(methodId, List.of());
+            int    apiReachCount    = impactChains.size();
+            double baseRisk         = clamp(intrinsic + propagated);
+            double apiExposureWeight = baseRisk > 0.001
+                                        ? Math.min(baseRisk * Math.log1p(apiReachCount), 100.0)
+                                        : 0.0;
+
+            // ContractPenalty from ContractModel attached to MethodModel (if any)
+            double contractPenalty = 0.0;
+            MethodModel mm = methodModelIndex.get(methodId);
+            if (mm != null) {
+                contractPenalty = mm.getContractModel()
+                    .map(obj -> {
+                        try {
+                            return ((Number) obj.getClass()
+                                    .getMethod("getContractPenalty")
+                                    .invoke(obj)).doubleValue();
+                        } catch (Exception e) { return 0.0; }
+                    }).orElse(0.0);
+            }
+
+            double adjusted = clamp(intrinsic + propagated + apiExposureWeight + contractPenalty);
+            AdjustedRiskModel arm = new AdjustedRiskModel(
+                    intrinsic, propagated, apiExposureWeight, contractPenalty,
+                    adjusted, RiskLevel.from(adjusted), impactChains);
+            finalModels.put(methodId, arm);
+
+            // Store back onto MethodModel so HotspotDetector can read it in finalize()
+            if (mm != null) mm.setAdjustedRiskModel(arm);
 
             // Build contributor list: which callees drove the propagated risk the most
             List<String[]> calleeScores = new ArrayList<>();
@@ -271,6 +327,21 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
         return allMethods;
     }
     
+    private Map<String, MethodModel> buildMethodModelIndex(ProjectModel project) {
+        Map<String, MethodModel> index = new LinkedHashMap<>();
+        for (var mod : project.getModules().values()) {
+            for (var pkg : mod.getPackages().values()) {
+                for (var cls : pkg.getClasses().values()) {
+                    for (MethodModel mm : cls.getMethods().values()) {
+                        String id = pkg.getPackageName() + "." + cls.getClassName() + "#" + mm.getSignature();
+                        index.put(id, mm);
+                    }
+                }
+            }
+        }
+        return index;
+    }
+
     private double clamp(double value) {
         if (value < 0.0) return 0.0;
         if (value > 100.0) return 100.0;

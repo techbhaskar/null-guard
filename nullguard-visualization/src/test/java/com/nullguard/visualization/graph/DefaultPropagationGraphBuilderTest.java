@@ -28,8 +28,8 @@ class DefaultPropagationGraphBuilderTest {
         GlobalCallGraph callGraph = new GlobalCallGraph(outgoing, new LinkedHashMap<>(), new LinkedHashSet<>(Collections.singletonList("C")));
 
         Map<String, AdjustedRiskModel> risks = new LinkedHashMap<>();
-        risks.put("A", new AdjustedRiskModel(10, 0, 10, RiskLevel.LOW));
-        risks.put("B", new AdjustedRiskModel(50, 0, 50, RiskLevel.MEDIUM));
+        risks.put("A", new AdjustedRiskModel(10, 0, 0, 0, 10, RiskLevel.LOW, java.util.List.of()));
+        risks.put("B", new AdjustedRiskModel(50, 0, 0, 0, 50, RiskLevel.MEDIUM, java.util.List.of()));
 
         DefaultPropagationGraphBuilder builder = new DefaultPropagationGraphBuilder();
         PropagationGraph graph = builder.build(project, callGraph, risks);

@@ -83,7 +83,7 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
                         Matcher m = RECEIVER_METHOD_PATTERN.matcher(src);
                         if (m.find()) {
                             String receiver = m.group(1);
-                            String callee   = m.group(2);
+                            String callee   = src.substring(m.start(), src.indexOf('(', m.start())).trim();
                             // DereferenceInstruction tracks null safety of the receiver
                             instructions.add(new DereferenceInstruction(
                                     baseId + (instrIndex++), cfgId, line, receiver));
@@ -162,7 +162,7 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
         if (eq < 0) return null;
         String rhs = src.substring(eq + 1).trim();
         Matcher m = RECEIVER_METHOD_PATTERN.matcher(rhs);
-        if (m.find()) return m.group(2);         // e.g. "findByEmail"
+        if (m.find()) return rhs.substring(m.start(), rhs.indexOf('(', m.start())).trim();
         // Standalone call on RHS: foo(...)
         int p = rhs.indexOf('(');
         if (p > 0) {
@@ -177,8 +177,6 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
         if (p > 0) {
             String before = src.substring(0, p).trim();
             // If there's a dot, take the part after it
-            int dot = before.lastIndexOf('.');
-            if (dot >= 0) return before.substring(dot + 1).trim();
             return before;
         }
         return src;

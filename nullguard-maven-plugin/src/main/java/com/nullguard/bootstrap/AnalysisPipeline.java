@@ -119,9 +119,14 @@ public final class AnalysisPipeline {
             return null;
         });
 
+        // ── Step 3.5: Extract API Endpoints (needed for v1.1 Blast Radius scoring) ──
+        List<ApiEndpointModel> apiEndpoints = timed(ctx, "api-endpoints",
+                () -> new ArrayList<>(analysisOrchestrator.getApiEndpointAnalyzer().getEndpoints()));
+        ctx.setApiEndpoints(apiEndpoints);
+
         // ── Step 4: Fixpoint Risk Propagation ────────────────────────────────
         Map<String, AdjustedRiskModel> riskMap = timed(ctx, "risk-propagation",
-                () -> riskPropagationEngine.propagate(projectModel, callGraph, config.toScoringConfig()));
+                () -> riskPropagationEngine.propagate(projectModel, callGraph, config.toScoringConfig(), apiEndpoints));
         ctx.setAdjustedRiskMap(riskMap);
 
         // Store per-method risk contributor explanations for dashboard rendering
@@ -131,16 +136,10 @@ public final class AnalysisPipeline {
             ctx.setRiskReasonMap(fpe.getRiskContributors());
         }
 
-
         // ── Step 5: Stability Scoring ─────────────────────────────────────────
         ProjectRiskSummary riskSummary = timed(ctx, "scoring",
                 () -> stabilityScorer.score(riskMap, callGraph, config.toScoringConfig()));
         ctx.setRiskSummary(riskSummary);
-
-        // ── Step 5a: Collect API Endpoints from Analysis result ───────────────
-        List<ApiEndpointModel> apiEndpoints = timed(ctx, "api-endpoints",
-                () -> new ArrayList<>(analysisOrchestrator.getApiEndpointAnalyzer().getEndpoints()));
-        ctx.setApiEndpoints(apiEndpoints);
 
 
         // ── Step 5b: Collect Hotspots from Analysis result ────────────────────

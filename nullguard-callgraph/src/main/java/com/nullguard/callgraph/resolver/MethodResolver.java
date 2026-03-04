@@ -12,7 +12,11 @@ public final class MethodResolver {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel mth : cls.getMethods().values()) {
                         String id = pkg.getPackageName() + "." + cls.getClassName() + "#" + mth.getSignature();
-                        if (mth.getMethodName().equals(calledMethodName) || mth.getSignature().contains(calledMethodName)) {
+                        String searchName = calledMethodName;
+                        if (searchName.contains(".")) {
+                            searchName = searchName.substring(searchName.lastIndexOf(".") + 1);
+                        }
+                        if (mth.getMethodName().equals(searchName) || mth.getSignature().contains(searchName)) {
                             return Optional.of(id);
                         }
                     }

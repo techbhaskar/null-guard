@@ -29,9 +29,12 @@ public class DefaultPropagationGraphBuilder implements PropagationGraphBuilder {
                 methodId,
                 riskModel.getIntrinsicRisk(),
                 riskModel.getPropagatedRisk(),
+                riskModel.getApiExposureWeight(),
+                riskModel.getContractPenalty(),
                 riskModel.getAdjustedRisk(),
                 riskModel.getRiskLevel(),
-                external
+                external,
+                riskModel.getImpactMap()
             );
             nodes.put(methodId, node);
         }
@@ -39,7 +42,7 @@ public class DefaultPropagationGraphBuilder implements PropagationGraphBuilder {
         for (String externalNode : callGraph.getExternalNodes()) {
             if (!nodes.containsKey(externalNode)) {
                 nodes.put(externalNode, new GraphNode(
-                    externalNode, 0.0, 0.0, 0.0, RiskLevel.LOW, true
+                    externalNode, 0.0, 0.0, 0.0, 0.0, 0.0, RiskLevel.LOW, true, java.util.List.of()
                 ));
             }
         }
