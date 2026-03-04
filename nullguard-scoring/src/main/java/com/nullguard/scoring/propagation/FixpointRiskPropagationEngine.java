@@ -1,6 +1,6 @@
 package com.nullguard.scoring.propagation;
 
-import com.nullguard.analysis.summary.MethodSummary;
+
 import com.nullguard.callgraph.model.GlobalCallGraph;
 import com.nullguard.core.model.ClassModel;
 import com.nullguard.core.model.MethodModel;
@@ -45,25 +45,33 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
                         // Must match BasicCallGraphBuilder.callerId format exactly.
                         String methodId = pkg.getPackageName() + "." + cls.getClassName() + "#" + m.getSignature();
                         m.getMethodSummary().ifPresent(obj -> {
-                            if (obj instanceof MethodSummary) {
-                                MethodSummary summary = (MethodSummary) obj;
-                                double risk = 0.0;
+                            // Use pure reflection – avoids a compile-time dependency on the
+                            // MethodSummary class from nullguard-analysis and is immune to
+                            // ClassLoader / instanceof issues that silently produced 0.0.
+                            double risk = 0.0;
+                            try {
+                                // Fast path: MethodSummary.getIntrinsicRiskScore() (added in Fix 5)
+                                java.lang.reflect.Method mScore =
+                                    obj.getClass().getMethod("getIntrinsicRiskScore");
+                                risk = ((Number) mScore.invoke(obj)).doubleValue();
+                            } catch (Exception e1) {
                                 try {
-                                    java.lang.reflect.Method mScore = summary.getClass().getMethod("getIntrinsicRiskScore");
-                                    risk = ((Number) mScore.invoke(summary)).doubleValue();
-                                } catch (Exception e) {
-                                    try {
-                                        java.lang.reflect.Method mProf = summary.getClass().getMethod("getIntrinsicRiskProfile");
-                                        Object profile = mProf.invoke(summary);
-                                        java.lang.reflect.Method mProfScore = profile.getClass().getMethod("getIntrinsicRiskScore");
-                                        risk = ((Number) mProfScore.invoke(profile)).doubleValue();
-                                    } catch (Exception ex) {
-                                        // Ignore
-                                    }
+                                    // Fallback: getIntrinsicRiskProfile().getIntrinsicRiskScore()
+                                    java.lang.reflect.Method mProf =
+                                        obj.getClass().getMethod("getIntrinsicRiskProfile");
+                                    Object profile = mProf.invoke(obj);
+                                    java.lang.reflect.Method mProfScore =
+                                        profile.getClass().getMethod("getIntrinsicRiskScore");
+                                    risk = ((Number) mProfScore.invoke(profile)).doubleValue();
+                                } catch (Exception e2) {
+                                    // Both probes failed – leave risk at 0.0
                                 }
+                            }
+                            if (risk > 0.0) {
                                 intrinsicRiskMap.put(methodId, risk);
                             }
                         });
+
                     }
                 }
             }
@@ -95,9 +103,16 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
                 double newPropagated = 0.0;
                 
                 for (String callee : callGraph.getCallees(methodId)) {
-                    double childIntrinsic = intrinsicRisk.getOrDefault(callee, 0.0);
+                    // Skip self-loops: a method calling itself in a cycle must not
+                    // feed its own propagated risk back into itself.  Without this guard
+                    // the fixpoint equation p = (p * decay + rest) solves to
+                    // p = rest / (1 – decay), inflating scores by up to 6.7× for
+                    // decay=0.85 and producing propagated values that no contributor
+                    // explanation can account for.
+                    if (callee.equals(methodId)) continue;
+                    double childIntrinsic  = intrinsicRisk.getOrDefault(callee, 0.0);
                     double childPropagated = propagatedRisk.getOrDefault(callee, 0.0);
-                    double childAdjusted = childIntrinsic + childPropagated;
+                    double childAdjusted   = childIntrinsic + childPropagated;
                     newPropagated += childAdjusted * decayFactor;
                 }
                 
@@ -132,8 +147,12 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
 
             // Build contributor list: which callees drove the propagated risk the most
             List<String[]> calleeScores = new ArrayList<>();
+            boolean hasSelfLoop = false;
             for (String callee : callGraph.getCallees(methodId)) {
-                if (callee.equals(methodId)) continue; // skip self-loops from cycles
+                if (callee.equals(methodId)) {
+                    hasSelfLoop = true;
+                    continue; // skip self-loops from cycles
+                }
                 double calleeAdj = clamp(
                     intrinsicRisk.getOrDefault(callee, 0.0)
                     + propagatedRisk.getOrDefault(callee, 0.0));
@@ -145,35 +164,79 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
             // Sort descending by contribution magnitude
             calleeScores.sort(Comparator.comparingDouble((String[] a) -> Double.parseDouble(a[1])).reversed());
             List<String> reasons = new ArrayList<>();
-            // Intrinsic reason first
+
+            // ── Own intrinsic null-risk ──────────────────────────────────────
             if (intrinsic > 0.001) {
                 reasons.add("Own null-risk: +" + String.format("%.2f", intrinsic));
+                reasons.add("\uD83D\uDCA1 Fix: Return Optional<T> instead of null, annotate parameters "
+                    + "with @NonNull, add null-checks on all return paths, "
+                    + "and guard any field or parameter that may be null before dereferencing.");
             }
-            // Top-3 callee contributors
+
+            // ── Top-3 callee contributors ────────────────────────────────────
             int shown = 0;
             for (String[] cs : calleeScores) {
                 if (shown++ >= 3) break;
                 // Format: ClassName#methodName(params) — trim params for readability
                 String shortCallee;
-                int hash = cs[0].lastIndexOf('#');
+                String fullCallee = cs[0];
+                int hash = fullCallee.lastIndexOf('#');
                 if (hash >= 0) {
-                    String classSimple = cs[0].substring(cs[0].lastIndexOf('.', hash) + 1, hash);
-                    String methodSig   = cs[0].substring(hash + 1);
+                    String classSimple = fullCallee.substring(fullCallee.lastIndexOf('.', hash) + 1, hash);
+                    String methodSig   = fullCallee.substring(hash + 1);
                     // Trim long parameter lists
                     if (methodSig.length() > 40) {
                         int paren = methodSig.indexOf('(');
-                        if (paren > 0) methodSig = methodSig.substring(0, paren) + "(…)";
+                        if (paren > 0) methodSig = methodSig.substring(0, paren) + "(\u2026)";
                     }
                     shortCallee = classSimple + "#" + methodSig;
                 } else {
-                    shortCallee = cs[0];
+                    shortCallee = fullCallee;
                 }
-                reasons.add("\u2190 calls " + shortCallee + " (+" + cs[1] + ")");
+
+                // Show the callee's own intrinsic null-risk next to the contribution score
+                // so the risk chain is immediately visible (e.g. findOrCreateUser → verifyOtp)
+                double calleeIntrinsic = intrinsicRisk.getOrDefault(fullCallee, 0.0);
+                String calleeIntrinsicNote = calleeIntrinsic > 0.5
+                    ? ", own null-risk: " + String.format("%.2f", calleeIntrinsic)
+                    : "";
+                reasons.add("\u2190 calls " + shortCallee + " (+" + cs[1] + calleeIntrinsicNote + ")");
+
+                // Fix message — if the callee itself has high intrinsic risk, name it as the root source
+                if (calleeIntrinsic > 5.0) {
+                    reasons.add("\uD83D\uDCA1 Fix: " + shortCallee + " is a known null-risk source "
+                        + "(intrinsic: " + String.format("%.2f", calleeIntrinsic) + "pt). "
+                        + "Null-guard its return value before use "
+                        + "(e.g. if (result == null) throw / return early), "
+                        + "or refactor " + shortCallee + " to return Optional<T>.");
+                } else {
+                    reasons.add("\uD83D\uDCA1 Fix: Null-guard the result of " + shortCallee
+                        + " before use (e.g. if (result == null) throw / return early), "
+                        + "or refactor it to return Optional<T> and propagate safely.");
+                }
             }
+
+            // ── Overflow note ────────────────────────────────────────────────
             if (calleeScores.size() > 3) {
-                reasons.add("… +" + (calleeScores.size() - 3) + " more high-risk callees");
+                int remaining = calleeScores.size() - 3;
+                reasons.add("\u2026 +" + remaining + " more high-risk callees");
+                reasons.add("\uD83D\uDCA1 Fix: Review the remaining " + remaining
+                    + " callees for nullable return values and unguarded parameters. "
+                    + "Add null-checks or Optional wrappers at each call site.");
+            }
+
+            // ── Self-loop / cycle note ───────────────────────────────────────
+            if (hasSelfLoop) {
+                double inflatedScore = propagated / (1.0 - decayFactor);
+                reasons.add("\u26A0 Cyclic self-call detected \u2014 score would have been "
+                    + String.format("%.2f", inflatedScore)
+                    + " without the self-loop guard (excluded for accuracy)");
+                reasons.add("\uD83D\uDCA1 Fix: Extract the recursive logic into a non-recursive helper method, "
+                    + "or replace recursion with an iterative loop. "
+                    + "Add explicit null-guards before any recursive call sites.");
             }
             contributors.put(methodId, Collections.unmodifiableList(reasons));
+
 
         }
 

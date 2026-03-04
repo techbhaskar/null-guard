@@ -25,6 +25,8 @@ public final class MethodSummary {
     public Map<String, NullState> getParameterNullability() { return parameterNullability; }
     public boolean isPropagatesNullFromCallee() { return propagatesNullFromCallee; }
     public RiskModel getIntrinsicRiskProfile() { return intrinsicRiskProfile; }
+    /** Convenience accessor — resolves the double-hop reflection in FixpointRiskPropagationEngine. */
+    public int getIntrinsicRiskScore() { return intrinsicRiskProfile.getIntrinsicRiskScore(); }
 
     public static Builder builder() { return new Builder(); }
 

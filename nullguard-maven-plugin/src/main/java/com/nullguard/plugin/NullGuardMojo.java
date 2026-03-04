@@ -311,6 +311,8 @@ public class NullGuardMojo extends AbstractMojo {
             ".chain-node:first-child::before{content:'⬡ ';color:#10b981}\n" +
             ".reason-list{margin:4px 0;padding-left:1.2em;color:#a5b4fc;font-size:.8em}\n" +
             ".reason-list li{margin:2px 0}\n" +
+            ".reason-cycle{color:#f59e0b !important;font-style:italic}\n" +
+            ".reason-fix{color:#10b981 !important;font-style:italic}\n" +
             "</style></head><body>\n" +
             "<div class='container'>\n" +
             "<h1>NullGuard Stability Dashboard</h1>\n" +
@@ -354,7 +356,11 @@ public class NullGuardMojo extends AbstractMojo {
             "  const rs=reasons[n.methodId]||[];\n" +
             "  const whyHtml=rs.length\n" +
             "    ?`<details><summary style='cursor:pointer;color:#64748b;font-size:.85em'>${rs.length} factor(s)</summary>" +
-            "<ul class='reason-list'>${rs.map(r=>`<li>${r}</li>`).join('')}</ul></details>`\n" +
+            "<ul class='reason-list'>${rs.map(r=>r.includes('\u26A0')" +
+            "?`<li class='reason-cycle'>${r}</li>`" +
+            ":r.includes('\uD83D\uDCA1')" +
+            "?`<li class='reason-fix'>${r}</li>`" +
+            ":`<li>${r}</li>`).join('')}</ul></details>`\n" +
             "    :`<span style='color:#334155;font-size:.8em'>no risk</span>`;\n" +
             "  const tr=document.createElement('tr');\n" +
             "  tr.innerHTML=`<td><code style='color:#cbd5e1;font-size:.85em'>${n.methodId}</code></td>" +
