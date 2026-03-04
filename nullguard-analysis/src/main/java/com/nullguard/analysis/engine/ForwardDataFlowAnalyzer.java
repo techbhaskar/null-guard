@@ -102,12 +102,10 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
 
             if (inst instanceof DereferenceInstruction deref) {
                 NullState receiverState = state.getOrDefault(deref.variableName(), NullState.UNKNOWN);
-                // Count as unguarded when receiver is confirmed NULL or UNKNOWN
-                // (UNKNOWN = we have no evidence it was guarded)
-                if (receiverState == NullState.NULL || receiverState == NullState.UNKNOWN) {
-                    // Heuristic guard-check: if the preceding instruction is a
-                    // ConditionalInstruction whose text mentions the same variable,
-                    // treat it as guarded and skip the penalty.
+                // ONLY count as unguarded when the receiver is CONFIRMED NULL.
+                // UNKNOWN means the variable was never explicitly assigned null —
+                // counting UNKNOWN causes massive false positives on every field/param access.
+                if (receiverState == NullState.NULL) {
                     if (!isGuardedByPrecedingCondition(instructions, i, deref.variableName())) {
                         dereferenceCount++;
                     }

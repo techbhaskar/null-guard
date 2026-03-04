@@ -2,7 +2,6 @@ package com.nullguard.bootstrap;
 
 import com.nullguard.analysis.model.ApiEndpointModel;
 import com.nullguard.analysis.model.ArchitecturalHotspot;
-import com.nullguard.analysis.model.ReachData;
 import com.nullguard.analysis.orchestrator.AnalysisOrchestrator;
 import com.nullguard.callgraph.builder.BasicCallGraphBuilder;
 import com.nullguard.callgraph.model.GlobalCallGraph;
@@ -132,8 +131,9 @@ public final class AnalysisPipeline {
 
         // ── Step 5a: Collect API Endpoints from Analysis result ───────────────
         List<ApiEndpointModel> apiEndpoints = timed(ctx, "api-endpoints",
-                () -> collectApiEndpoints(analysisOrchestrator.getApiEndpointAnalyzer()));
+                () -> new ArrayList<>(analysisOrchestrator.getApiEndpointAnalyzer().getEndpoints()));
         ctx.setApiEndpoints(apiEndpoints);
+
 
         // ── Step 5b: Collect Hotspots from Analysis result ────────────────────
         List<ArchitecturalHotspot> hotspots = timed(ctx, "hotspots",
@@ -173,15 +173,6 @@ public final class AnalysisPipeline {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private List<ApiEndpointModel> collectApiEndpoints(
-            com.nullguard.analysis.api.ApiEndpointAnalyzer analyzer) {
-        List<ApiEndpointModel> result = new ArrayList<>();
-        for (Map.Entry<String, ReachData> entry :
-                analyzer.getReachTracker().getReachMap().entrySet()) {
-            result.add(new ApiEndpointModel(entry.getKey()));
-        }
-        return result;
-    }
 
     /**
      * Executes a pipeline step, records its wall-clock duration, and returns the result.

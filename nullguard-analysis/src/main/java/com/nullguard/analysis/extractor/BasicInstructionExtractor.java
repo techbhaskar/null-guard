@@ -11,36 +11,38 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * BasicInstructionExtractor – maps CFG nodes to IR instructions.
+ * BasicInstructionExtractor – maps CFG nodes to typed IR instructions.
  *
- * <h3>Null-detection rules (Fix 2)</h3>
- * Previously all assignment sources were written as the literal string {@code "source"},
- * so the data-flow analyser never saw a {@code null} literal and intrinsic risk was always 0.
- *
- * Now the extractor:
+ * <h3>Null-detection rules</h3>
  * <ul>
- *   <li>Extracts the actual target variable name from the statement text</li>
- *   <li>Marks the source as {@code "NULL_LITERAL"} when the RHS is {@code null} or
- *       ends with {@code .orElse(null)}</li>
- *   <li>Emits a {@link DereferenceInstruction} for member accesses ({@code .}) on variables
- *       that <em>may</em> be null (heuristic: LHS of a prior null-assignment that is not
- *       guarded by an {@code if (x == null)} or {@code if (x != null)} check)</li>
- *   <li>Detects {@code return null} → marks as nullable return</li>
+ *   <li>Assignment with null RHS  → {@link AssignmentInstruction} with source = "NULL_LITERAL"</li>
+ *   <li>Assignment with non-null RHS → {@link AssignmentInstruction} with source = "NON_NULL"</li>
+ *   <li>{@code return null}        → {@link ReturnInstruction} with returnValue = "NULL_LITERAL"</li>
+ *   <li>Statement with {@code receiver.method(...)} → emits BOTH:
+ *       <ol>
+ *         <li>a {@link DereferenceInstruction} for the receiver (null-check tracking)</li>
+ *         <li>a {@link MethodCallInstruction} with the callee name (call-graph edge building)</li>
+ *       </ol>
+ *   </li>
+ *   <li>Standalone call {@code method(...)} → {@link MethodCallInstruction}</li>
  * </ul>
  */
 public final class BasicInstructionExtractor implements InstructionExtractor {
 
-    // Matches:  SomeType var = null;   or   var = null;
+    // x = null;  /  x = foo.orElse(null)  /  Type x = null;
     private static final Pattern NULL_ASSIGN_PATTERN =
-            Pattern.compile("(?:^|\\s)(\\w+)\\s*=\\s*null\\s*[;,)]");
+            Pattern.compile("(?:^|[\\s(,])([\\w$]+)\\s*(?:[+\\-*/%&|^]?=)(?!=)\\s*null\\s*[;,)]?");
 
-    // Matches:  .orElse(null)
     private static final Pattern OR_ELSE_NULL_PATTERN =
             Pattern.compile("\\.orElse\\(\\s*null\\s*\\)");
 
-    // Matches the target variable of an assignment:  type? var =   or just   var =
+    // Grab the LHS variable of any assignment
     private static final Pattern ASSIGNMENT_TARGET_PATTERN =
-            Pattern.compile("(?:[\\w<>\\[\\]]+\\s+)?(\\w+)\\s*(?:[+\\-*/%&|^]?=)(?!=)");
+            Pattern.compile("(?:[\\w<>\\[\\],\\s]+\\s+)?([\\w$]+)\\s*(?:[+\\-*/%&|^]?=)(?!=)");
+
+    // Split  receiver.method(args)  → group(1)=receiver, group(2)=method
+    private static final Pattern RECEIVER_METHOD_PATTERN =
+            Pattern.compile("^([\\w$]+)\\.([\\w$]+)\\s*\\(");
 
     @Override
     public List<Instruction> extract(ControlFlowModel cfg) {
@@ -48,46 +50,69 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
         int instrIndex = 0;
 
         for (ControlFlowNode node : cfg.getNodes().values()) {
-            String src      = node.getSourceCode();
-            String cfgId    = node.getId();
+            String src       = node.getSourceCode().trim();
+            String cfgId     = node.getId();
             String methodSig = cfg.getMethodSignature();
-            String id        = methodSig + "_" + cfgId + "_" + (instrIndex++);
+            String baseId    = methodSig + "_" + cfgId + "_";
             int    line      = node.getLineNumber();
 
             switch (node.getType()) {
                 case STATEMENT -> {
-                    boolean isAssignment = src.contains("=") && !src.contains("==");
+                    boolean isAssignment = src.contains("=") && !src.contains("==")
+                                           && !src.contains("!=") && !src.contains(">=")
+                                           && !src.contains("<=");
 
                     if (isAssignment) {
-                        // ── Detect null literal RHS ──────────────────────────────────
-                        String target  = extractTarget(src);
-                        String source  = isNullLiteralRhs(src) ? "NULL_LITERAL" : "source";
-                        instructions.add(new AssignmentInstruction(id, cfgId, line, target, source));
+                        String target = extractTarget(src);
+                        String source = isNullLiteralRhs(src) ? "NULL_LITERAL" : "NON_NULL";
+                        instructions.add(new AssignmentInstruction(
+                                baseId + (instrIndex++), cfgId, line, target, source));
 
-                    } else if (src.contains(".")) {
-                        // ── Method call or field access – potential dereference ──────
-                        // Emit a DereferenceInstruction; ForwardDataFlowAnalyzer will
-                        // only count it as UNGUARDED if the receiver was NULL in the
-                        // lattice state at this point.
-                        String receiver = extractReceiver(src);
-                        instructions.add(new DereferenceInstruction(id, cfgId, line, receiver));
+                        // The RHS may still be a method call — also emit a MethodCallInstruction
+                        // so the call graph can track the callee.
+                        String rhsCall = extractRhsMethodCall(src);
+                        if (rhsCall != null) {
+                            instructions.add(new MethodCallInstruction(
+                                    baseId + (instrIndex++), cfgId, line, rhsCall));
+                        }
 
                     } else if (src.contains("(")) {
-                        instructions.add(new MethodCallInstruction(id, cfgId, line, src.trim()));
+                        // Not an assignment – could be:
+                        //   a) receiver.method(args)   → DereferenceInstruction + MethodCallInstruction
+                        //   b) method(args)            → MethodCallInstruction only
+                        Matcher m = RECEIVER_METHOD_PATTERN.matcher(src);
+                        if (m.find()) {
+                            String receiver = m.group(1);
+                            String callee   = m.group(2);
+                            // DereferenceInstruction tracks null safety of the receiver
+                            instructions.add(new DereferenceInstruction(
+                                    baseId + (instrIndex++), cfgId, line, receiver));
+                            // MethodCallInstruction feeds the call graph builder
+                            instructions.add(new MethodCallInstruction(
+                                    baseId + (instrIndex++), cfgId, line, callee));
+                        } else {
+                            // Standalone call: method(args) — no explicit receiver
+                            String callee = extractCalleeFromSrc(src);
+                            instructions.add(new MethodCallInstruction(
+                                    baseId + (instrIndex++), cfgId, line, callee));
+                        }
                     }
+                    // Pure field-access statements with '.' but no '(' are rare;
+                    // skip to avoid false dereference counts.
                 }
                 case RETURN -> {
-                    // Detect:  return null;
-                    String retVal = src.replaceAll("return\\s*", "").replace(";", "").trim();
-                    boolean isNullReturn = retVal.equals("null");
-                    instructions.add(new ReturnInstruction(id, cfgId, line,
-                            isNullReturn ? "NULL_LITERAL" : retVal));
+                    String retVal = src.replaceFirst("(?i)^return\\s*", "").replace(";", "").trim();
+                    String finalVal = "null".equals(retVal) ? "NULL_LITERAL" : retVal;
+                    instructions.add(new ReturnInstruction(
+                            baseId + (instrIndex++), cfgId, line, finalVal));
                 }
                 case CONDITION ->
-                    instructions.add(new ConditionalInstruction(id, cfgId, line, src.trim()));
+                    instructions.add(new ConditionalInstruction(
+                            baseId + (instrIndex++), cfgId, line, src));
                 case THROW ->
-                    instructions.add(new ThrowInstruction(id, cfgId, line, src.trim()));
-                default -> { /* ENTRY/EXIT – no instruction */ }
+                    instructions.add(new ThrowInstruction(
+                            baseId + (instrIndex++), cfgId, line, src));
+                default -> { /* ENTRY/EXIT nodes carry no instructions */ }
             }
         }
         return Collections.unmodifiableList(instructions);
@@ -95,46 +120,67 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
-    /**
-     * Returns {@code true} when the statement's RHS is the literal {@code null}
-     * or contains {@code .orElse(null)}.
-     */
     private static boolean isNullLiteralRhs(String src) {
-        Matcher m = NULL_ASSIGN_PATTERN.matcher(src);
-        if (m.find()) return true;
-        return OR_ELSE_NULL_PATTERN.matcher(src).find();
+        if (OR_ELSE_NULL_PATTERN.matcher(src).find()) return true;
+        // Simple check: after the first '=' (not ==, !=, >=, <=) the RHS is "null"
+        int eq = indexOfAssignmentOperator(src);
+        if (eq < 0) return false;
+        String rhs = src.substring(eq + 1).trim();
+        return rhs.equals("null") || rhs.equals("null;") || rhs.startsWith("null ")
+               || rhs.startsWith("null,") || rhs.startsWith("null)");
     }
 
-    /**
-     * Extracts the assignment target variable name, or falls back to {@code "target"}.
-     */
-    private static String extractTarget(String src) {
-        Matcher m = ASSIGNMENT_TARGET_PATTERN.matcher(src.trim());
-        if (m.find()) {
-            return m.group(1);
+    /** Returns the index of the assignment '=' that is not part of ==, !=, >=, <=. */
+    private static int indexOfAssignmentOperator(String src) {
+        for (int i = 0; i < src.length(); i++) {
+            char c = src.charAt(i);
+            if (c == '=' ) {
+                if (i > 0) {
+                    char prev = src.charAt(i - 1);
+                    if (prev == '!' || prev == '<' || prev == '>' || prev == '=') continue;
+                }
+                if (i < src.length() - 1 && src.charAt(i + 1) == '=') continue;
+                return i;
+            }
         }
+        return -1;
+    }
+
+    private static String extractTarget(String src) {
+        Matcher m = ASSIGNMENT_TARGET_PATTERN.matcher(src);
+        if (m.find()) return m.group(1);
         return "target";
     }
 
     /**
-     * Extracts the receiver object of a member-access expression, or falls back to {@code "var"}.
-     * E.g. {@code user.getPhoneVerified()} → {@code "user"}.
+     * If the RHS of an assignment is a method call, return the callee name;
+     * e.g. {@code User user = userRepository.findByEmail(email);} → {@code "findByEmail"}.
+     * Returns {@code null} if the RHS is not a method call expression.
      */
-    private static String extractReceiver(String src) {
-        String trimmed = src.trim();
-        int dot = trimmed.indexOf('.');
-        if (dot > 0) {
-            // Strip leading type casts / keywords
-            String candidate = trimmed.substring(0, dot).trim();
-            // Take the last token (the actual variable name)
-            String[] tokens = candidate.split("\\s+");
-            if (tokens.length > 0) {
-                String last = tokens[tokens.length - 1];
-                if (last.matches("[a-zA-Z_$][\\w$]*")) {
-                    return last;
-                }
-            }
+    private static String extractRhsMethodCall(String src) {
+        int eq = indexOfAssignmentOperator(src);
+        if (eq < 0) return null;
+        String rhs = src.substring(eq + 1).trim();
+        Matcher m = RECEIVER_METHOD_PATTERN.matcher(rhs);
+        if (m.find()) return m.group(2);         // e.g. "findByEmail"
+        // Standalone call on RHS: foo(...)
+        int p = rhs.indexOf('(');
+        if (p > 0) {
+            String candidate = rhs.substring(0, p).trim();
+            if (candidate.matches("[\\w$]+")) return candidate;
         }
-        return "var";
+        return null;
+    }
+
+    private static String extractCalleeFromSrc(String src) {
+        int p = src.indexOf('(');
+        if (p > 0) {
+            String before = src.substring(0, p).trim();
+            // If there's a dot, take the part after it
+            int dot = before.lastIndexOf('.');
+            if (dot >= 0) return before.substring(dot + 1).trim();
+            return before;
+        }
+        return src;
     }
 }

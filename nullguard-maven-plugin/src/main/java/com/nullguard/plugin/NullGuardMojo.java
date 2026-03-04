@@ -236,10 +236,27 @@ public class NullGuardMojo extends AbstractMojo {
                 .append("</tr>\n");
         }
 
+        // ── API Endpoint rows ─────────────────────────────────────────────────
+        StringBuilder apiRows = new StringBuilder();
+        for (com.nullguard.analysis.model.ApiEndpointModel ep : result.getApiEndpoints()) {
+            String chainHtml = buildChainHtml(ep.getPropagationChain());
+            apiRows.append("<tr>")
+                .append("<td><span class='badge badge-http-").append(sanitize(ep.getHttpMethod())).append("'>").append(sanitize(ep.getHttpMethod())).append("</span></td>")
+                .append("<td><code style='color:#38bdf8'>").append(sanitize(ep.getPath())).append("</code></td>")
+                .append("<td><code style='color:#cbd5e1;font-size:.85em'>").append(sanitize(ep.getEndpointId())).append("</code></td>")
+                .append("<td><details><summary style='cursor:pointer;color:#94a3b8'>").append(ep.getPropagationChain().size()).append(" methods</summary>")
+                .append("<div class='chain'>").append(chainHtml).append("</div></details></td>")
+                .append("</tr>\n");
+        }
+        String apiSection = apiRows.length() > 0
+            ? apiRows.toString()
+            : "<tr><td colspan='4' style='color:#94a3b8'>No API endpoints detected – "
+              + "ensure source has Controller classes or REST verb-named methods</td></tr>";
+
         return "<!DOCTYPE html>\n<html><head><title>NullGuard Dashboard</title>\n" +
             "<style>\n" +
             "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#f8fafc;margin:0;padding:2rem}\n" +
-            ".container{max-width:1200px;margin:0 auto}\n" +
+            ".container{max-width:1300px;margin:0 auto}\n" +
             "h1{color:#38bdf8}h2{color:#94a3b8;font-size:1rem;text-transform:uppercase;letter-spacing:.05em}\n" +
             ".card{background:#1e293b;padding:1.5rem;border-radius:8px;margin-bottom:1rem;border:1px solid #334155}\n" +
             ".stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:1rem}\n" +
@@ -253,12 +270,22 @@ public class NullGuardMojo extends AbstractMojo {
             ".badge{padding:4px 8px;border-radius:4px;font-size:.85em;font-weight:bold}\n" +
             ".badge-CRITICAL{background:#991b1b;color:#fff}.badge-HIGH{background:#ef4444;color:#fff}\n" +
             ".badge-MODERATE{background:#f59e0b;color:#fff}.badge-LOW{background:#10b981;color:#fff}\n" +
+            ".badge-http-GET{background:#3b82f6;color:#fff}.badge-http-POST{background:#10b981;color:#fff}\n" +
+            ".badge-http-PUT{background:#f59e0b;color:#000}.badge-http-DELETE{background:#ef4444;color:#fff}\n" +
+            ".badge-http-PATCH{background:#8b5cf6;color:#fff}.badge-http-UNKNOWN{background:#6b7280;color:#fff}\n" +
+            ".chain{margin-top:.5rem;padding:.5rem;background:#0f172a;border-radius:4px;font-size:.8em}\n" +
+            ".chain-node{padding:2px 0;color:#a5b4fc}\n" +
+            ".chain-node::before{content:'↳ ';color:#38bdf8}\n" +
+            ".chain-node:first-child::before{content:'⬡ ';color:#10b981}\n" +
             "</style></head><body>\n" +
             "<div class='container'>\n" +
             "<h1>NullGuard Stability Dashboard</h1>\n" +
             "<p>Project: " + project.getName() + " &nbsp;|&nbsp; Analysed: " + timestamp + "</p>\n" +
             "<div class='card'><h2>Project Risk Summary</h2>\n" +
             "<div class='stat-grid' id='summaryGrid'></div></div>\n" +
+            "<div class='card'><h2>API Endpoints &amp; Propagation Chains</h2>\n" +
+            "<table><thead><tr><th>HTTP</th><th>Path</th><th>Entry Method</th><th>Propagation Chain</th></tr></thead>\n" +
+            "<tbody>" + apiSection + "</tbody></table></div>\n" +
             "<div class='card'><h2>Architectural Hotspots</h2>\n" +
             "<table><thead><tr><th>Method Ref</th><th>Hotspot Score</th><th>Severity</th></tr></thead>\n" +
             "<tbody>" + (hotspotRows.length() > 0 ? hotspotRows
@@ -297,5 +324,18 @@ public class NullGuardMojo extends AbstractMojo {
             "  tb.appendChild(tr);\n" +
             "});\n" +
             "</script></body></html>";
+    }
+
+    private String buildChainHtml(java.util.List<String> chain) {
+        StringBuilder sb = new StringBuilder();
+        for (String node : chain) {
+            sb.append("<div class='chain-node'>").append(sanitize(node)).append("</div>\n");
+        }
+        return sb.toString();
+    }
+
+    private static String sanitize(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 }
