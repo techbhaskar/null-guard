@@ -52,6 +52,8 @@ class CallGraphTest {
         String methodId = "com.test.TestClass#testSig()";
         assertTrue(graph.getOutgoing().containsKey(methodId));
         assertFalse(graph.getOutgoing().get(methodId).isEmpty());
-        assertTrue(graph.getExternalNodes().contains("ext#methodCall"));
+        assertTrue(graph.getExternalNodes().contains("ext#foo"),
+                "Expected external node 'ext#foo' (resolved from source 'foo()'), got: "
+                + graph.getExternalNodes());
     }
 }

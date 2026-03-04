@@ -26,7 +26,9 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
             for (PackageModel pkg : mod.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel m : cls.getMethods().values()) {
-                        String methodId = mod.getModuleName() + "." + pkg.getPackageName() + "." + cls.getClassName() + "#" + m.getSignature();
+                        // Canonical method ID format: packageName.className#signature
+                        // Must match BasicCallGraphBuilder.callerId format exactly.
+                        String methodId = pkg.getPackageName() + "." + cls.getClassName() + "#" + m.getSignature();
                         m.getMethodSummary().ifPresent(obj -> {
                             if (obj instanceof MethodSummary) {
                                 MethodSummary summary = (MethodSummary) obj;

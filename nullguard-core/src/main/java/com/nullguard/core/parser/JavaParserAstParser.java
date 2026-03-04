@@ -35,7 +35,11 @@ public final class JavaParserAstParser implements AstParser {
     public ProjectModel parse(Path projectRoot) {
         ProjectModel.Builder projectBuilder = ProjectModel.builder().projectName(projectRoot.getFileName().toString());
         ModuleModel.Builder moduleBuilder = ModuleModel.builder().moduleName("root");
-        
+
+        // CFG builder is stateless – safe to reuse across all methods
+        com.nullguard.core.builder.BasicControlFlowBuilder cfgBuilder =
+                new com.nullguard.core.builder.BasicControlFlowBuilder();
+
         LinkedHashMap<String, PackageModel.Builder> packageMap = new LinkedHashMap<>();
 
         try (Stream<Path> paths = Files.walk(projectRoot)) {
@@ -47,19 +51,33 @@ public final class JavaParserAstParser implements AstParser {
 
             for (Path path : javaFiles) {
                 javaParser.parse(path).getResult().ifPresent(cu -> {
-                    String pkgName = cu.getPackageDeclaration().map(pd -> pd.getNameAsString()).orElse("default");
-                    PackageModel.Builder packageBuilder = packageMap.computeIfAbsent(pkgName, k -> PackageModel.builder().packageName(k));
+                    String pkgName = cu.getPackageDeclaration()
+                            .map(pd -> pd.getNameAsString()).orElse("default");
+                    PackageModel.Builder packageBuilder = packageMap.computeIfAbsent(
+                            pkgName, k -> PackageModel.builder().packageName(k));
 
                     cu.findAll(ClassOrInterfaceDeclaration.class).stream()
                       .sorted(Comparator.comparing(ClassOrInterfaceDeclaration::getNameAsString))
                       .forEach(cid -> {
-                        ClassModel.Builder classBuilder = ClassModel.builder().className(cid.getNameAsString());
+                        ClassModel.Builder classBuilder = ClassModel.builder()
+                                .className(cid.getNameAsString());
                         cid.findAll(MethodDeclaration.class).stream()
                            .sorted(Comparator.comparing(m -> m.getSignature().asString()))
                            .forEach(md -> {
+                            // ── FIX 1: Build CFG eagerly and attach to MethodModel ──────────
+                            // Before this fix controlFlowModel was always null, so
+                            // BasicCallGraphBuilder skipped all methods and
+                            // MethodSummaryEngine had no statements to analyse.
+                            com.nullguard.core.cfg.ControlFlowModel cfg = null;
+                            try {
+                                cfg = cfgBuilder.build(md);
+                            } catch (Exception ignored) {
+                                // Non-parseable body (abstract / native) → leave null
+                            }
                             MethodModel.Builder methodBuilder = MethodModel.builder()
                                     .methodName(md.getNameAsString())
-                                    .signature(md.getSignature().asString());
+                                    .signature(md.getSignature().asString())
+                                    .controlFlowModel(cfg);   // ← previously always missing
                             classBuilder.addMethod(methodBuilder.build());
                         });
                         packageBuilder.addClass(classBuilder.build());
