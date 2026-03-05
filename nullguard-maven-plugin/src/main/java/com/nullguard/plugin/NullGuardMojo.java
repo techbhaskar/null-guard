@@ -217,31 +217,6 @@ public class NullGuardMojo extends AbstractMojo {
     // ── HTML Dashboard ────────────────────────────────────────────────────────
 
     private String buildHtmlDashboard(FinalAnalysisResult result, String timestamp, String jsonOutput) {
-        StringBuilder hotspotRows = new StringBuilder();
-        // Placeholder rows will be replaced by JS logic for hotspots
-
-        StringBuilder suggestionRows = new StringBuilder();
-        for (Suggestion s : result.getSuggestions()) {
-            suggestionRows.append("<tr>")
-                .append("<td>").append(s.getSuggestionType()).append("</td>")
-                .append("<td><code style='color:#cbd5e1;font-size:.9em'>").append(s.getMethodId()).append("</code></td>")
-                .append("<td>").append(s.getMessage()).append("</td>")
-                .append("<td>").append(String.format("%.2f", s.getFinalScore())).append("</td>")
-                .append("</tr>\n");
-        }
-
-        String cycleSection = "";
-        if (!result.getCycleWarnings().isEmpty()) {
-            StringBuilder cwHtml = new StringBuilder();
-            cwHtml.append("<div class='warn-panel'><h2>&#9888; Call Graph Cycle Warnings</h2><ul>\n");
-            for (String w : result.getCycleWarnings()) {
-                cwHtml.append("<li>").append(sanitize(w)).append("</li>\n");
-            }
-            cwHtml.append("</ul><p class='warn-note'>These cycles are handled safely by the fixpoint "
-                    + "propagation engine &ndash; risk scores are still accurate.</p></div>\n");
-            cycleSection = cwHtml.toString();
-        }
-
         StringBuilder reasonJson = new StringBuilder("{\n");
         boolean firstEntry = true;
         for (java.util.Map.Entry<String, java.util.List<String>> e : result.getRiskReasonMap().entrySet()) {
@@ -258,112 +233,175 @@ public class NullGuardMojo extends AbstractMojo {
         }
         reasonJson.append("\n}");
 
-        StringBuilder apiRows = new StringBuilder();
-        for (com.nullguard.analysis.model.ApiEndpointModel ep : result.getApiEndpoints()) {
-            String chainHtml = buildChainHtml(ep.getPropagationChain());
-            apiRows.append("<tr>")
-                .append("<td><span class='badge badge-http-").append(sanitize(ep.getHttpMethod())).append("'>").append(sanitize(ep.getHttpMethod())).append("</span></td>")
-                .append("<td><code style='color:#38bdf8'>").append(sanitize(ep.getPath())).append("</code></td>")
-                .append("<td><span class=\"badge badge-MODERATE\">").append(String.format("%.2f", ep.getApiRiskScore())).append("</span></td>")
-                .append("<td>").append(ep.getPropagationDepth()).append("</td>")
-                .append("<td><code style='color:#cbd5e1;font-size:.85em'>").append(sanitize(ep.getEndpointId())).append("</code></td>")
-                .append("<td><details><summary style='cursor:pointer;color:#94a3b8'>").append(ep.getPropagationChain().size()).append(" methods</summary>")
-                .append("<div class='chain'>").append(chainHtml).append("</div></details></td>")
-                .append("</tr>\n");
+        String cycleSection = "";
+        if (!result.getCycleWarnings().isEmpty()) {
+            StringBuilder cwHtml = new StringBuilder();
+            cwHtml.append("<div class='warn-panel'><h3>Call Graph Cycle Warnings</h3><ul>\n");
+            for (String w : result.getCycleWarnings()) cwHtml.append("<li>").append(sanitize(w)).append("</li>\n");
+            cwHtml.append("</ul></div>\n");
+            cycleSection = cwHtml.toString();
         }
-        String apiSection = apiRows.length() > 0 ? apiRows.toString() : "<tr><td colspan='6' style='text-align:center;padding:2rem'>No APIs detected</td></tr>";
 
-        return "<!DOCTYPE html>\n<html><head><title>NullGuard Dashboard</title>\n" +
-            "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
-            "<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n" +
-            "<link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\">\n" +
+        return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><title>NullGuard Stability Intelligence</title>\n" +
+            "<link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>\n" +
+            "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' rel='stylesheet'>\n" +
             "<style>\n" +
-            ":root {\n" +
-            "  --bg: #0b0f1a; --card: #151c2e; --border: #242f48; --text-main: #f8fafc;\n" +
-            "  --text-muted: #94a3b8; --primary: #38bdf8; --success: #10b981;\n" +
-            "  --warning: #f59e0b; --danger: #ef4444;\n" +
+            ":root { \n" +
+            "  --bg: #09090b; --sidebar: #09090b; --card: #09090b; --border: #27272a; \n" +
+            "  --text-main: #fafafa; --text-muted: #a1a1aa; --primary: #3b82f6; \n" +
+            "  --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --accent: #1d4ed8;\n" +
             "}\n" +
-            "body{font-family:'Inter', sans-serif;background:var(--bg);color:var(--text-main);margin:0;padding:2rem;line-height:1.5}\n" +
-            ".container{max-width:1400px;margin:0 auto}\n" +
-            "h1{color:var(--primary);font-weight:700;letter-spacing:-0.02em;margin-bottom:0.5rem}\n" +
-            ".subtitle{color:var(--text-muted);font-size:0.9rem;margin-bottom:2.5rem}\n" +
-            "h2{color:var(--text-muted);font-size:0.85rem;text-transform:uppercase;letter-spacing:.1em;margin:2rem 0 1rem;font-weight:600}\n" +
-            ".card{background:var(--card);padding:1.75rem;border-radius:12px;margin-bottom:1.5rem;border:1px solid var(--border);box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1)}\n" +
-            ".stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem}\n" +
-            ".stat-box{background:rgba(11,15,26,0.5);padding:1.25rem;border-radius:10px;border:1px solid var(--border);display:flex;flex-direction:column;gap:0.4rem}\n" +
-            ".stat-label{font-size:.7em;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}\n" +
-            ".stat-value{font-size:1.75rem;font-weight:700;color:var(--success)}\n" +
-            ".stat-meta{font-size:0.7rem;color:var(--text-muted)}\n" +
-            "table{width:100%;border-collapse:separate;border-spacing:0}\n" +
-            "th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--border)}\n" +
-            "th{background:rgba(15,23,42,0.6);color:#cbd5e1;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}\n" +
-            ".badge{padding:4px 8px;border-radius:6px;font-size:.7rem;font-weight:600}\n" +
-            ".badge-HIGH{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3)}\n" +
-            ".badge-MODERATE{background:rgba(245,158,11,0.15);color:#fcd34d;border:1px solid rgba(245,158,11,0.3)}\n" +
-            ".badge-LOW{background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.3)}\n" +
-            ".badge-hotspot{background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #ef4444}\n" +
-            ".badge-http-POST{background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.3)}\n" +
-            ".chain{padding:1rem;background:rgba(11,15,26,0.5);border-radius:8px;font-size:.8rem;border:1px solid var(--border)}\n" +
-            ".chain-node{padding:2px 0;color:#cbd5e1;display:flex;align-items:center;gap:8px}\n" +
-            ".chain-node::before{content:'↳';color:var(--primary)}\n" +
-            ".reason-list{margin:8px 0;padding-left:1.5em;color:#94a3b8;font-size:.8rem;list-style-type:none}\n" +
-            ".reason-list li::before{content:'•';color:var(--primary);margin-right:8px}\n" +
-            ".search-input{width:100%;background:var(--card);border:1px solid var(--border);padding:0.6rem 1rem;border-radius:8px;color:var(--text-main);margin-bottom:1rem}\n" +
-            ".impact-chain{margin-top:0.5rem;padding:0.5rem;background:rgba(239,68,68,0.05);border-radius:4px;border-left:2px solid #ef4444;font-size:0.75rem}\n" +
-            ".impact-chain summary{color:#fca5a5;font-weight:600;margin-bottom:0.25rem}\n" +
-            ".impact-chain ul{margin:0;padding-left:1.2rem;list-style-type:none;color:#94a3b8}\n" +
-            ".impact-chain li{position:relative;margin-bottom:2px}\n" +
-            ".impact-chain li::before{content:'\u2191';position:absolute;left:-1rem;color:#ef4444}\n" +
+            "* { box-sizing: border-box; transition: all 0.2s ease; }\n" +
+            "body { font-family:'Inter', system-ui, sans-serif; background:var(--bg); color:var(--text-main); margin:0; display:flex; height:100vh; overflow:hidden; }\n" +
+            "\n" +
+            "/* Sidebar */\n" +
+            ".sidebar { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1.5rem; gap: 2rem; }\n" +
+            ".brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.25rem; color: var(--primary); }\n" +
+            ".nav { display: flex; flex-direction: column; gap: 0.5rem; }\n" +
+            ".nav-item { padding: 0.75rem 1rem; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; cursor: pointer; }\n" +
+            ".nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }\n" +
+            ".nav-item.active { background: var(--accent); color: white; }\n" +
+            "\n" +
+            "/* Main Content */\n" +
+            ".main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }\n" +
+            ".header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; sticky; top:0; background: rgba(9,9,11,0.8); backdrop-filter: blur(12px); z-index: 10; }\n" +
+            ".content { padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; display: none; }\n" +
+            ".content.active { display: block; animation: fadeIn 0.4s ease; }\n" +
+            "\n" +
+            "/* Cards & Layout */\n" +
+            ".card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }\n" +
+            ".grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }\n" +
+            ".stat-box { border: 1px solid var(--border); padding: 1.5rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.5rem; }\n" +
+            ".stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }\n" +
+            ".stat-value { font-size: 2rem; font-weight: 700; }\n" +
+            "\n" +
+            "/* Tables */\n" +
+            "table { width: 100%; border-collapse: collapse; margin-top: 1rem; }\n" +
+            "th { text-align: left; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); padding: 1rem; border-bottom: 1px solid var(--border); }\n" +
+            "td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: top; }\n" +
+            "tr:hover td { background: rgba(255,255,255,0.02); }\n" +
+            "\n" +
+            "/* Badges & Monospace */\n" +
+            "code, pre { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }\n" +
+            ".badge { padding: 4px 10px; border-radius: 99px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }\n" +
+            ".badge-CRITICAL { background: rgba(239,68,68,0.2); color: #fca5a5; }\n" +
+            ".badge-HIGH { background: rgba(245,158,11,0.2); color: #fcd34d; }\n" +
+            ".badge-LOW { background: rgba(16,185,129,0.2); color: #6ee7b7; }\n" +
+            "progress { width: 100%; height: 6px; border-radius: 3px; appearance: none; }\n" +
+            "progress::-webkit-progress-bar { background: var(--border); border-radius: 3px; }\n" +
+            "progress::-webkit-progress-value { background: var(--primary); border-radius: 3px; }\n" +
+            "\n" +
+            "/* Specialized Components */\n" +
+            ".impact-box { margin-top: 0.5rem; padding: 0.75rem; background: #18181b; border: 1px solid var(--border); border-radius: 8px; }\n" +
+            ".impact-header { color: var(--danger); font-size: 0.75rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }\n" +
+            ".impact-list { margin: 0; padding-left: 1.25rem; list-style: none; }\n" +
+            ".impact-item { position: relative; margin-bottom: 4px; color: var(--text-muted); }\n" +
+            ".impact-item::before { content: '→'; position: absolute; left: -1.25rem; color: var(--danger); }\n" +
+            ".search-bar { background: #18181b; border: 1px solid var(--border); padding: 0.75rem 1.25rem; border-radius: 10px; color: white; width: 400px; }\n" +
+            ".warn-panel { background: rgba(239,68,68,0.05); border: 1px solid var(--danger); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }\n" +
+            "\n" +
+            "@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }\n" +
             "</style></head><body>\n" +
-            "<div class='container'>\n" +
-            "<h1>NullGuard Stability Dashboard</h1>\n" +
-            "<p class='subtitle'>Project: " + project.getName() + " | Analysed: " + timestamp + "</p>\n" +
-            cycleSection +
-            "<div class='card'><h2>Risk Summary</h2><div class='stat-grid' id='summaryGrid'></div></div>\n" +
-            "<div class='card'><h2>API Flow Analysis (v1.1)</h2>\n" +
-            "<table><thead><tr><th>HTTP</th><th>Path</th><th>Risk</th><th>Depth</th><th>Entry</th><th>Propagation</th></tr></thead>\n" +
-            "<tbody>" + apiSection + "</tbody></table></div>\n" +
-            "<div class='card'><h2>Architectural Hotspots</h2>\n" +
-            "<table><thead><tr><th>Method</th><th>Total Impacted APIs</th><th>Risk</th><th>Status</th></tr></thead>\n" +
-            "<tbody id='hotspotTable'><tr><td colspan='4' style='text-align:center;padding:2rem;color:var(--text-muted)'>Calculating hotspots...</td></tr></tbody></table></div>\n" +
-            "<div class='card'><h2>Risk Analysis</h2>\n" +
-            "<input type='text' id='methodSearch' class='search-input' placeholder='Search methods...'>\n" +
-            "<table><thead><tr><th>Method</th><th>Intrinsic</th><th>Propagated</th><th>Adjusted</th><th>Level</th><th>Blast Radius (APIs)</th><th>Factors & Impact Map</th></tr></thead>\n" +
-            "<tbody id='riskTable'></tbody></table></div>\n" +
-            "<div class='card'><h2>Raw JSON</h2><details><summary style='cursor:pointer;color:var(--primary)'>View Data</summary>\n" +
-            "<pre style='color:var(--text-muted);font-size:0.75rem;max-height:400px;overflow:auto'>" + jsonOutput.replace("<", "&lt;") + "</pre></details></div>\n" +
-            "</div><script>\n" +
-            "const data = " + jsonOutput + ";\n" +
-            "const reasons = " + reasonJson.toString() + ";\n" +
-            "const s = data.summary; const nodesMap = data.graph.nodes; const edges = data.graph.edges;\n" +
-            "const inDegree = {}; edges.forEach(e => inDegree[e.to] = (inDegree[e.to] || 0) + 1);\n" +
-            "const hs = Object.values(nodesMap).filter(n => inDegree[n.methodId] > 3 || (n.adjustedRisk > 30 && inDegree[n.methodId] > 1)).sort((a,b) => (inDegree[b.methodId]||0)-(inDegree[a.methodId]||0));\n" +
-            "document.getElementById('summaryGrid').innerHTML = `\n" +
-            "  <div class='stat-box'><div class='stat-label'>Grade</div><div class='stat-value grade-${s.grade}'>${s.grade}</div><div class='stat-meta'>Index: ${s.stabilityIndex.toFixed(2)}</div></div>\n" +
-            "  <div class='stat-box'><div class='stat-label'>Methods</div><div class='stat-value'>${s.totalMethods}</div><div class='stat-meta'>${s.totalExternalMethods} ext</div></div>\n" +
-            "  <div class='stat-box'><div class='stat-label'>Risk</div><div class='stat-value' style='color:var(--danger)'>${s.highRiskMethods}</div><div class='stat-meta'>High-risk ratio: ${(s.highRiskRatio || 0).toFixed(1)}%</div></div>\n" +
-            "  <div class='stat-box'><div class='stat-label'>Blast Radius</div><div class='stat-value' style='color:var(--primary)'>${s.blastRadiusScore.toFixed(2)}</div><div class='stat-meta'>Max: ${s.maxRisk.toFixed(2)}</div></div>\n" +
-            "  <div class='stat-box'><div class='stat-label'>Violations</div><div class='stat-value'>${s.contractViolations || 0}</div><div class='stat-meta'>Contract alignment</div></div>`;\n" +
-            "const hst = document.getElementById('hotspotTable'); hst.innerHTML = hs.length ? '' : '<tr><td colspan=4 style=\"text-align:center\">No hotspots</td></tr>';\n" +
-            "hs.slice(0,5).forEach(h => {\n" +
-            "  const tr = document.createElement('tr'); \n" +
-            "  const impactCount = h.impactMap ? h.impactMap.length : 0;\n" +
-            "  tr.innerHTML = `<td><code>${h.methodId.split('.').pop()}</code></td><td><span class='badge badge-hotspot'>${impactCount} APIs Affected</span></td><td>${h.adjustedRisk.toFixed(2)}</td><td><span class='badge badge-hotspot'>HOTSPOT</span></td>`;\n" +
-            "  hst.appendChild(tr);\n" +
-            "});\n" +
-            "const allNodes = Object.values(nodesMap).sort((a,b) => b.adjustedRisk - a.adjustedRisk);\n" +
-            "function render(q='') {\n" +
-            "  const tb = document.getElementById('riskTable'); tb.innerHTML = '';\n" +
-            "  allNodes.filter(n => n.methodId.toLowerCase().includes(q.toLowerCase())).forEach(n => {\n" +
-            "    const rs = reasons[n.methodId] || []; const tr = document.createElement('tr');\n" +
-            "    const ic = n.impactMap || []; \n" +
-            "    const impactHtml = ic.length ? `<div class='impact-chain'><details><summary>\u26A0 Blast Radius: Failure breaks ${ic.length} APIs</summary><ul>${ic.map(c => `<li><strong>${c.severity}</strong>: Entry Point: <code>${c.entryPoint.split('.').pop()}</code></li>`).join('')}</ul></details></div>` : '';\n" +
-            "    tr.innerHTML = `<td><code style='font-size:0.75rem'>${n.methodId}</code></td><td>${n.intrinsicRisk.toFixed(2)}</td><td>${n.propagatedRisk.toFixed(2)}</td><td><strong>${n.adjustedRisk.toFixed(2)}</strong></td><td><span class='badge badge-${n.riskLevel}'>${n.riskLevel}</span></td><td><span class='badge badge-hotspot'>${ic.length} Impacts</span></td><td><details><summary style='cursor:pointer;color:var(--text-muted)'>${rs.length} factors</summary><ul class='reason-list'>${rs.map(r=>`<li>${r}</li>`).join('')}</ul></details>${impactHtml}</td>`;\n" +
-            "    tb.appendChild(tr);\n" +
-            "  });\n" +
+            "\n" +
+            "<aside class='sidebar'>\n" +
+            "  <div class='brand'><div style='width:32px;height:32px;background:var(--primary);border-radius:8px;'></div> NullGuard Intelligence</div>\n" +
+            "  <nav class='nav'>\n" +
+            "    <a onclick=\"show('overview')\" class='nav-item active' id='nav-overview'>Overview</a>\n" +
+            "    <a onclick=\"show('apis')\" class='nav-item' id='nav-apis'>API Flow Mapping</a>\n" +
+            "    <a onclick=\"show('hotspots')\" class='nav-item' id='nav-hotspots'>Architectural Hotspots</a>\n" +
+            "    <a onclick=\"show('explorer')\" class='nav-item' id='nav-explorer'>Method Explorer</a>\n" +
+            "    <a onclick=\"show('raw')\" class='nav-item' id='nav-raw'>JSON Telemetry</a>\n" +
+            "  </nav>\n" +
+            "  <div style='margin-top:auto; font-size:0.75rem; color:var(--text-muted);'>\n" +
+            "    Analysis: " + timestamp + "<br>Project: " + sanitize(project.getName()) + "\n" +
+            "  </div>\n" +
+            "</aside>\n" +
+            "\n" +
+            "<main class='main'>\n" +
+            "  <header class='header'>\n" +
+            "    <h2 id='pageTitle' style='margin:0; text-transform:none; letter-spacing:normal; color:var(--text-main); font-size:1.25rem;'>Summary Overview</h2>\n" +
+            "    <input type='text' id='gSearch' class='search-bar' placeholder='Search telemetry...'>\n" +
+            "  </header>\n" +
+            "\n" +
+            "  <section id='overview' class='content active'>\n" +
+            "    " + cycleSection + "\n" +
+            "    <div class='grid' id='summaryGrid'></div>\n" +
+            "    <div class='card'><h3>Top Suggested Improvements</h3><table id='sTable'></table></div>\n" +
+            "  </section>\n" +
+            "\n" +
+            "  <section id='apis' class='content'>\n" +
+            "    <div class='card'><h3>Downstream API Breach Analysis</h3><table id='apiTable'></table></div>\n" +
+            "  </section>\n" +
+            "\n" +
+            "  <section id='hotspots' class='content'>\n" +
+            "    <div class='card'><h3>Critical Architectural Weakpoints</h3><table id='hsTable'></table></div>\n" +
+            "  </section>\n" +
+            "\n" +
+            "  <section id='explorer' class='content'>\n" +
+            "    <div class='card'><h3>Deep Method Risk Telemetry</h3><table id='riskTable'></table></div>\n" +
+            "  </section>\n" +
+            "\n" +
+            "  <section id='raw' class='content'>\n" +
+            "    <div class='card'><h3>NullGuard Data Dump</h3><pre style='white-space:pre-wrap;'>" + sanitize(jsonOutput) + "</pre></div>\n" +
+            "  </section>\n" +
+            "</main>\n" +
+            "\n" +
+            "<script>\n" +
+            "const data = " + jsonOutput + "; const reasons = " + reasonJson.toString() + ";\n" +
+            "const s = data.summary; const nodes = data.graph.nodes; const edges = data.graph.edges;\n" +
+            "const inDegree = {}; edges.forEach(e => inDegree[e.to] = (inDegree[e.to]||0)+1);\n" +
+            "\n" +
+            "function show(id) {\n" +
+            "  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));\n" +
+            "  document.getElementById(id).classList.add('active');\n" +
+            "  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));\n" +
+            "  document.getElementById('nav-'+id).classList.add('active');\n" +
+            "  document.getElementById('pageTitle').innerText = document.getElementById('nav-'+id).innerText;\n" +
             "}\n" +
-            "document.getElementById('methodSearch').addEventListener('input', e => render(e.target.value));\n" +
-            "render();\n" +
+            "\n" +
+            "/* Render Summary */\n" +
+            "document.getElementById('summaryGrid').innerHTML = `\n" +
+            "  <div class='stat-box'><span class='stat-label'>Stability Grade</span><span class='stat-value' style='color:${s.grade==='A'?'var(--success)':'var(--danger)'}'>${s.grade}</span><span style='font-size:0.75rem'>Index: ${s.stabilityIndex.toFixed(2)}</span></div>\n" +
+            "  <div class='stat-box'><span class='stat-label'>Blast Radius Index</span><span class='stat-value' style='color:var(--primary)'>${s.blastRadiusScore.toFixed(2)}</span><span style='font-size:0.75rem'>Max Risk Detected: ${s.maxRisk.toFixed(2)}</span></div>\n" +
+            "  <div class='stat-box'><span class='stat-label'>Risk Distribution</span><span class='stat-value' style='color:var(--warning)'>${s.highRiskMethods}</span><span style='font-size:0.75rem'>High-risk methods detected</span></div>\n" +
+            "  <div class='stat-box'><span class='stat-label'>API Coverage</span><span class='stat-value'>${s.totalMethods}</span><span style='font-size:0.75rem'>Total methods analysed</span></div>`;\n" +
+            "\n" +
+            "/* Render Suggestions */\n" +
+            "document.getElementById('sTable').innerHTML = `<thead><tr><th>Type</th><th>Location</th><th>Message</th><th>Impact</th></tr></thead>\n" +
+            "  <tbody>${data.suggestions.map(s => `<tr><td><span class='badge' style='background:rgba(59,130,246,0.1);color:var(--primary)'>${s.suggestionType}</span></td><td><code>${s.methodId.split('.').pop()}</code></td><td>${s.message}</td><td><strong>${s.finalScore.toFixed(2)}</strong></td></tr>`).join('')}</tbody>`;\n" +
+            "\n" +
+            "/* Render APIs */\n" +
+            "document.getElementById('apiTable').innerHTML = `<thead><tr><th>Endpoint</th><th>Risk</th><th>Coverage</th><th>Downstream Chain</th></tr></thead>\n" +
+            "  <tbody>${data.apiEndpoints.map(e => `<tr>\n" +
+            "    <td><span class='badge' style='background:rgba(16,185,129,0.1);color:var(--success)'>${e.httpMethod}</span> <code style='color:var(--primary)'>${e.path}</code><br><span style='font-size:0.7rem;color:var(--text-muted)'>${e.endpointId}</span></td>\n" +
+            "    <td><div style='display:flex;align-items:center;gap:8px;'><progress value='${e.apiRiskScore*10}' max='100'></progress><span>${e.apiRiskScore.toFixed(2)}</span></div></td>\n" +
+            "    <td><span class='badge' style='background:#27272a'>${e.propagationDepth} hops</span></td>\n" +
+            "    <td><details><summary style='font-size:0.7rem;cursor:pointer;color:var(--text-muted)'>View ${e.propagationChain.length} methods</summary><div style='margin-top:0.5rem;padding:0.75rem;background:#18181b;border-radius:8px;font-size:0.75rem;'>${e.propagationChain.map(m=>`<div style='padding:2px 0;color:var(--text-muted)'>↳ ${m}</div>`).join('')}</div></details></td>\n" +
+            "  </tr>`).join('')}</tbody>`;\n" +
+            "\n" +
+            "/* Render Hotspots */\n" +
+            "const hs = Object.values(nodes).filter(n => (inDegree[n.methodId]||0) > 3 || n.adjustedRisk > 40).sort((a,b)=>(inDegree[b.methodId]||0)-(inDegree[a.methodId]||0));\n" +
+            "document.getElementById('hsTable').innerHTML = `<thead><tr><th>Critical Method</th><th>Calls</th><th>Risk</th><th>Blast Radius</th></tr></thead>\n" +
+            "  <tbody>${hs.slice(0,15).map(n => `<tr><td><code style='color:var(--primary)'>${n.methodId.split('.').pop()}</code><br><span style='font-size:0.75rem;color:var(--text-muted)'>${n.methodId}</span></td><td><span class='badge' style='background:rgba(59,130,246,0.1);color:var(--primary)'>${inDegree[n.methodId]||0} calls</span></td><td><progress value='${n.adjustedRisk}' max='100'></progress></td><td><span class='badge badge-CRITICAL'>${n.impactMap ? n.impactMap.length : 0} APIs Affected</span></td></tr>`).join('')}</tbody>`;\n" +
+            "\n" +
+            "/* Render Explorer */\n" +
+            "function renderMethods(q='') {\n" +
+            "  const items = Object.values(nodes).filter(n => n.methodId.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>b.adjustedRisk - a.adjustedRisk);\n" +
+            "  document.getElementById('riskTable').innerHTML = `<thead><tr><th>Method Signature</th><th>Risk Factors</th><th>Impact Blast Analysis</th></tr></thead>\n" +
+            "    <tbody>${items.slice(0,100).map(n => {\n" +
+            "      const rs = reasons[n.methodId] || [];\n" +
+            "      const impact = n.impactMap || [];\n" +
+            "      return `<tr>\n" +
+            "        <td style='width:35%'><code style='color:var(--primary);cursor:pointer' title='${n.methodId}'>${n.methodId.includes('#') ? n.methodId.split('#')[1] : n.methodId.split('.').pop()}</code><br><span style='font-size:0.7rem;color:var(--text-muted)'>${n.methodId.includes('#') ? n.methodId.split('#')[0] : 'core'}</span></td>\n" +
+            "        <td><div style='display:flex;gap:4px;margin-bottom:4px;'><span class='badge badge-${n.riskLevel}'>${n.riskLevel}</span><span class='badge' style='background:#27272a'>Score: ${n.adjustedRisk.toFixed(2)}</span></div>\n" +
+            "          <details><summary style='font-size:0.7rem;cursor:pointer;color:var(--text-muted)'>View factors</summary><ul style='font-size:0.7rem;padding-left:1rem;color:var(--text-muted);margin-top:0.5rem;'>${rs.map(r=>`<li>${r}</li>`).join('')}</ul></details></td>\n" +
+            "        <td>${impact.length ? `<div class='impact-box'><div class='impact-header'>⚠️ BREACH IMPACT: ${impact.length} APIs</div><ul class='impact-list'>${impact.map(c=>`<li class='impact-item'>${c.severity}: <code>${c.entryPoint.split('.').pop()}</code></li>`).join('')}</ul></div>` : '<span style=\"color:var(--success);font-size:0.8rem\">No API Impact Detected</span>'}</td>\n" +
+            "      </tr>`;\n" +
+            "    }).join('')}</tbody>`;\n" +
+            "}\n" +
+            "document.getElementById('gSearch').addEventListener('input', e => renderMethods(e.target.value));\n" +
+            "renderMethods();\n" +
+            "show('overview');\n" +
             "</script></body></html>";
     }
 
