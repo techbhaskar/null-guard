@@ -18,3 +18,4 @@ nullguard-parent/target/*
 nullguard-cli/target/*
 nullguard-visualization/target/*
 nullguard-visualization/target/*
+*/target/*

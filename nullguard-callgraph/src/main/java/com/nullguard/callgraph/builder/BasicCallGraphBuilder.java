@@ -12,7 +12,6 @@ import com.nullguard.callgraph.resolver.MethodResolver;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 
 public final class BasicCallGraphBuilder implements CallGraphBuilder {
     private final MethodResolver resolver;
@@ -42,12 +41,16 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                             for (Instruction inst : instructions) {
                                 if (inst instanceof MethodCallInstruction callInst) {
                                     String calledName = extractCalledName(callInst.methodCall());
-                                    Optional<String> target = resolver.resolve(project, callerId, calledName);
-                                    
-                                    if (target.isPresent()) {
-                                        String calleeId = target.get();
-                                        outgoing.get(callerId).add(calleeId);
-                                        incoming.computeIfAbsent(calleeId, k -> new LinkedHashSet<>()).add(callerId);
+                                    // resolveAll returns concrete implementations first, so Spring's
+                                    // controller → serviceInterface → serviceImpl pattern is handled:
+                                    // edges are added to ALL concrete implementations, not just the interface.
+                                    List<String> targets = resolver.resolveAll(project, calledName);
+
+                                    if (!targets.isEmpty()) {
+                                        for (String calleeId : targets) {
+                                            outgoing.get(callerId).add(calleeId);
+                                            incoming.computeIfAbsent(calleeId, k -> new LinkedHashSet<>()).add(callerId);
+                                        }
                                     } else {
                                         String extId = "ext#" + calledName;
                                         externalNodes.add(extId);
