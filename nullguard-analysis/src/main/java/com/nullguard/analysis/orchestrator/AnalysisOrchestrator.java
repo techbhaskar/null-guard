@@ -8,6 +8,9 @@ import com.nullguard.analysis.api.ApiEndpointAnalyzer;
 import com.nullguard.analysis.hotspot.HotspotDetector;
 import com.nullguard.analysis.config.AnalysisConfig;
 
+import java.util.Map;
+import java.util.Set;
+
 public class AnalysisOrchestrator {
     
     private final MethodSummaryEngine methodSummaryEngine;
@@ -26,14 +29,19 @@ public class AnalysisOrchestrator {
 
     /**
      * Executes the deterministic single-pass integrated analysis pipeline.
+     *
+     * @param project   the fully-parsed project model
+     * @param callEdges outgoing call edges from the pre-built GlobalCallGraph
+     *                  ({@code GlobalCallGraph.getOutgoing()}) used for
+     *                  controller → service → repository → external traversal
      */
-    public void analyze(ProjectModel project) {
+    public void analyze(ProjectModel project, Map<String, Set<String>> callEdges) {
         methodSummaryEngine.run(project);
         riskEngine.propagate(project);
         contractAnalyzer.analyze(project);
-        
-        apiEndpointAnalyzer.build(project);
-        
+
+        apiEndpointAnalyzer.build(project, callEdges);
+
         hotspotDetector.finalize(project);
     }
 

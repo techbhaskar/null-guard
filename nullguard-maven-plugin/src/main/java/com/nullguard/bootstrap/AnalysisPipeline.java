@@ -114,8 +114,10 @@ public final class AnalysisPipeline {
         ctx.setCallGraph(callGraph);
 
         // ── Step 3: Analysis Orchestrator (null-state, CFG, contracts, APIs, hotspots) ──
+        // Pass the outgoing call edges so FlowPathExtractor can resolve
+        // controller → service → repository → external chains correctly.
         timed(ctx, "analysis", () -> {
-            analysisOrchestrator.analyze(projectModel);
+            analysisOrchestrator.analyze(projectModel, callGraph.getOutgoing());
             return null;
         });
 

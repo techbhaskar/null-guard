@@ -42,7 +42,7 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
 
     // Split  receiver.method(args)  → group(1)=receiver, group(2)=method
     private static final Pattern RECEIVER_METHOD_PATTERN =
-            Pattern.compile("^([\\w$]+)\\.([\\w$]+)\\s*\\(");
+            Pattern.compile("([\\w$]+)\\.([\\w$]+)\\s*\\(");
 
     @Override
     public List<Instruction> extract(ControlFlowModel cfg) {
@@ -68,34 +68,13 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
                         instructions.add(new AssignmentInstruction(
                                 baseId + (instrIndex++), cfgId, line, target, source));
 
-                        // The RHS may still be a method call — also emit a MethodCallInstruction
-                        // so the call graph can track the callee.
-                        String rhsCall = extractRhsMethodCall(src);
-                        if (rhsCall != null) {
-                            instructions.add(new MethodCallInstruction(
-                                    baseId + (instrIndex++), cfgId, line, rhsCall));
-                        }
+                        // Extract method calls/dereferences from the RHS
+                        int eq = indexOfAssignmentOperator(src);
+                        String rhs = src.substring(eq + 1).trim();
+                        instrIndex = extractCallsAndDerefs(rhs, baseId, cfgId, line, instrIndex, instructions);
 
                     } else if (src.contains("(")) {
-                        // Not an assignment – could be:
-                        //   a) receiver.method(args)   → DereferenceInstruction + MethodCallInstruction
-                        //   b) method(args)            → MethodCallInstruction only
-                        Matcher m = RECEIVER_METHOD_PATTERN.matcher(src);
-                        if (m.find()) {
-                            String receiver = m.group(1);
-                            String callee   = src.substring(m.start(), src.indexOf('(', m.start())).trim();
-                            // DereferenceInstruction tracks null safety of the receiver
-                            instructions.add(new DereferenceInstruction(
-                                    baseId + (instrIndex++), cfgId, line, receiver));
-                            // MethodCallInstruction feeds the call graph builder
-                            instructions.add(new MethodCallInstruction(
-                                    baseId + (instrIndex++), cfgId, line, callee));
-                        } else {
-                            // Standalone call: method(args) — no explicit receiver
-                            String callee = extractCalleeFromSrc(src);
-                            instructions.add(new MethodCallInstruction(
-                                    baseId + (instrIndex++), cfgId, line, callee));
-                        }
+                        instrIndex = extractCallsAndDerefs(src, baseId, cfgId, line, instrIndex, instructions);
                     }
                     // Pure field-access statements with '.' but no '(' are rare;
                     // skip to avoid false dereference counts.
@@ -105,6 +84,11 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
                     String finalVal = "null".equals(retVal) ? "NULL_LITERAL" : retVal;
                     instructions.add(new ReturnInstruction(
                             baseId + (instrIndex++), cfgId, line, finalVal));
+
+                    // Extract any method calls inside the return expression
+                    if (retVal.contains("(")) {
+                        instrIndex = extractCallsAndDerefs(retVal, baseId, cfgId, line, instrIndex, instructions);
+                    }
                 }
                 case CONDITION ->
                     instructions.add(new ConditionalInstruction(
@@ -157,28 +141,36 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
      * e.g. {@code User user = userRepository.findByEmail(email);} → {@code "findByEmail"}.
      * Returns {@code null} if the RHS is not a method call expression.
      */
-    private static String extractRhsMethodCall(String src) {
-        int eq = indexOfAssignmentOperator(src);
-        if (eq < 0) return null;
-        String rhs = src.substring(eq + 1).trim();
-        Matcher m = RECEIVER_METHOD_PATTERN.matcher(rhs);
-        if (m.find()) return rhs.substring(m.start(), rhs.indexOf('(', m.start())).trim();
-        // Standalone call on RHS: foo(...)
-        int p = rhs.indexOf('(');
-        if (p > 0) {
-            String candidate = rhs.substring(0, p).trim();
-            if (candidate.matches("[\\w$]+")) return candidate;
+    private static int extractCallsAndDerefs(String expr, String baseId, String cfgId, int line, int instrIndex, List<Instruction> instructions) {
+        Matcher m = RECEIVER_METHOD_PATTERN.matcher(expr);
+        boolean foundAny = false;
+        while (m.find()) {
+            foundAny = true;
+            String receiver = m.group(1);
+            String callee   = expr.substring(m.start(), expr.indexOf('(', m.start())).trim();
+            instructions.add(new DereferenceInstruction(
+                    baseId + (instrIndex++), cfgId, line, receiver));
+            instructions.add(new MethodCallInstruction(
+                    baseId + (instrIndex++), cfgId, line, callee));
         }
-        return null;
+
+        if (!foundAny && expr.contains("(")) {
+            String callee = extractCalleeFromSrc(expr);
+            if (callee != null && !callee.isEmpty() && callee.matches("[\\w$]+")) {
+                instructions.add(new MethodCallInstruction(
+                        baseId + (instrIndex++), cfgId, line, callee));
+            }
+        }
+        return instrIndex;
     }
 
     private static String extractCalleeFromSrc(String src) {
         int p = src.indexOf('(');
         if (p > 0) {
             String before = src.substring(0, p).trim();
-            // If there's a dot, take the part after it
+            // If there's a dot, the while loop should have caught it.
             return before;
         }
-        return src;
+        return null;
     }
 }
