@@ -41,6 +41,7 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                             for (Instruction inst : instructions) {
                                 if (inst instanceof MethodCallInstruction callInst) {
                                     String calledName = extractCalledName(callInst.methodCall());
+                                    if (isGetterOrSetter(calledName)) continue;
                                     // resolveAll returns concrete implementations first, so Spring's
                                     // controller → serviceInterface → serviceImpl pattern is handled:
                                     // edges are added to ALL concrete implementations, not just the interface.
@@ -72,5 +73,18 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
         int parenIndex = methodCallString.indexOf('(');
         if (parenIndex == -1) return methodCallString.trim();
         return methodCallString.substring(0, parenIndex).trim();
+    }
+
+    /**
+     * Returns true for trivial accessor calls like "dataVO.getInvoiceNumber",
+     * "br.setAm", or "isActive" that add noise without architectural meaning.
+     */
+    private static boolean isGetterOrSetter(String calledName) {
+        String simple = calledName.contains(".")
+                ? calledName.substring(calledName.lastIndexOf('.') + 1)
+                : calledName;
+        return simple.length() > 3
+                && (simple.startsWith("get") || simple.startsWith("set") || simple.startsWith("is"))
+                && Character.isUpperCase(simple.charAt(simple.startsWith("is") ? 2 : 3));
     }
 }

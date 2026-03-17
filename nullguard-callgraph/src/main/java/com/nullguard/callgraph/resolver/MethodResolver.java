@@ -51,22 +51,54 @@ public final class MethodResolver {
      *                          e.g. {@code "userService.findByEmail"})
      */
     public List<String> resolveAll(ProjectModel project, String calledMethodName) {
+        // Extract receiver and simple method name.
+        // e.g. "accountingEntryService.getAllCurrency" → receiver="accountingEntryService", search="getAllCurrency"
+        String receiver = null;
         String searchName = calledMethodName;
         if (searchName.contains(".")) {
-            searchName = searchName.substring(searchName.lastIndexOf(".") + 1);
+            int lastDot = searchName.lastIndexOf(".");
+            String rawReceiver = searchName.substring(0, lastDot);
+            // For chained receivers like "a.b.service" take only the last segment
+            receiver = rawReceiver.contains(".")
+                    ? rawReceiver.substring(rawReceiver.lastIndexOf(".") + 1)
+                    : rawReceiver;
+            searchName = searchName.substring(lastDot + 1);
         }
-        // Strip trailing parentheses/args if present
         if (searchName.contains("(")) {
             searchName = searchName.substring(0, searchName.indexOf("("));
         }
         searchName = searchName.trim();
 
-        List<String> concrete = new ArrayList<>();
+        // Derive a class-name hint from the receiver using Spring naming conventions.
+        // "accountingEntryService" → "AccountingEntryService"
+        // "clearingReportsRepo"    → "ClearingReportsRepo"
+        String classHint = null;
+        if (receiver != null && !receiver.isEmpty()) {
+            classHint = Character.toUpperCase(receiver.charAt(0)) + receiver.substring(1);
+        }
+
+        List<String> concrete  = new ArrayList<>();
         List<String> abstracts = new ArrayList<>();
 
+        collectMatches(project, searchName, classHint, concrete, abstracts);
+
+        // If receiver-scoped search found nothing, fall back to unscoped search
+        if (concrete.isEmpty() && abstracts.isEmpty() && classHint != null) {
+            collectMatches(project, searchName, null, concrete, abstracts);
+        }
+
+        if (!concrete.isEmpty()) return Collections.unmodifiableList(concrete);
+        return Collections.unmodifiableList(abstracts);
+    }
+
+    private void collectMatches(ProjectModel project, String searchName, String classHint,
+                                List<String> concrete, List<String> abstracts) {
         for (ModuleModel module : project.getModules().values()) {
             for (PackageModel pkg : module.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
+                    if (classHint != null && !classNameMatchesHint(cls.getClassName(), classHint)) {
+                        continue;
+                    }
                     for (MethodModel mth : cls.getMethods().values()) {
                         if (mth.getMethodName().equals(searchName)
                                 || mth.getSignature().startsWith(searchName + "(")) {
@@ -82,9 +114,18 @@ public final class MethodResolver {
                 }
             }
         }
+    }
 
-        // Prefer concrete implementations; fall back to abstract if nothing else found
-        if (!concrete.isEmpty()) return Collections.unmodifiableList(concrete);
-        return Collections.unmodifiableList(abstracts);
+    /**
+     * Returns true when the class name is plausibly the target type indicated by the receiver hint.
+     * Examples:
+     *   className="AccountingEntryServiceImpl", hint="AccountingEntryService" → true (impl contains hint)
+     *   className="AccountingEntryService",     hint="AccountingEntryService" → true (exact match)
+     *   className="HelperController",           hint="AccountingEntryService" → false
+     */
+    private static boolean classNameMatchesHint(String className, String hint) {
+        String lc = className.toLowerCase();
+        String lh = hint.toLowerCase();
+        return lc.contains(lh) || lh.contains(lc);
     }
 }
