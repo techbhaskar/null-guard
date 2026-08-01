@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ApiEndpointAnalyzer {
     private final AnalysisConfig config;
@@ -34,14 +35,19 @@ public class ApiEndpointAnalyzer {
 
     /**
      * Extracts API entry points and their full downstream propagation chains.
+     *
+     * @param project   the fully-parsed project model
+     * @param callEdges outgoing call edges from the pre-built GlobalCallGraph
+     *                  ({@code GlobalCallGraph.getOutgoing()}) used for
+     *                  inter-class edge traversal (controller → service → repo → ext)
      */
-    public void build(ProjectModel project) {
+    public void build(ProjectModel project, Map<String, Set<String>> callEdges) {
         // Build a methodId → MethodModel index so we can resolve the MethodModel
         // for each trace entry point and use its annotation/modifier data.
         Map<String, MethodModel> methodIndex = buildMethodIndex(project);
 
         List<APIFlowTrace> traces = flowPathExtractor.extractDistinctPaths(
-                project, config.getPropagationDepthLimit());
+                project, callEdges, config.getPropagationDepthLimit());
 
         List<ApiEndpointModel> built = new ArrayList<>();
         for (APIFlowTrace trace : traces) {

@@ -84,16 +84,55 @@ public class FlowPathExtractor {
     /**
      * Scans the ProjectModel for API entry points and builds downstream paths.
      *
+     * <p>Uses the pre-resolved call graph edges so that cross-class calls
+     * (controller → service → repository → external) are traced correctly.
+     *
      * @param projectModel the fully-parsed project
+     * @param callEdges    outgoing call edges from the GlobalCallGraph
+     *                     ({@code GlobalCallGraph.getOutgoing()})
      * @param depthLimit   maximum chain depth
      * @return list of {@link APIFlowTrace} objects, one per discovered entry point
      */
+    public List<APIFlowTrace> extractDistinctPaths(ProjectModel projectModel,
+                                                    Map<String, Set<String>> callEdges,
+                                                    int depthLimit) {
+        // ── Step 1: build a method-id → MethodModel index ────────────────────
+        Map<String, MethodModel> methodIndex = buildMethodIndex(projectModel);
+
+        // ── Step 2: find API entry points ─────────────────────────────────────
+        List<String> entryPoints = new ArrayList<>();
+        for (Map.Entry<String, MethodModel> entry : methodIndex.entrySet()) {
+            if (isApiEntryPoint(entry.getKey(), entry.getValue())) {
+                entryPoints.add(entry.getKey());
+            }
+        }
+        Collections.sort(entryPoints); // deterministic order
+
+        // ── Step 3: DFS from each entry point using the pre-resolved edges ────
+        // callEdges correctly captures controller → service → repository → ext
+        // because BasicCallGraphBuilder uses MethodResolver for cross-class lookup.
+        List<APIFlowTrace> traces = new ArrayList<>();
+        for (String entry : entryPoints) {
+            List<String> chain = buildChain(entry, callEdges, depthLimit);
+            // Chain includes the entry point itself as first element
+            APIFlowTrace trace = new APIFlowTrace(chain);
+            traces.add(trace);
+        }
+        return Collections.unmodifiableList(traces);
+    }
+
+    /**
+     * Backward-compatible overload (no call graph): falls back to the old
+     * name-based callee resolution (less accurate for cross-class calls).
+     *
+     * @deprecated Prefer the overload that accepts pre-resolved call edges.
+     */
+    @Deprecated
     public List<APIFlowTrace> extractDistinctPaths(ProjectModel projectModel, int depthLimit) {
         // ── Step 1: build a method-id → MethodModel index ────────────────────
         Map<String, MethodModel> methodIndex = buildMethodIndex(projectModel);
 
         // ── Step 2: build a simple callee map from MethodCallInstructions ──
-        // Key = callerMethodId, Value = set of callee method names resolved to full IDs
         Map<String, List<String>> calleeMap = buildCalleeMap(methodIndex);
 
         // ── Step 3: find API entry points ────────────────────────────────────
@@ -103,15 +142,13 @@ public class FlowPathExtractor {
                 entryPoints.add(entry.getKey());
             }
         }
-        Collections.sort(entryPoints); // deterministic order
+        Collections.sort(entryPoints);
 
-        // ── Step 4: DFS from each entry point to build propagation chain ──────
+        // ── Step 4: DFS from each entry point ────────────────────────────────
         List<APIFlowTrace> traces = new ArrayList<>();
         for (String entry : entryPoints) {
-            List<String> chain = buildChain(entry, calleeMap, depthLimit);
-            // Chain includes the entry point itself as first element
-            APIFlowTrace trace = new APIFlowTrace(chain);
-            traces.add(trace);
+            List<String> chain = buildChainFromMap(entry, calleeMap, depthLimit);
+            traces.add(new APIFlowTrace(chain));
         }
         return Collections.unmodifiableList(traces);
     }
@@ -161,8 +198,17 @@ public class FlowPathExtractor {
             mth.getControlFlowModel().ifPresent(cfg -> {
                 for (com.nullguard.analysis.ir.Instruction inst : extractor.extract(cfg)) {
                     if (inst instanceof com.nullguard.analysis.ir.MethodCallInstruction call) {
-                        String callee = call.methodCall();
-                        List<String> matched = nameToIds.get(callee);
+                        String calleeString = call.methodCall();
+                        // Strip receiver and possible leftovers to get the bare method name
+                        String searchName = calleeString;
+                        if (searchName.contains(".")) {
+                            searchName = searchName.substring(searchName.lastIndexOf(".") + 1);
+                        }
+                        if (searchName.contains("(")) {
+                            searchName = searchName.substring(0, searchName.indexOf("("));
+                        }
+                        
+                        List<String> matched = nameToIds.get(searchName.trim());
                         if (matched != null) {
                             callees.addAll(matched);
                         }
@@ -174,11 +220,12 @@ public class FlowPathExtractor {
     }
 
     /**
-     * Iterative DFS: builds the propagation chain from the entry point down.
-     * Returns an ordered list from entry → ... → leaf, cycle-safe.
+     * Iterative DFS using pre-resolved call edges: follows
+     * controller → service → repository → external nodes.
+     * External nodes (ext#...) are included so callers can see the full reach.
      */
     private List<String> buildChain(String entryPoint,
-                                    Map<String, List<String>> calleeMap,
+                                    Map<String, Set<String>> callEdges,
                                     int depthLimit) {
         List<String> chain   = new ArrayList<>();
         Set<String>  visited = new LinkedHashSet<>();
@@ -193,8 +240,37 @@ public class FlowPathExtractor {
             visited.add(frame.id());
             chain.add(frame.id());
 
+            Set<String> callees = callEdges.getOrDefault(frame.id(), Collections.emptySet());
+            // Sort for deterministic output
+            List<String> sorted = new ArrayList<>(callees);
+            Collections.sort(sorted, Collections.reverseOrder());
+            for (String callee : sorted) {
+                if (!visited.contains(callee)) {
+                    stack.push(new Frame(callee, frame.depth() + 1));
+                }
+            }
+        }
+        return chain;
+    }
+
+    /** Legacy map-based DFS (used by the deprecated overload). */
+    private List<String> buildChainFromMap(String entryPoint,
+                                           Map<String, List<String>> calleeMap,
+                                           int depthLimit) {
+        List<String> chain   = new ArrayList<>();
+        Set<String>  visited = new LinkedHashSet<>();
+
+        record Frame(String id, int depth) {}
+        ArrayDeque<Frame> stack = new ArrayDeque<>();
+        stack.push(new Frame(entryPoint, 0));
+
+        while (!stack.isEmpty()) {
+            Frame frame = stack.pop();
+            if (frame.depth() > depthLimit || visited.contains(frame.id())) continue;
+            visited.add(frame.id());
+            chain.add(frame.id());
+
             List<String> callees = calleeMap.getOrDefault(frame.id(), Collections.emptyList());
-            // Push in reverse order so natural alphabetical order is preserved
             List<String> sorted = new ArrayList<>(callees);
             Collections.sort(sorted, Collections.reverseOrder());
             for (String callee : sorted) {
@@ -299,29 +375,15 @@ public class FlowPathExtractor {
         String entrySource = getEntrySource(method);
 
         // ── Rule 0: Skip private / protected methods ──────────────────────────
-        // Entry source is: "@Annotation public|private|protected methodName"
-        // A private or protected method is NEVER an HTTP endpoint.
+        // Only public methods can be real HTTP endpoints.
         if (entrySource.contains("private ") || entrySource.contains("protected ")) {
             return false;
         }
 
-        // ── Rule 1: Has a mapping annotation (most reliable) ──────────────────
-        if (MAPPING_ANNOTATIONS.stream().anyMatch(entrySource::contains)) {
-            return true;
-        }
-
-        // ── Rule 2: Public method in a Controller/Resource class ──────────────
-        int hash = methodId.lastIndexOf('#');
-        int dot  = methodId.lastIndexOf('.', hash);
-        if (hash > 0 && dot >= 0) {
-            String className = methodId.substring(dot + 1, hash);
-            if ((className.endsWith("Controller") || className.endsWith("Resource"))
-                    && entrySource.contains("public ")) {
-                return true;
-            }
-        }
-
-        return false;
+        // ── Rule 1: Has a mapping annotation (Required) ───────────────────────
+        // We now strictly require an annotation to avoid false positives 
+        // with internal helper methods in Controller classes.
+        return MAPPING_ANNOTATIONS.stream().anyMatch(entrySource::contains);
     }
 
 }

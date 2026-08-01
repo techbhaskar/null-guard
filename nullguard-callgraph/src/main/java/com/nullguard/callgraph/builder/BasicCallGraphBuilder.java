@@ -13,7 +13,6 @@ import com.nullguard.callgraph.resolver.MethodResolver;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 
 public final class BasicCallGraphBuilder implements CallGraphBuilder {
     private final MethodResolver resolver;
@@ -43,12 +42,17 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                             for (Instruction inst : instructions) {
                                 if (inst instanceof MethodCallInstruction callInst) {
                                     String calledName = extractCalledName(callInst.methodCall());
-                                    Optional<String> target = resolver.resolve(project, callerId, calledName);
-                                    
-                                    if (target.isPresent()) {
-                                        String calleeId = target.get();
-                                        outgoing.get(callerId).add(calleeId);
-                                        incoming.computeIfAbsent(calleeId, k -> new LinkedHashSet<>()).add(callerId);
+                                    if (isGetterOrSetter(calledName)) continue;
+                                    // resolveAll returns concrete implementations first, so Spring's
+                                    // controller → serviceInterface → serviceImpl pattern is handled:
+                                    // edges are added to ALL concrete implementations, not just the interface.
+                                    List<String> targets = resolver.resolveAll(project, calledName);
+
+                                    if (!targets.isEmpty()) {
+                                        for (String calleeId : targets) {
+                                            outgoing.get(callerId).add(calleeId);
+                                            incoming.computeIfAbsent(calleeId, k -> new LinkedHashSet<>()).add(callerId);
+                                        }
                                     } else {
                                         String extId = MethodIds.external(calledName);
                                         externalNodes.add(extId);
@@ -70,5 +74,18 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
         int parenIndex = methodCallString.indexOf('(');
         if (parenIndex == -1) return methodCallString.trim();
         return methodCallString.substring(0, parenIndex).trim();
+    }
+
+    /**
+     * Returns true for trivial accessor calls like "dataVO.getInvoiceNumber",
+     * "br.setAm", or "isActive" that add noise without architectural meaning.
+     */
+    private static boolean isGetterOrSetter(String calledName) {
+        String simple = calledName.contains(".")
+                ? calledName.substring(calledName.lastIndexOf('.') + 1)
+                : calledName;
+        return simple.length() > 3
+                && (simple.startsWith("get") || simple.startsWith("set") || simple.startsWith("is"))
+                && Character.isUpperCase(simple.charAt(simple.startsWith("is") ? 2 : 3));
     }
 }
