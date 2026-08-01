@@ -4,7 +4,8 @@ import com.nullguard.callgraph.model.GlobalCallGraph;
 import com.nullguard.scoring.config.ScoringConfig;
 import com.nullguard.scoring.model.AdjustedRiskModel;
 import com.nullguard.scoring.model.ProjectRiskSummary;
-import com.nullguard.scoring.model.RiskLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -32,13 +33,32 @@ import java.util.Map;
  */
 public class DefaultStabilityScorer implements StabilityScorer {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultStabilityScorer.class);
+
+    /**
+     * Grade emitted when there is nothing to score. Distinct from A–F so that
+     * "analysis produced no data" can never be mistaken for "the code is clean".
+     * Callers should check {@link ProjectRiskSummary#isAvailable()} before rendering numbers.
+     */
+    public static final String GRADE_NOT_AVAILABLE = "N/A";
+
     @Override
     public ProjectRiskSummary score(Map<String, AdjustedRiskModel> finalModels,
                                    GlobalCallGraph callGraph,
                                    ScoringConfig config) {
 
         if (finalModels.isEmpty()) {
-            return new ProjectRiskSummary(100.0, "A", 0.0, 0.0, 0.0, 0, 0, 0.0, 0);
+            // Do NOT return 100.0 / "A" here. An empty risk map does not mean "clean codebase";
+            // in practice it means the analysis produced nothing — the parse failed, no CFGs
+            // were built, or the reflective probes in FixpointRiskPropagationEngine all missed.
+            // Reporting a perfect score for a total analysis failure is the single most
+            // dangerous failure mode a static analyser can have, because it is indistinguishable
+            // from success. Emit a sentinel the CLI and Maven plugin can render as "no data".
+            LOG.warn("Stability scoring received zero risk models. This usually means parsing or "
+                   + "analysis produced no results, not that the project is risk-free. "
+                   + "Reporting grade '{}' instead of a score.", GRADE_NOT_AVAILABLE);
+            return new ProjectRiskSummary(
+                    Double.NaN, GRADE_NOT_AVAILABLE, Double.NaN, Double.NaN, Double.NaN, 0, 0, Double.NaN, 0);
         }
 
         int    totalMethods               = finalModels.size();

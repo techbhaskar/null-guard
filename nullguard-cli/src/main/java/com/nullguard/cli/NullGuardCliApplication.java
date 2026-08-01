@@ -169,6 +169,15 @@ public final class NullGuardCliApplication {
         System.out.println("┌─────────────────────────────────────────┐");
         System.out.println("│  NullGuard Analysis Summary              │");
         System.out.println("├─────────────────────────────────────────┤");
+        if (!s.isAvailable()) {
+            // The scorer had nothing to score. Say so, rather than printing "NaN" next to a
+            // grade and letting the reader assume the numbers mean something.
+            System.out.printf ("│  %-38s │%n", "ANALYSIS PRODUCED NO DATA");
+            System.out.printf ("│  %-38s │%n", "No methods were scored - check that");
+            System.out.printf ("│  %-38s │%n", "sources parsed and CFGs were built.");
+            System.out.println("└─────────────────────────────────────────┘");
+            return;
+        }
         System.out.printf ("│  Grade           : %-20s │%n", s.getGrade());
         System.out.printf ("│  Stability Index : %-20.2f │%n", s.getStabilityIndex());
         System.out.printf ("│  Total Methods   : %-20d │%n", s.getTotalMethods());

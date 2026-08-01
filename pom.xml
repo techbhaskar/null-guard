@@ -23,7 +23,33 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javaparser.version>3.25.8</javaparser.version>
+        <!--
+            Surefire MUST be pinned. The version inherited from the default lifecycle
+            bindings on Maven 3.8.x is 2.12.4, which only knows the JUnit 3/4 providers
+            and therefore silently executes ZERO JUnit 5 tests ("Tests run: 0").
+            Every module in this build tests with junit-jupiter, so without this pin
+            the whole suite is a no-op that always passes.
+        -->
+        <surefire.version>3.2.5</surefire.version>
     </properties>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${surefire.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencyManagement>
         <dependencies>

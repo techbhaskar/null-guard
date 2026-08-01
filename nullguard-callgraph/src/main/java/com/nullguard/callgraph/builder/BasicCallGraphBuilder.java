@@ -3,6 +3,7 @@ import com.nullguard.core.model.ProjectModel;
 import com.nullguard.core.model.ModuleModel;
 import com.nullguard.core.model.PackageModel;
 import com.nullguard.core.model.ClassModel;
+import com.nullguard.core.model.MethodIds;
 import com.nullguard.core.model.MethodModel;
 import com.nullguard.analysis.ir.Instruction;
 import com.nullguard.analysis.ir.MethodCallInstruction;
@@ -33,7 +34,7 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
             for (PackageModel pkg : module.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel mth : cls.getMethods().values()) {
-                        String callerId = pkg.getPackageName() + "." + cls.getClassName() + "#" + mth.getSignature();
+                        String callerId = MethodIds.of(pkg, cls, mth);
                         outgoing.putIfAbsent(callerId, new LinkedHashSet<>());
                         incoming.putIfAbsent(callerId, new LinkedHashSet<>());
                         
@@ -49,7 +50,7 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                                         outgoing.get(callerId).add(calleeId);
                                         incoming.computeIfAbsent(calleeId, k -> new LinkedHashSet<>()).add(callerId);
                                     } else {
-                                        String extId = "ext#" + calledName;
+                                        String extId = MethodIds.external(calledName);
                                         externalNodes.add(extId);
                                         outgoing.get(callerId).add(extId);
                                         incoming.computeIfAbsent(extId, k -> new LinkedHashSet<>()).add(callerId);

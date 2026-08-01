@@ -1,6 +1,7 @@
 package com.nullguard.analysis.engine;
 
 import com.nullguard.core.cfg.ControlFlowModel;
+import com.nullguard.analysis.extractor.BasicInstructionExtractor;
 import com.nullguard.analysis.extractor.InstructionExtractor;
 import com.nullguard.analysis.ir.*;
 import com.nullguard.analysis.lattice.NullState;
@@ -8,6 +9,7 @@ import com.nullguard.analysis.lattice.NullState;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * ForwardDataFlowAnalyzer – fixpoint forward data-flow pass over a method's CFG.
@@ -21,7 +23,9 @@ import java.util.Map;
  * <ul>
  *   <li>Sets {@code NullState.NULL} for the target variable when the source is
  *       {@code "NULL_LITERAL"} (set by the fixed {@code BasicInstructionExtractor})</li>
- *   <li>Sets {@code NullState.NON_NULL} when the source looks non-null (any other assignment)</li>
+ *   <li>Sets {@code NullState.UNKNOWN} when the RHS is a method-call result ({@code "CALL_RESULT"})</li>
+ *   <li>Sets {@code NullState.NON_NULL} only for literals, constructors and other RHS forms
+ *       that provably cannot be null</li>
  *   <li>Counts a {@link DereferenceInstruction} as <em>unguarded</em> when the receiver
  *       variable was {@code NullState.NULL} or {@code NullState.UNKNOWN} in the in-state
  *       at that point</li>
@@ -33,7 +37,8 @@ import java.util.Map;
  */
 public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
 
-    private static final String NULL_LITERAL = "NULL_LITERAL";
+    private static final String NULL_LITERAL = BasicInstructionExtractor.NULL_LITERAL;
+    private static final String CALL_RESULT  = BasicInstructionExtractor.CALL_RESULT;
 
     private final InstructionExtractor extractor;
 
@@ -71,11 +76,15 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
                 // Transfer function
                 if (inst instanceof AssignmentInstruction assign) {
                     if (NULL_LITERAL.equals(assign.source())) {
-                        // ── FIX 3a: propagate NULL through the lattice ────────
                         newOut.put(assign.target(), NullState.NULL);
+                    } else if (CALL_RESULT.equals(assign.source())) {
+                        // A method return is genuinely unknown until interprocedural summaries
+                        // land. This branch previously fell through to NON_NULL, which asserted
+                        // that `User u = repo.findByEmail(e);` can never be null — the exact
+                        // claim a null checker exists to refute.
+                        newOut.put(assign.target(), NullState.UNKNOWN);
                     } else {
-                        // Any other RHS → conservatively mark NON_NULL
-                        // (could be UNKNOWN for method-call returns in a future pass)
+                        // Literal, constructor, or arithmetic RHS → cannot be null.
                         newOut.put(assign.target(), NullState.NON_NULL);
                     }
                 }
@@ -102,13 +111,20 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
 
             if (inst instanceof DereferenceInstruction deref) {
                 NullState receiverState = state.getOrDefault(deref.variableName(), NullState.UNKNOWN);
-                // ONLY count as unguarded when the receiver is CONFIRMED NULL.
-                // UNKNOWN means the variable was never explicitly assigned null —
-                // counting UNKNOWN causes massive false positives on every field/param access.
-                if (receiverState == NullState.NULL) {
-                    if (!isGuardedByPrecedingCondition(instructions, i, deref.variableName())) {
-                        dereferenceCount++;
-                    }
+                // Count a dereference as unguarded when the receiver is CONFIRMED NULL or
+                // NOT KNOWN to be non-null. Restricting this to NULL made the counter
+                // unreachable in practice: the only way to reach NULL is a literal `= null`
+                // in the same method, so the tool's headline metric never fired.
+                //
+                // TRADE-OFF (deliberate): UNKNOWN covers every unassigned parameter and field,
+                // so this is a high-recall / low-precision setting and will report on ordinary
+                // parameter dereferences. isGuardedBy(...) below is now the primary
+                // false-positive suppressor, which is why it was hardened. To go back to
+                // high-precision, drop `|| receiverState == NullState.UNKNOWN`.
+                boolean nullCapable = receiverState == NullState.NULL
+                                   || receiverState == NullState.UNKNOWN;
+                if (nullCapable && !isGuardedBy(instructions, i, deref.variableName())) {
+                    dereferenceCount++;
                 }
             }
 
@@ -138,25 +154,60 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
-     * Heuristic: returns {@code true} if any of the previous 1-3 instructions
-     * is a {@link ConditionalInstruction} whose source text contains the variable name.
-     * This avoids false-positive dereference counts for patterns like:
-     * <pre>
-     *   if (user == null) { ... }
-     *   user.getName();   // in the else-branch
-     * </pre>
+     * Returns {@code true} if some preceding instruction establishes a null guard on
+     * {@code varName}. This is the primary false-positive suppressor now that UNKNOWN
+     * receivers are counted, so it replaces the previous three-instruction
+     * {@code condition.contains(varName)} substring test, which was wrong in two ways:
+     * <ul>
+     *   <li>{@code contains} matched substrings, so {@code if (username != null)} suppressed
+     *       findings on an unrelated variable named {@code user}.</li>
+     *   <li>The window of 3 was arbitrary; a guard four statements back was invisible.</li>
+     * </ul>
+     *
+     * <p>The scan walks backwards over all preceding instructions and stops at the point
+     * where {@code varName} is reassigned — a guard before a reassignment says nothing about
+     * the new value.
+     *
+     * <p><b>Known limitation.</b> Polarity is not resolved: {@code if (x == null) x.f();}
+     * is treated as guarded even though the dereference sits in the branch where {@code x} is
+     * null. That is not fixable here — {@code BasicControlFlowBuilder} emits a flat linear
+     * chain with no TRUE_BRANCH/FALSE_BRANCH edges, so which branch an instruction belongs to
+     * is simply not represented. Until branch edges exist, treating any null-comparison as a
+     * guard is the precision-favouring choice.
      */
-    private static boolean isGuardedByPrecedingCondition(
+    private static boolean isGuardedBy(
             List<Instruction> instructions, int derefIndex, String varName) {
-        int lookback = Math.min(3, derefIndex);
-        for (int j = derefIndex - 1; j >= derefIndex - lookback; j--) {
+        if (varName == null || varName.isEmpty()) return false;
+
+        for (int j = derefIndex - 1; j >= 0; j--) {
             Instruction prev = instructions.get(j);
-            if (prev instanceof ConditionalInstruction cond) {
-                if (cond.condition().contains(varName)) {
-                    return true;
-                }
+
+            // A reassignment invalidates every guard established before it.
+            if (prev instanceof AssignmentInstruction assign
+                    && varName.equals(assign.target())) {
+                return false;
+            }
+
+            if (prev instanceof ConditionalInstruction cond
+                    && isNullGuardFor(cond.condition(), varName)) {
+                return true;
             }
         }
+        return false;
+    }
+
+    /** Whether {@code condition} is a null/non-null test naming exactly {@code varName}. */
+    static boolean isNullGuardFor(String condition, String varName) {
+        if (condition == null) return false;
+        String v = Pattern.quote(varName);
+        // x != null / x == null  (and the Yoda forms)
+        if (Pattern.compile("\\b" + v + "\\b\\s*[!=]=\\s*null").matcher(condition).find()) return true;
+        if (Pattern.compile("null\\s*[!=]=\\s*\\b" + v + "\\b").matcher(condition).find()) return true;
+        // Objects.requireNonNull(x) / Objects.nonNull(x) / Objects.isNull(x)
+        if (Pattern.compile("(?:requireNonNull|nonNull|isNull)\\s*\\(\\s*\\b" + v + "\\b")
+                .matcher(condition).find()) return true;
+        // x instanceof Foo  — implies x is non-null
+        if (Pattern.compile("\\b" + v + "\\b\\s+instanceof\\b").matcher(condition).find()) return true;
         return false;
     }
 }

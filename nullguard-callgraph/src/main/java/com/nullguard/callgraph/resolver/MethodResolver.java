@@ -1,5 +1,6 @@
 package com.nullguard.callgraph.resolver;
 import com.nullguard.core.model.ClassModel;
+import com.nullguard.core.model.MethodIds;
 import com.nullguard.core.model.MethodModel;
 import com.nullguard.core.model.ModuleModel;
 import com.nullguard.core.model.PackageModel;
@@ -11,7 +12,7 @@ public final class MethodResolver {
             for (PackageModel pkg : module.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel mth : cls.getMethods().values()) {
-                        String id = pkg.getPackageName() + "." + cls.getClassName() + "#" + mth.getSignature();
+                        String id = MethodIds.of(pkg, cls, mth);
                         String searchName = calledMethodName;
                         if (searchName.contains(".")) {
                             searchName = searchName.substring(searchName.lastIndexOf(".") + 1);

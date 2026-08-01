@@ -167,6 +167,15 @@ public class NullGuardMojo extends AbstractMojo {
         getLog().info("┌─────────────────────────────────────────┐");
         getLog().info("│  NullGuard Analysis Summary              │");
         getLog().info("├─────────────────────────────────────────┤");
+        if (!summary.isAvailable()) {
+            // Nothing was scored. Warn instead of reporting a grade, so a broken analysis
+            // cannot be mistaken for a passing build.
+            getLog().warn("NullGuard produced no data: no methods were scored. This usually means "
+                        + "sources failed to parse or no CFGs were built - it does NOT mean the "
+                        + "project is risk-free.");
+            getLog().info("└─────────────────────────────────────────┘");
+            return;
+        }
         getLog().info(String.format("│  Grade           : %-20s │", summary.getGrade()));
         getLog().info(String.format("│  Stability Index : %-20.2f │", summary.getStabilityIndex()));
         getLog().info(String.format("│  Total Methods   : %-20d │", summary.getTotalMethods()));

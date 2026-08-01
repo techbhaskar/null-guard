@@ -29,6 +29,13 @@ import java.util.regex.Pattern;
  */
 public final class BasicInstructionExtractor implements InstructionExtractor {
 
+    /** {@link AssignmentInstruction#source()} marker: RHS is the literal {@code null}. */
+    public static final String NULL_LITERAL = "NULL_LITERAL";
+    /** Marker: RHS is a method-call result, i.e. nullability is genuinely unknown. */
+    public static final String CALL_RESULT = "CALL_RESULT";
+    /** Marker: RHS is a literal / constructor / expression that cannot be null. */
+    public static final String NON_NULL = "NON_NULL";
+
     // x = null;  /  x = foo.orElse(null)  /  Type x = null;
     private static final Pattern NULL_ASSIGN_PATTERN =
             Pattern.compile("(?:^|[\\s(,])([\\w$]+)\\s*(?:[+\\-*/%&|^]?=)(?!=)\\s*null\\s*[;,)]?");
@@ -63,14 +70,36 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
                                            && !src.contains("<=");
 
                     if (isAssignment) {
-                        String target = extractTarget(src);
-                        String source = isNullLiteralRhs(src) ? "NULL_LITERAL" : "NON_NULL";
+                        String target  = extractTarget(src);
+                        String rhsCall = extractRhsMethodCall(src);
+
+                        // ── The receiver on the RHS is dereferenced BEFORE the assignment lands.
+                        // `String name = user.getName();` is the single most common NPE shape in
+                        // Java, and this branch used to emit no DereferenceInstruction at all —
+                        // only bare-statement calls (`user.doIt();`) were ever counted. The deref
+                        // is emitted first so the forward analyser evaluates it against the state
+                        // *before* the target is written (matters for `n = n.next`).
+                        String rhsReceiver = extractRhsReceiver(src);
+                        if (rhsReceiver != null) {
+                            instructions.add(new DereferenceInstruction(
+                                    baseId + (instrIndex++), cfgId, line, rhsReceiver));
+                        }
+
+                        String source;
+                        if (isNullLiteralRhs(src)) {
+                            source = NULL_LITERAL;
+                        } else if (rhsCall != null) {
+                            // A method return is genuinely unknown. Marking it NON_NULL — as this
+                            // did — asserts the opposite of what is known and is precisely the
+                            // case a null checker exists to flag.
+                            source = CALL_RESULT;
+                        } else {
+                            source = NON_NULL;
+                        }
                         instructions.add(new AssignmentInstruction(
                                 baseId + (instrIndex++), cfgId, line, target, source));
 
-                        // The RHS may still be a method call — also emit a MethodCallInstruction
-                        // so the call graph can track the callee.
-                        String rhsCall = extractRhsMethodCall(src);
+                        // Also emit a MethodCallInstruction so the call graph can track the callee.
                         if (rhsCall != null) {
                             instructions.add(new MethodCallInstruction(
                                     baseId + (instrIndex++), cfgId, line, rhsCall));
@@ -102,7 +131,7 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
                 }
                 case RETURN -> {
                     String retVal = src.replaceFirst("(?i)^return\\s*", "").replace(";", "").trim();
-                    String finalVal = "null".equals(retVal) ? "NULL_LITERAL" : retVal;
+                    String finalVal = "null".equals(retVal) ? NULL_LITERAL : retVal;
                     instructions.add(new ReturnInstruction(
                             baseId + (instrIndex++), cfgId, line, finalVal));
                 }
@@ -170,6 +199,27 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
             if (candidate.matches("[\\w$]+")) return candidate;
         }
         return null;
+    }
+
+    /**
+     * If the RHS of an assignment dereferences a receiver, return the receiver variable;
+     * e.g. {@code String name = user.getName();} → {@code "user"}.
+     *
+     * <p>Receivers whose first character is upper-case are skipped: {@code Optional.of(x)},
+     * {@code String.valueOf(y)} and friends are static calls on a type name, not dereferences
+     * of a variable, and counting them would be a guaranteed false positive.
+     *
+     * @return the receiver identifier, or {@code null} if the RHS dereferences nothing
+     */
+    private static String extractRhsReceiver(String src) {
+        int eq = indexOfAssignmentOperator(src);
+        if (eq < 0) return null;
+        String rhs = src.substring(eq + 1).trim();
+        Matcher m = RECEIVER_METHOD_PATTERN.matcher(rhs);
+        if (!m.find()) return null;
+        String receiver = m.group(1);
+        if (receiver.isEmpty() || Character.isUpperCase(receiver.charAt(0))) return null;
+        return receiver;
     }
 
     private static String extractCalleeFromSrc(String src) {

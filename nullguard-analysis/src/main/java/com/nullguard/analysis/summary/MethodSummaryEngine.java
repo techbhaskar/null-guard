@@ -31,6 +31,9 @@ import com.nullguard.analysis.risk.RiskModel;
  */
 public class MethodSummaryEngine {
 
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(MethodSummaryEngine.class);
+
     private final AnalysisConfig config;
     private final ForwardDataFlowAnalyzer dataFlowAnalyzer;
     private final IntrinsicRiskCalculator riskCalculator;
@@ -45,19 +48,9 @@ public class MethodSummaryEngine {
      * Enriches every method in the project with a {@link MethodSummary}
      * captured in the {@code methodSummary} object slot of {@link MethodModel}.
      *
-     * <p>This modifies the mutable {@code methodSummary} slot through the
-     * package-accessible setter that already exists on {@link MethodModel.Builder}
-     * (we reconstruct a builder from the existing model and reassign the class map).
-     * Because {@code MethodModel} is immutable after construction, we attach the
-     * summary to the model's Object slot using a thread-local surrogate that the
-     * scoring engine reads back via reflection (the existing pattern already in
-     * {@code FixpointRiskPropagationEngine}).
-     *
-     * <p><strong>Implementation note:</strong> Rather than break the immutability of
-     * {@code MethodModel}, we use a side-table ({@code MethodSummaryRegistry}) keyed
-     * by method signature. {@code FixpointRiskPropagationEngine} already reads through
-     * the Object slot via reflection. We set that slot here using the existing
-     * Object-typed field by re-building a new MethodModel with the summary attached.
+     * <p>This calls the public {@link MethodModel#setMethodSummary(Object)} setter directly.
+     * There is no registry, no thread-local and no reflection involved — earlier revisions of
+     * this Javadoc described all three, none of which ever existed in the code.
      */
     public void run(ProjectModel project) {
         for (ModuleModel mod : project.getModules().values()) {
@@ -102,7 +95,10 @@ public class MethodSummaryEngine {
             method.setMethodSummary(summary);
 
         } catch (Exception e) {
-            // Non-fatal: leave summary empty if analysis fails for this method
+            // Non-fatal, but never silent: a method with no summary contributes 0.0 risk, so
+            // widespread silent failures here present as a clean project.
+            LOG.warn("Null analysis failed for {}; this method will contribute no risk.",
+                     method.getSignature(), e);
         }
     }
 }

@@ -3,6 +3,7 @@ package com.nullguard.suggestions.engine;
 import com.nullguard.analysis.summary.MethodSummary;
 import com.nullguard.callgraph.model.GlobalCallGraph;
 import com.nullguard.core.model.ClassModel;
+import com.nullguard.core.model.MethodIds;
 import com.nullguard.core.model.MethodModel;
 import com.nullguard.core.model.ModuleModel;
 import com.nullguard.core.model.PackageModel;
@@ -35,7 +36,10 @@ public class DefaultSuggestionEngine implements SuggestionEngine {
             for (PackageModel pkg : mod.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel m : cls.getMethods().values()) {
-                        String methodId = mod.getModuleName() + "." + pkg.getPackageName() + "." + cls.getClassName() + "#" + m.getSignature();
+                        // MUST use the canonical id. This previously prefixed mod.getModuleName(),
+                        // which no other module does, so summaries.get(methodId) below could never
+                        // hit and generate() returned an empty list for every project.
+                        String methodId = MethodIds.of(pkg, cls, m);
                         m.getMethodSummary().ifPresent(obj -> {
                             if (obj instanceof MethodSummary) {
                                 summaries.put(methodId, (MethodSummary) obj);
@@ -62,10 +66,14 @@ public class DefaultSuggestionEngine implements SuggestionEngine {
         
         for (String methodId : sortedMethodIds) {
             AdjustedRiskModel riskModel = riskMap.get(methodId);
+            if (riskModel == null) continue;
+
+            // May be null for external nodes (ext#...), which are present in riskMap but are
+            // not methods of the analysed project and therefore carry no summary.
             MethodSummary summary = summaries.get(methodId);
-            if (summary == null) continue;
-            
+
             for (SuggestionRule rule : rules) {
+                if (summary == null && rule.requiresSummary()) continue;
                 Optional<Suggestion> opt = rule.evaluate(methodId, summary, riskModel);
                 opt.ifPresent(rawSuggestions::add);
             }

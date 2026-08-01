@@ -3,6 +3,7 @@ package com.nullguard.scoring.propagation;
 
 import com.nullguard.callgraph.model.GlobalCallGraph;
 import com.nullguard.core.model.ClassModel;
+import com.nullguard.core.model.MethodIds;
 import com.nullguard.core.model.MethodModel;
 import com.nullguard.core.model.ModuleModel;
 import com.nullguard.core.model.PackageModel;
@@ -24,6 +25,9 @@ import java.util.Map;
 import java.util.Set;
 
 public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(FixpointRiskPropagationEngine.class);
 
     /**
      * After propagate() completes, this map holds the per-method explanation:
@@ -53,9 +57,7 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
             for (PackageModel pkg : mod.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel m : cls.getMethods().values()) {
-                        // Canonical method ID format: packageName.className#signature
-                        // Must match BasicCallGraphBuilder.callerId format exactly.
-                        String methodId = pkg.getPackageName() + "." + cls.getClassName() + "#" + m.getSignature();
+                        String methodId = MethodIds.of(pkg, cls, m);
                         m.getMethodSummary().ifPresent(obj -> {
                             // Use pure reflection – avoids a compile-time dependency on the
                             // MethodSummary class from nullguard-analysis and is immune to
@@ -76,7 +78,15 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
                                         profile.getClass().getMethod("getIntrinsicRiskScore");
                                     risk = ((Number) mProfScore.invoke(profile)).doubleValue();
                                 } catch (Exception e2) {
-                                    // Both probes failed – leave risk at 0.0
+                                    // Both probes failed. This must never be silent: a rename or
+                                    // signature change on MethodSummary zeroes every risk score in
+                                    // the product with no compile error, which then surfaces as a
+                                    // clean bill of health rather than as a failure.
+                                    LOG.warn("Could not read intrinsic risk for {} from {} "
+                                           + "(tried getIntrinsicRiskScore and "
+                                           + "getIntrinsicRiskProfile().getIntrinsicRiskScore); "
+                                           + "scoring it as 0.0",
+                                           methodId, obj.getClass().getName(), e2);
                                 }
                             }
                             if (risk > 0.0) {
@@ -188,7 +198,11 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
                             return ((Number) obj.getClass()
                                     .getMethod("getContractPenalty")
                                     .invoke(obj)).doubleValue();
-                        } catch (Exception e) { return 0.0; }
+                        } catch (Exception e) {
+                            LOG.warn("Could not read contract penalty for {} from {}; using 0.0",
+                                     methodId, obj.getClass().getName(), e);
+                            return 0.0;
+                        }
                     }).orElse(0.0);
             }
 
@@ -309,10 +323,15 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
             @SuppressWarnings("unchecked")
             Set<String> result = (Set<String>) m.invoke(callGraph);
             if (result != null) return result;
+        } catch (NoSuchMethodException e) {
+            // Expected: GlobalCallGraph has no getAllMethods(). Fall through to the union below.
+            LOG.debug("GlobalCallGraph has no getAllMethods(); deriving the node set from "
+                    + "outgoing/incoming/external.");
         } catch (Exception e) {
-            // Ignore and fallback
+            LOG.warn("getAllMethods() on {} failed; deriving the node set from "
+                   + "outgoing/incoming/external instead.", callGraph.getClass().getName(), e);
         }
-        
+
         allMethods.addAll(callGraph.getOutgoing().keySet());
         allMethods.addAll(callGraph.getIncoming().keySet());
         allMethods.addAll(callGraph.getExternalNodes());
@@ -333,7 +352,7 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
             for (var pkg : mod.getPackages().values()) {
                 for (var cls : pkg.getClasses().values()) {
                     for (MethodModel mm : cls.getMethods().values()) {
-                        String id = pkg.getPackageName() + "." + cls.getClassName() + "#" + mm.getSignature();
+                        String id = MethodIds.of(pkg, cls, mm);
                         index.put(id, mm);
                     }
                 }

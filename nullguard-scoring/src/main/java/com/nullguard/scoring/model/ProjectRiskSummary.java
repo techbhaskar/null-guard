@@ -27,6 +27,18 @@ public final class ProjectRiskSummary {
         this.totalExternalMethods = totalExternalMethods;
     }
 
+    /**
+     * Whether this summary carries real data.
+     *
+     * <p>{@code false} means the analysis produced zero risk models — a parse failure or a
+     * broken analysis pipeline — and every numeric field is {@link Double#NaN}. Renderers
+     * must check this before formatting a score, otherwise a total failure is presented as
+     * a result.
+     */
+    public boolean isAvailable() {
+        return !Double.isNaN(stabilityIndex);
+    }
+
     public double getStabilityIndex() {
         return stabilityIndex;
     }

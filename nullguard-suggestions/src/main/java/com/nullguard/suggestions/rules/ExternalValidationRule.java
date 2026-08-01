@@ -16,8 +16,15 @@ public class ExternalValidationRule implements SuggestionRule {
         this.callGraph = callGraph;
     }
 
+    /** Judges the call graph, not the method body — external ids never carry a summary. */
+    @Override
+    public boolean requiresSummary() {
+        return false;
+    }
+
     @Override
     public Optional<Suggestion> evaluate(String methodId, MethodSummary summary, AdjustedRiskModel riskModel) {
+        // summary is intentionally unused and may be null for external nodes.
         if (callGraph != null && callGraph.isExternal(methodId) && riskModel.getAdjustedRisk() >= 50.0) {
             return Optional.of(new Suggestion(
                     methodId,
