@@ -102,7 +102,8 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
                         // Also emit a MethodCallInstruction so the call graph can track the callee.
                         if (rhsCall != null) {
                             instructions.add(new MethodCallInstruction(
-                                    baseId + (instrIndex++), cfgId, line, rhsCall));
+                                    baseId + (instrIndex++), cfgId, line, rhsCall,
+                                    countArguments(src, rhsCall)));
                         }
 
                     } else if (src.contains("(")) {
@@ -118,12 +119,14 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
                                     baseId + (instrIndex++), cfgId, line, receiver));
                             // MethodCallInstruction feeds the call graph builder
                             instructions.add(new MethodCallInstruction(
-                                    baseId + (instrIndex++), cfgId, line, callee));
+                                    baseId + (instrIndex++), cfgId, line, callee,
+                                    countArguments(src, callee)));
                         } else {
                             // Standalone call: method(args) — no explicit receiver
                             String callee = extractCalleeFromSrc(src);
                             instructions.add(new MethodCallInstruction(
-                                    baseId + (instrIndex++), cfgId, line, callee));
+                                    baseId + (instrIndex++), cfgId, line, callee,
+                                    countArguments(src, callee)));
                         }
                     }
                     // Pure field-access statements with '.' but no '(' are rare;
@@ -220,6 +223,70 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
         String receiver = m.group(1);
         if (receiver.isEmpty() || Character.isUpperCase(receiver.charAt(0))) return null;
         return receiver;
+    }
+
+    /**
+     * Counts the arguments passed at a call site, so the call-graph resolver can discriminate
+     * overloads. Without this, {@code foo(int)} and {@code foo(String, String)} are
+     * indistinguishable and whichever is iterated first wins.
+     *
+     * <p>Commas nested inside parentheses, generics, brackets or string/char literals do not
+     * separate arguments. Returns {@link MethodCallInstruction#UNKNOWN_ARG_COUNT} when the
+     * argument list cannot be located or is unbalanced, which makes the resolver skip arity
+     * filtering rather than filter on a wrong number.
+     *
+     * @param src    full source text of the statement
+     * @param callee the callee text, used to find the correct opening parenthesis
+     */
+    static int countArguments(String src, String callee) {
+        if (src == null || callee == null || callee.isEmpty()) {
+            return MethodCallInstruction.UNKNOWN_ARG_COUNT;
+        }
+        int calleeAt = src.indexOf(callee);
+        if (calleeAt < 0) return MethodCallInstruction.UNKNOWN_ARG_COUNT;
+
+        int open = src.indexOf('(', calleeAt + callee.length() - 1);
+        if (open < 0) return MethodCallInstruction.UNKNOWN_ARG_COUNT;
+
+        int depth = 0;
+        int count = 0;
+        boolean sawContent = false;
+        boolean inString = false;
+        boolean inChar = false;
+
+        for (int i = open; i < src.length(); i++) {
+            char c = src.charAt(i);
+
+            if (inString) {
+                if (c == '\\') i++;
+                else if (c == '"') inString = false;
+                continue;
+            }
+            if (inChar) {
+                if (c == '\\') i++;
+                else if (c == '\'') inChar = false;
+                continue;
+            }
+            if (c == '"') { inString = true; sawContent = true; continue; }
+            if (c == '\'') { inChar = true; sawContent = true; continue; }
+
+            if (c == '(' || c == '[' || c == '<') {
+                depth++;
+                if (depth > 1) sawContent = true;
+            } else if (c == ')' || c == ']' || c == '>') {
+                depth--;
+                if (depth == 0) {
+                    return sawContent ? count + 1 : 0;
+                }
+                if (depth < 0) return MethodCallInstruction.UNKNOWN_ARG_COUNT;
+            } else if (c == ',' && depth == 1) {
+                count++;
+                sawContent = true;
+            } else if (depth == 1 && !Character.isWhitespace(c)) {
+                sawContent = true;
+            }
+        }
+        return MethodCallInstruction.UNKNOWN_ARG_COUNT;   // unbalanced
     }
 
     private static String extractCalleeFromSrc(String src) {

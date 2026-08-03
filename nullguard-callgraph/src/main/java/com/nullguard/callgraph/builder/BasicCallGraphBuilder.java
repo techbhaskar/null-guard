@@ -8,6 +8,7 @@ import com.nullguard.core.model.MethodModel;
 import com.nullguard.analysis.ir.Instruction;
 import com.nullguard.analysis.ir.MethodCallInstruction;
 import com.nullguard.analysis.extractor.BasicInstructionExtractor;
+import com.nullguard.callgraph.model.ExternalReason;
 import com.nullguard.callgraph.model.GlobalCallGraph;
 import com.nullguard.callgraph.resolver.MethodResolver;
 import java.util.LinkedHashMap;
@@ -28,7 +29,8 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
         LinkedHashMap<String, LinkedHashSet<String>> outgoing = new LinkedHashMap<>();
         LinkedHashMap<String, LinkedHashSet<String>> incoming = new LinkedHashMap<>();
         LinkedHashSet<String> externalNodes = new LinkedHashSet<>();
-        
+        LinkedHashMap<String, ExternalReason> externalReasons = new LinkedHashMap<>();
+
         for (ModuleModel module : project.getModules().values()) {
             for (PackageModel pkg : module.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
@@ -46,7 +48,9 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                                     // resolveAll returns concrete implementations first, so Spring's
                                     // controller → serviceInterface → serviceImpl pattern is handled:
                                     // edges are added to ALL concrete implementations, not just the interface.
-                                    List<String> targets = resolver.resolveAll(project, calledName);
+                                    // argCount discriminates overloads; UNKNOWN_ARG_COUNT skips that filter.
+                                    List<String> targets =
+                                            resolver.resolveAll(project, calledName, callInst.argCount());
 
                                     if (!targets.isEmpty()) {
                                         for (String calleeId : targets) {
@@ -56,6 +60,7 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                                     } else {
                                         String extId = MethodIds.external(calledName);
                                         externalNodes.add(extId);
+                                        externalReasons.putIfAbsent(extId, resolver.classifyExternal(calledName));
                                         outgoing.get(callerId).add(extId);
                                         incoming.computeIfAbsent(extId, k -> new LinkedHashSet<>()).add(callerId);
                                     }
@@ -67,7 +72,7 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
             }
         }
         
-        return new GlobalCallGraph(outgoing, incoming, externalNodes);
+        return new GlobalCallGraph(outgoing, incoming, externalNodes, externalReasons);
     }
     
     private String extractCalledName(String methodCallString) {

@@ -3,12 +3,15 @@ package com.nullguard.analysis.engine;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.nullguard.analysis.extractor.BasicInstructionExtractor;
+import com.nullguard.analysis.lattice.NullGuardCondition;
+import com.nullguard.analysis.lattice.NullState;
 import com.nullguard.core.builder.BasicControlFlowBuilder;
 import com.nullguard.core.cfg.ControlFlowModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -90,14 +93,23 @@ class DereferenceDetectionTest {
     }
 
     @Test
-    @DisplayName("isNullGuardFor matches whole identifiers only")
+    @DisplayName("guard recognition matches whole identifiers only")
     void guardMatcherIsIdentifierExact() {
-        assertTrue(ForwardDataFlowAnalyzer.isNullGuardFor("user != null", "user"));
-        assertTrue(ForwardDataFlowAnalyzer.isNullGuardFor("null == user", "user"));
-        assertTrue(ForwardDataFlowAnalyzer.isNullGuardFor("user instanceof Admin", "user"));
-        assertTrue(ForwardDataFlowAnalyzer.isNullGuardFor("Objects.requireNonNull(user)", "user"));
+        // Guard recognition moved from a textual lookback in ForwardDataFlowAnalyzer to
+        // NullGuardCondition, which the worklist applies per branch edge. The property under
+        // test is unchanged: whole-identifier matching, never substrings.
+        assertEquals(NullState.NON_NULL,
+                NullGuardCondition.parse("user != null").onTrue().get("user"));
+        assertEquals(NullState.NON_NULL,
+                NullGuardCondition.parse("null != user").onTrue().get("user"));
+        assertEquals(NullState.NON_NULL,
+                NullGuardCondition.parse("user instanceof Admin").onTrue().get("user"));
+        assertEquals(NullState.NON_NULL,
+                NullGuardCondition.unconditionalNonNull("Objects.requireNonNull(user)").get("user"));
 
-        assertTrue(!ForwardDataFlowAnalyzer.isNullGuardFor("username != null", "user"));
-        assertTrue(!ForwardDataFlowAnalyzer.isNullGuardFor("user.isActive()", "user"));
+        assertNull(NullGuardCondition.parse("username != null").onTrue().get("user"),
+                "a shared prefix must not refine an unrelated variable");
+        assertNull(NullGuardCondition.parse("user.isActive()").onTrue().get("user"),
+                "a plain method call on user says nothing about its nullness");
     }
 }

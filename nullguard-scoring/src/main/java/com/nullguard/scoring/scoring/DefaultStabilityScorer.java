@@ -65,7 +65,7 @@ public class DefaultStabilityScorer implements StabilityScorer {
         double sumAdjustedRisk            = 0.0;
         double maxRisk                    = 0.0;
         int    highRiskMethods            = 0;
-        double totalOutgoingFromHighRisk  = 0.0;
+        double totalIncomingToHighRisk    = 0.0;
         double totalContractPenalty       = 0.0;
         double totalApiExposure           = 0.0;
 
@@ -86,14 +86,19 @@ public class DefaultStabilityScorer implements StabilityScorer {
 
             if (risk >= highRiskThreshold) {
                 highRiskMethods++;
-                totalOutgoingFromHighRisk += callGraph.getCallees(methodId).size();
+                // Blast radius = what breaks when this method fails, i.e. who depends on it.
+                // This used to sum getCallees(), which is out-degree: how many things the
+                // risky method calls. That is the opposite of the metric's name, and it made
+                // a leaf method with a huge fan-out look dangerous while a widely-depended-on
+                // utility looked safe.
+                totalIncomingToHighRisk += callGraph.getCallers(methodId).size();
             }
         }
 
         double averageRisk       = sumAdjustedRisk / totalMethods;
         double highRiskRatio     = (double) highRiskMethods / totalMethods;
         double blastRadiusScore  = highRiskMethods > 0
-                                   ? totalOutgoingFromHighRisk / highRiskMethods
+                                   ? totalIncomingToHighRisk / highRiskMethods
                                    : 0.0;
 
         // StabilityIndex = 100 − averageAdjustedRisk (clamped to [0, 100])

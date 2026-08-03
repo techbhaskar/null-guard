@@ -122,8 +122,21 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
             LinkedHashMap<String, Double> tempStore = new LinkedHashMap<>();
             
             for (String methodId : allMethods) {
-                double newPropagated = 0.0;
-                
+                // ── Mean, not sum ────────────────────────────────────────────
+                // This used to accumulate `childAdjusted * decay` over every callee. With
+                // average fan-out f the per-hop amplification is decay × f, so at the default
+                // decay of 0.6 anything with fan-out above ~1.67 diverged and pinned at the
+                // clamp ceiling of 100. It also meant a method calling ten harmless methods
+                // outranked one calling a single catastrophic method — risk was treated as an
+                // extensive quantity with no normalisation by out-degree, which is not
+                // defensible for a 0-100 index.
+                //
+                // Averaging makes propagated risk "how risky are my dependencies", bounded by
+                // decay × max(childAdjusted), so the fixpoint converges for any decay < 1
+                // regardless of graph shape.
+                double calleeRiskTotal = 0.0;
+                int calleeCount = 0;
+
                 for (String callee : callGraph.getCallees(methodId)) {
                     // Skip self-loops: a method calling itself in a cycle must not
                     // feed its own propagated risk back into itself.  Without this guard
@@ -135,9 +148,14 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
                     double childIntrinsic  = intrinsicRisk.getOrDefault(callee, 0.0);
                     double childPropagated = propagatedRisk.getOrDefault(callee, 0.0);
                     double childAdjusted   = childIntrinsic + childPropagated;
-                    newPropagated += childAdjusted * decayFactor;
+                    calleeRiskTotal += childAdjusted;
+                    calleeCount++;
                 }
-                
+
+                double newPropagated = calleeCount == 0
+                        ? 0.0
+                        : decayFactor * (calleeRiskTotal / calleeCount);
+
                 if (callGraph.isExternal(methodId)) {
                     newPropagated *= externalPenaltyMultiplier;
                 }
@@ -297,7 +315,10 @@ public class FixpointRiskPropagationEngine implements RiskPropagationEngine {
 
             // ── Self-loop / cycle note ───────────────────────────────────────
             if (hasSelfLoop) {
-                double inflatedScore = propagated / (1.0 - decayFactor);
+                // Guard the divisor. ScoringConfig now rejects decay >= 1.0, but this line
+                // used to emit Infinity straight into user-facing text when decay was 1.0.
+                double denominator = Math.max(1.0e-6, 1.0 - decayFactor);
+                double inflatedScore = propagated / denominator;
                 reasons.add("\u26A0 Cyclic self-call detected \u2014 score would have been "
                     + String.format("%.2f", inflatedScore)
                     + " without the self-loop guard (excluded for accuracy)");
