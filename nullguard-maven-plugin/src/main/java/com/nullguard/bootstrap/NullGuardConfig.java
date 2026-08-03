@@ -63,6 +63,14 @@ public final class NullGuardConfig {
 
     // ── Scoring config projection ───────────────────────────────────────────
 
+    /**
+     * Projects the scoring settings.
+     *
+     * <p>{@code ScoringConfig.build()} validates, and it is called lazily from inside the
+     * pipeline — so a bad {@code --decay-factor=1.0} used to surface as an analysis error
+     * mid-run rather than as a bad-arguments error at startup. {@code NullGuardConfig.build()}
+     * now calls this once eagerly so invalid values fail before any work begins.
+     */
     public ScoringConfig toScoringConfig() {
         return ScoringConfig.builder()
                 .decayFactor(scoringDecayFactor)
@@ -98,7 +106,13 @@ public final class NullGuardConfig {
         private double externalPenaltyMultiplier = 1.2;
         private double convergenceThreshold      = 0.001;
         private int    maxScoringIterations      = 100;
-        private int    highRiskThreshold         = 70;
+        /**
+         * Must agree with {@link com.nullguard.core.risk.RiskLevel#HIGH}'s lower bound. This was
+         * 70 while RiskLevel.HIGH starts at 60, so a method scoring 65 was coloured HIGH in the
+         * graph yet excluded from highRiskMethods and highRiskRatio — two contradictory
+         * definitions of "high risk" in the same report.
+         */
+        private int    highRiskThreshold         = com.nullguard.core.risk.RiskLevel.HIGH.getMin();
 
         // Policy defaults
         private boolean failBuild      = false;
@@ -121,6 +135,13 @@ public final class NullGuardConfig {
         public Builder failThreshold(String v)         { this.failThreshold           = v; return this; }
         public Builder outputDirectory(Path v)         { this.outputDirectory         = v; return this; }
 
-        public NullGuardConfig build() { return new NullGuardConfig(this); }
+        public NullGuardConfig build() {
+            NullGuardConfig config = new NullGuardConfig(this);
+            // Fail fast. ScoringConfig.build() validates, but it is only invoked lazily from
+            // inside AnalysisPipeline, so an invalid --decay-factor=1.0 surfaced as an analysis
+            // error part-way through a run rather than as a bad-arguments error at startup.
+            config.toScoringConfig();
+            return config;
+        }
     }
 }

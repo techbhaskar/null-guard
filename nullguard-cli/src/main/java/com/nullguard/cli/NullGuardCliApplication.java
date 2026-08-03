@@ -79,7 +79,9 @@ public final class NullGuardCliApplication {
         double  extPenalty      = 1.2;
         double  convergence     = 0.001;
         int     maxIterations   = 100;
-        int     highRiskThresh  = 70;
+        // Must match RiskLevel.HIGH's lower bound. Was 70, which contradicted the band used to
+        // colour the graph: a method at 65 rendered HIGH but was excluded from highRiskMethods.
+        int     highRiskThresh  = com.nullguard.core.risk.RiskLevel.HIGH.getMin();
         Path    outputDir       = Paths.get("nullguard-out");
 
         for (String arg : args) {
@@ -245,7 +247,7 @@ public final class NullGuardCliApplication {
         System.out.println("  --ext-penalty=<float>         External call penalty        (default: 1.2)");
         System.out.println("  --convergence=<float>         Convergence threshold        (default: 0.001)");
         System.out.println("  --max-iterations=<int>        Max fixpoint iterations      (default: 100)");
-        System.out.println("  --high-risk-threshold=<int>   High-risk score (0-100)      (default: 70)");
+        System.out.println("  --high-risk-threshold=<int>   High-risk score (0-100)      (default: 60)");
         System.out.println("  --output=<dir>                Output directory             (default: ./nullguard-out)");
     }
 }

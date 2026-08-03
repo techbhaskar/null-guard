@@ -68,8 +68,13 @@ public class NullGuardMojo extends AbstractMojo {
     @Parameter(property = "nullguard.maxScoringIterations", defaultValue = "100")
     private int maxScoringIterations;
 
-    /** Scoring: risk score at or above which a method is classified as high-risk. */
-    @Parameter(property = "nullguard.highRiskThreshold", defaultValue = "70")
+    /**
+     * Scoring: risk score at or above which a method is classified as high-risk.
+     *
+     * <p>Default is 60 to match {@code RiskLevel.HIGH}'s lower bound. It was 70, which
+     * contradicted the band used to colour the graph.
+     */
+    @Parameter(property = "nullguard.highRiskThreshold", defaultValue = "60")
     private int highRiskThreshold;
 
     // ── Mojo entry point ──────────────────────────────────────────────────────
