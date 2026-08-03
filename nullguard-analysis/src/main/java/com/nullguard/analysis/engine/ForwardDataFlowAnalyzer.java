@@ -1,44 +1,74 @@
 package com.nullguard.analysis.engine;
 
-import com.nullguard.core.cfg.ControlFlowModel;
 import com.nullguard.analysis.extractor.BasicInstructionExtractor;
 import com.nullguard.analysis.extractor.InstructionExtractor;
-import com.nullguard.analysis.ir.*;
+import com.nullguard.analysis.ir.AssignmentInstruction;
+import com.nullguard.analysis.ir.DereferenceInstruction;
+import com.nullguard.analysis.ir.Instruction;
+import com.nullguard.analysis.ir.ReturnInstruction;
+import com.nullguard.analysis.lattice.NullGuardCondition;
 import com.nullguard.analysis.lattice.NullState;
+import com.nullguard.core.cfg.ControlFlowEdge;
+import com.nullguard.core.cfg.ControlFlowModel;
+import com.nullguard.core.cfg.ControlFlowNode;
+import com.nullguard.core.cfg.EdgeType;
+import com.nullguard.core.cfg.NodeType;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.Set;
 
 /**
- * ForwardDataFlowAnalyzer – fixpoint forward data-flow pass over a method's CFG.
+ * ForwardDataFlowAnalyzer — monotone forward null-state analysis over the method CFG.
  *
- * <h3>What changed (Fix 3)</h3>
- * The original implementation stored {@code NullState.UNKNOWN} for every assignment
- * regardless of the RHS, so {@code NullState.NULL} was never in the lattice state and
- * the unguarded-dereference counter was never incremented.
+ * <h3>What this replaces</h3>
+ * The previous implementation was named a fixpoint analysis but was a two-pass linear sweep:
+ * <pre>
+ *   // in[i] = out[i-1]  (linear CFG - no branching yet)
+ *   if (i &gt; 0) newIn.putAll(outState.get(instructions.get(i - 1).id()));
+ * </pre>
+ * The predecessor was the previous element of a {@code List}, not a CFG edge. Consequently
+ * {@link NullState#merge} was never called in production, confluence points were overwritten
+ * rather than joined, loops were visited once, and the then/else branches of an {@code if}
+ * were concatenated so that the textually last write won — reversing the branches reversed
+ * the verdict.
  *
- * <p>Now the analyser:
- * <ul>
- *   <li>Sets {@code NullState.NULL} for the target variable when the source is
- *       {@code "NULL_LITERAL"} (set by the fixed {@code BasicInstructionExtractor})</li>
- *   <li>Sets {@code NullState.UNKNOWN} when the RHS is a method-call result ({@code "CALL_RESULT"})</li>
- *   <li>Sets {@code NullState.NON_NULL} only for literals, constructors and other RHS forms
- *       that provably cannot be null</li>
- *   <li>Counts a {@link DereferenceInstruction} as <em>unguarded</em> when the receiver
- *       variable was {@code NullState.NULL} or {@code NullState.UNKNOWN} in the in-state
- *       at that point</li>
- *   <li>Detects {@code return null} (retVal == {@code "NULL_LITERAL"}) to set
- *       {@code nullableReturn = true}</li>
- *   <li>Sets {@code propagatesNullFromCallee = true} when any in-parameter feeds a
- *       null-capable path (heuristic: at least one UNKNOWN assignment exists)</li>
- * </ul>
+ * <h3>How it works now</h3>
+ * A standard worklist over the CFG:
+ * <ol>
+ *   <li>IR instructions are grouped by their CFG node, preserving order within the node.</li>
+ *   <li>{@code in[n]} is the pointwise join, via {@link NullState#merge}, of {@code out[p]}
+ *       over every predecessor {@code p} — after applying the branch refinement carried by
+ *       the edge {@code p → n}.</li>
+ *   <li>{@code out[n]} is {@code in[n]} pushed through each instruction in the node.</li>
+ *   <li>A node whose out-state changed re-queues its successors. Back-edges make loops
+ *       re-iterate, which is why the CFG rewrite had to land first.</li>
+ * </ol>
+ *
+ * <p>Branch refinement is the substantive gain: on the {@link EdgeType#TRUE_BRANCH} out of
+ * {@code if (x != null)} the analyser now knows {@code x} is {@link NullState#NON_NULL}, and on
+ * the {@link EdgeType#FALSE_BRANCH} it knows {@code x} is {@link NullState#NULL}. That both
+ * removes the false positives the old textual guard check was papering over and turns
+ * {@code if (x == null) x.f();} — previously reported as <em>guarded</em> — into a finding.
+ *
+ * <h3>Termination</h3>
+ * The lattice is finite (three states over a finite variable set) and both the transfer and
+ * the join are monotone, so the worklist terminates. {@link #MAX_ITERATIONS} is a defensive
+ * cap only: the old loop had no bound at all, and would have spun forever had two instructions
+ * ever collided on an id.
  */
 public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
 
     private static final String NULL_LITERAL = BasicInstructionExtractor.NULL_LITERAL;
-    private static final String CALL_RESULT  = BasicInstructionExtractor.CALL_RESULT;
+    private static final String CALL_RESULT = BasicInstructionExtractor.CALL_RESULT;
+
+    /** Defensive bound on worklist pops; a correct run converges far below this. */
+    private static final int MAX_ITERATIONS = 100_000;
 
     private final InstructionExtractor extractor;
 
@@ -50,164 +80,224 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
     public NullAnalysisModel analyze(ControlFlowModel cfg) {
         List<Instruction> instructions = extractor.extract(cfg);
 
-        LinkedHashMap<String, Map<String, NullState>> inState  = new LinkedHashMap<>();
-        LinkedHashMap<String, Map<String, NullState>> outState = new LinkedHashMap<>();
+        Map<String, List<Instruction>> byNode = groupByNode(instructions);
+        Map<String, List<ControlFlowEdge>> incoming = incomingEdges(cfg);
+        Map<String, Set<String>> successors = successors(cfg);
 
-        for (Instruction inst : instructions) {
-            inState.put(inst.id(),  new LinkedHashMap<>());
-            outState.put(inst.id(), new LinkedHashMap<>());
+        Map<String, Map<String, NullState>> nodeIn = new LinkedHashMap<>();
+        Map<String, Map<String, NullState>> nodeOut = new LinkedHashMap<>();
+        for (String nodeId : cfg.getNodes().keySet()) {
+            nodeIn.put(nodeId, Map.of());
+            nodeOut.put(nodeId, Map.of());
         }
 
-        // ── Fixpoint forward propagation ─────────────────────────────────────
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            for (int i = 0; i < instructions.size(); i++) {
-                Instruction inst = instructions.get(i);
+        // ── Worklist to fixpoint ─────────────────────────────────────────────────
+        Deque<String> worklist = new ArrayDeque<>(cfg.getNodes().keySet());
+        Set<String> queued = new LinkedHashSet<>(cfg.getNodes().keySet());
+        int iterations = 0;
 
-                // in[i] = out[i-1]  (linear CFG – no branching yet)
-                Map<String, NullState> newIn = new LinkedHashMap<>();
-                if (i > 0) {
-                    newIn.putAll(outState.get(instructions.get(i - 1).id()));
+        while (!worklist.isEmpty() && iterations++ < MAX_ITERATIONS) {
+            String nodeId = worklist.removeFirst();
+            queued.remove(nodeId);
+
+            Map<String, NullState> joined = joinPredecessors(cfg, incoming.get(nodeId), nodeOut);
+            Map<String, NullState> out = transferNode(cfg, nodeId, byNode, joined);
+
+            nodeIn.put(nodeId, joined);
+            if (!out.equals(nodeOut.get(nodeId))) {
+                nodeOut.put(nodeId, out);
+                for (String succ : successors.getOrDefault(nodeId, Set.of())) {
+                    if (queued.add(succ)) worklist.addLast(succ);
                 }
+            }
+        }
 
-                Map<String, NullState> newOut = new LinkedHashMap<>(newIn);
+        // ── Report from the converged state ──────────────────────────────────────
+        return report(cfg, byNode, nodeIn, instructions);
+    }
 
-                // Transfer function
-                if (inst instanceof AssignmentInstruction assign) {
-                    if (NULL_LITERAL.equals(assign.source())) {
-                        newOut.put(assign.target(), NullState.NULL);
-                    } else if (CALL_RESULT.equals(assign.source())) {
-                        // A method return is genuinely unknown until interprocedural summaries
-                        // land. This branch previously fell through to NON_NULL, which asserted
-                        // that `User u = repo.findByEmail(e);` can never be null — the exact
-                        // claim a null checker exists to refute.
-                        newOut.put(assign.target(), NullState.UNKNOWN);
-                    } else {
-                        // Literal, constructor, or arithmetic RHS → cannot be null.
-                        newOut.put(assign.target(), NullState.NON_NULL);
+    // ── Fixpoint machinery ────────────────────────────────────────────────────────
+
+    /**
+     * {@code in[n] = join over predecessors p of refine(out[p], edge p→n)}.
+     *
+     * <p>A variable known in one predecessor but absent from another joins to
+     * {@link NullState#UNKNOWN}: "known here, unknown there" is not knowledge.
+     */
+    private Map<String, NullState> joinPredecessors(ControlFlowModel cfg,
+                                                    List<ControlFlowEdge> preds,
+                                                    Map<String, Map<String, NullState>> nodeOut) {
+        if (preds == null || preds.isEmpty()) return Map.of();
+
+        Map<String, NullState> result = null;
+        for (ControlFlowEdge edge : preds) {
+            Map<String, NullState> predOut = nodeOut.getOrDefault(edge.getFromNodeId(), Map.of());
+            Map<String, NullState> refined = refine(cfg, edge, predOut);
+
+            if (result == null) {
+                result = new LinkedHashMap<>(refined);
+                continue;
+            }
+            Map<String, NullState> merged = new LinkedHashMap<>();
+            Set<String> keys = new LinkedHashSet<>(result.keySet());
+            keys.addAll(refined.keySet());
+            for (String key : keys) {
+                NullState a = result.getOrDefault(key, NullState.UNKNOWN);
+                NullState b = refined.getOrDefault(key, NullState.UNKNOWN);
+                merged.put(key, a.merge(b));
+            }
+            result = merged;
+        }
+        return result == null ? Map.of() : result;
+    }
+
+    /**
+     * Applies the null-state knowledge implied by taking a particular edge out of a CONDITION
+     * node. This is the polarity fix: the same condition refines differently on the true and
+     * false branches, which the old linear model could not express at all.
+     */
+    private Map<String, NullState> refine(ControlFlowModel cfg,
+                                          ControlFlowEdge edge,
+                                          Map<String, NullState> state) {
+        EdgeType type = edge.getType();
+        if (type != EdgeType.TRUE_BRANCH && type != EdgeType.FALSE_BRANCH) return state;
+
+        ControlFlowNode from = cfg.getNodes().get(edge.getFromNodeId());
+        if (from == null || from.getType() != NodeType.CONDITION) return state;
+
+        NullGuardCondition.Refinement refinement = NullGuardCondition.parse(from.getSourceCode());
+        Map<String, NullState> delta = type == EdgeType.TRUE_BRANCH
+                ? refinement.onTrue()
+                : refinement.onFalse();
+        if (delta.isEmpty()) return state;
+
+        Map<String, NullState> refined = new LinkedHashMap<>(state);
+        refined.putAll(delta);
+        return refined;
+    }
+
+    /** Pushes the node's in-state through every instruction the node contains, in order. */
+    private Map<String, NullState> transferNode(ControlFlowModel cfg,
+                                                String nodeId,
+                                                Map<String, List<Instruction>> byNode,
+                                                Map<String, NullState> in) {
+        Map<String, NullState> state = new LinkedHashMap<>(in);
+
+        // Evaluating `Objects.requireNonNull(x)` proves x non-null on BOTH successors,
+        // because the alternative is that the condition threw.
+        ControlFlowNode node = cfg.getNodes().get(nodeId);
+        if (node != null && node.getType() == NodeType.CONDITION) {
+            state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
+        }
+
+        for (Instruction inst : byNode.getOrDefault(nodeId, List.of())) {
+            applyTransfer(inst, state);
+        }
+        return state;
+    }
+
+    /** The transfer function for a single instruction, applied in place. */
+    private void applyTransfer(Instruction inst, Map<String, NullState> state) {
+        if (inst instanceof AssignmentInstruction assign) {
+            if (NULL_LITERAL.equals(assign.source())) {
+                state.put(assign.target(), NullState.NULL);
+            } else if (CALL_RESULT.equals(assign.source())) {
+                // A method return is unknown until interprocedural summaries exist.
+                state.put(assign.target(), NullState.UNKNOWN);
+            } else {
+                state.put(assign.target(), NullState.NON_NULL);
+            }
+        } else if (inst instanceof DereferenceInstruction deref) {
+            // Surviving a dereference proves the receiver was non-null from here on.
+            state.put(deref.variableName(), NullState.NON_NULL);
+        }
+    }
+
+    // ── Reporting ─────────────────────────────────────────────────────────────────
+
+    private NullAnalysisModel report(ControlFlowModel cfg,
+                                     Map<String, List<Instruction>> byNode,
+                                     Map<String, Map<String, NullState>> nodeIn,
+                                     List<Instruction> allInstructions) {
+        int dereferenceCount = 0;
+        boolean returnsNull = false;
+        boolean propagatesNullFromCallee = false;
+
+        LinkedHashMap<String, Map<String, NullState>> instIn = new LinkedHashMap<>();
+        LinkedHashMap<String, Map<String, NullState>> instOut = new LinkedHashMap<>();
+
+        for (String nodeId : cfg.getNodes().keySet()) {
+            Map<String, NullState> state = new LinkedHashMap<>(nodeIn.getOrDefault(nodeId, Map.of()));
+
+            ControlFlowNode node = cfg.getNodes().get(nodeId);
+            if (node != null && node.getType() == NodeType.CONDITION) {
+                state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
+            }
+
+            for (Instruction inst : byNode.getOrDefault(nodeId, List.of())) {
+                Map<String, NullState> before = Map.copyOf(state);
+                instIn.put(inst.id(), before);
+
+                if (inst instanceof DereferenceInstruction deref) {
+                    NullState receiver = before.getOrDefault(deref.variableName(), NullState.UNKNOWN);
+                    // NULL is a definite NPE; UNKNOWN is a possible one. Branch refinement now
+                    // eliminates the guarded cases, so this no longer needs a textual
+                    // isGuardedBy() heuristic to suppress false positives.
+                    if (receiver == NullState.NULL || receiver == NullState.UNKNOWN) {
+                        dereferenceCount++;
                     }
                 }
-                // ConditionalInstruction: a null-guard flips the state on the true branch.
-                // Full branch-splitting requires a CFG with proper successor edges.
-                // For now treat the conditional as transparent (no state kill).
 
-                if (!outState.get(inst.id()).equals(newOut)) {
-                    outState.put(inst.id(), newOut);
-                    changed = true;
+                if (inst instanceof ReturnInstruction ret && NULL_LITERAL.equals(ret.returnValue())) {
+                    returnsNull = true;
                 }
-                inState.put(inst.id(), newIn);
+
+                if (inst instanceof AssignmentInstruction assign
+                        && before.getOrDefault(assign.target(), NullState.UNKNOWN) == NullState.NULL) {
+                    propagatesNullFromCallee = true;
+                }
+
+                applyTransfer(inst, state);
+                instOut.put(inst.id(), Map.copyOf(state));
             }
         }
 
-        // ── Count unguarded dereferences + nullable-return detection ─────────
-        int     dereferenceCount          = 0;
-        boolean returnsNull               = false;
-        boolean propagatesNullFromCallee  = false;
-
-        for (int i = 0; i < instructions.size(); i++) {
-            Instruction inst = instructions.get(i);
-            Map<String, NullState> state = inState.get(inst.id());
-
-            if (inst instanceof DereferenceInstruction deref) {
-                NullState receiverState = state.getOrDefault(deref.variableName(), NullState.UNKNOWN);
-                // Count a dereference as unguarded when the receiver is CONFIRMED NULL or
-                // NOT KNOWN to be non-null. Restricting this to NULL made the counter
-                // unreachable in practice: the only way to reach NULL is a literal `= null`
-                // in the same method, so the tool's headline metric never fired.
-                //
-                // TRADE-OFF (deliberate): UNKNOWN covers every unassigned parameter and field,
-                // so this is a high-recall / low-precision setting and will report on ordinary
-                // parameter dereferences. isGuardedBy(...) below is now the primary
-                // false-positive suppressor, which is why it was hardened. To go back to
-                // high-precision, drop `|| receiverState == NullState.UNKNOWN`.
-                boolean nullCapable = receiverState == NullState.NULL
-                                   || receiverState == NullState.UNKNOWN;
-                if (nullCapable && !isGuardedBy(instructions, i, deref.variableName())) {
-                    dereferenceCount++;
-                }
-            }
-
-            if (inst instanceof ReturnInstruction ret) {
-                if (NULL_LITERAL.equals(ret.returnValue())) {
-                    returnsNull = true;
-                }
-            }
-
-            if (inst instanceof AssignmentInstruction assign) {
-                if (NullState.NULL == state.getOrDefault(assign.target(), NullState.UNKNOWN)) {
-                    propagatesNullFromCallee = true;
-                }
-            }
+        // Instructions attached to nodes the CFG does not know about would otherwise be
+        // missing from the model entirely; record them with empty state rather than drop them.
+        for (Instruction inst : allInstructions) {
+            instIn.putIfAbsent(inst.id(), Map.of());
+            instOut.putIfAbsent(inst.id(), Map.of());
         }
 
         return new NullAnalysisModel(
-                cfg.getMethodSignature(),
-                inState,
-                outState,
-                dereferenceCount,
-                returnsNull,
-                propagatesNullFromCallee
-        );
+                cfg.getMethodSignature(), instIn, instOut,
+                dereferenceCount, returnsNull, propagatesNullFromCallee);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── CFG helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * Returns {@code true} if some preceding instruction establishes a null guard on
-     * {@code varName}. This is the primary false-positive suppressor now that UNKNOWN
-     * receivers are counted, so it replaces the previous three-instruction
-     * {@code condition.contains(varName)} substring test, which was wrong in two ways:
-     * <ul>
-     *   <li>{@code contains} matched substrings, so {@code if (username != null)} suppressed
-     *       findings on an unrelated variable named {@code user}.</li>
-     *   <li>The window of 3 was arbitrary; a guard four statements back was invisible.</li>
-     * </ul>
-     *
-     * <p>The scan walks backwards over all preceding instructions and stops at the point
-     * where {@code varName} is reassigned — a guard before a reassignment says nothing about
-     * the new value.
-     *
-     * <p><b>Known limitation.</b> Polarity is not resolved: {@code if (x == null) x.f();}
-     * is treated as guarded even though the dereference sits in the branch where {@code x} is
-     * null. That is not fixable here — {@code BasicControlFlowBuilder} emits a flat linear
-     * chain with no TRUE_BRANCH/FALSE_BRANCH edges, so which branch an instruction belongs to
-     * is simply not represented. Until branch edges exist, treating any null-comparison as a
-     * guard is the precision-favouring choice.
-     */
-    private static boolean isGuardedBy(
-            List<Instruction> instructions, int derefIndex, String varName) {
-        if (varName == null || varName.isEmpty()) return false;
-
-        for (int j = derefIndex - 1; j >= 0; j--) {
-            Instruction prev = instructions.get(j);
-
-            // A reassignment invalidates every guard established before it.
-            if (prev instanceof AssignmentInstruction assign
-                    && varName.equals(assign.target())) {
-                return false;
-            }
-
-            if (prev instanceof ConditionalInstruction cond
-                    && isNullGuardFor(cond.condition(), varName)) {
-                return true;
-            }
+    private static Map<String, List<Instruction>> groupByNode(List<Instruction> instructions) {
+        Map<String, List<Instruction>> byNode = new LinkedHashMap<>();
+        for (Instruction inst : instructions) {
+            byNode.computeIfAbsent(inst.cfgNodeId(), k -> new ArrayList<>()).add(inst);
         }
-        return false;
+        return byNode;
     }
 
-    /** Whether {@code condition} is a null/non-null test naming exactly {@code varName}. */
-    static boolean isNullGuardFor(String condition, String varName) {
-        if (condition == null) return false;
-        String v = Pattern.quote(varName);
-        // x != null / x == null  (and the Yoda forms)
-        if (Pattern.compile("\\b" + v + "\\b\\s*[!=]=\\s*null").matcher(condition).find()) return true;
-        if (Pattern.compile("null\\s*[!=]=\\s*\\b" + v + "\\b").matcher(condition).find()) return true;
-        // Objects.requireNonNull(x) / Objects.nonNull(x) / Objects.isNull(x)
-        if (Pattern.compile("(?:requireNonNull|nonNull|isNull)\\s*\\(\\s*\\b" + v + "\\b")
-                .matcher(condition).find()) return true;
-        // x instanceof Foo  — implies x is non-null
-        if (Pattern.compile("\\b" + v + "\\b\\s+instanceof\\b").matcher(condition).find()) return true;
-        return false;
+    private static Map<String, List<ControlFlowEdge>> incomingEdges(ControlFlowModel cfg) {
+        Map<String, List<ControlFlowEdge>> incoming = new LinkedHashMap<>();
+        for (ControlFlowEdge edge : cfg.getEdges()) {
+            incoming.computeIfAbsent(edge.getToNodeId(), k -> new ArrayList<>()).add(edge);
+        }
+        return incoming;
+    }
+
+    private static Map<String, Set<String>> successors(ControlFlowModel cfg) {
+        Map<String, Set<String>> succ = new LinkedHashMap<>();
+        for (ControlFlowEdge edge : cfg.getEdges()) {
+            succ.computeIfAbsent(edge.getFromNodeId(), k -> new LinkedHashSet<>())
+                .add(edge.getToNodeId());
+        }
+        return succ;
     }
 }
