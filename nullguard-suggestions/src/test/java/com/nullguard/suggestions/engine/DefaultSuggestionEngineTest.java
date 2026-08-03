@@ -11,7 +11,7 @@ import com.nullguard.core.model.ModuleModel;
 import com.nullguard.core.model.PackageModel;
 import com.nullguard.core.model.ProjectModel;
 import com.nullguard.scoring.model.AdjustedRiskModel;
-import com.nullguard.scoring.model.RiskLevel;
+import com.nullguard.core.risk.RiskLevel;
 import com.nullguard.suggestions.model.Suggestion;
 import com.nullguard.suggestions.model.SuggestionType;
 import org.junit.jupiter.api.DisplayName;
@@ -47,7 +47,7 @@ class DefaultSuggestionEngineTest {
         method.setMethodSummary(MethodSummary.builder()
                 .returnNullability(returnNullability)
                 .propagatesNullFromCallee(true)
-                .intrinsicRiskProfile(new RiskModel(70, com.nullguard.analysis.risk.RiskLevel.HIGH))
+                .intrinsicRiskProfile(new RiskModel(70, RiskLevel.HIGH))
                 .build());
 
         return ProjectModel.builder()

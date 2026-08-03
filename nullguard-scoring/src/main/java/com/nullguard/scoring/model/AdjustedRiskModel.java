@@ -1,5 +1,7 @@
 package com.nullguard.scoring.model;
 
+import com.nullguard.core.risk.RiskLevel;
+
 import java.util.Objects;
 
 /**
@@ -22,7 +24,8 @@ import java.util.Objects;
  *   <li>{@code adjustedRisk}        – clamped sum of all four components</li>
  * </ul>
  */
-public final class AdjustedRiskModel {
+public final class AdjustedRiskModel
+        implements com.nullguard.core.spi.MethodAnalysisArtifacts.AdjustedRiskSource {
 
     private final double              intrinsicRisk;
     private final double              propagatedRisk;
@@ -66,11 +69,11 @@ public final class AdjustedRiskModel {
         this(intrinsicRisk, propagatedRisk, 0.0, 0.0, adjustedRisk, riskLevel);
     }
 
-    public double    getIntrinsicRisk()      { return intrinsicRisk; }
-    public double    getPropagatedRisk()     { return propagatedRisk; }
-    public double    getApiExposureWeight()  { return apiExposureWeight; }
-    public double    getContractPenalty()    { return contractPenalty; }
-    public double    getAdjustedRisk()       { return adjustedRisk; }
+    @Override public double getIntrinsicRisk()     { return intrinsicRisk; }
+    @Override public double getPropagatedRisk()    { return propagatedRisk; }
+    @Override public double getApiExposureWeight() { return apiExposureWeight; }
+    @Override public double getContractPenalty()   { return contractPenalty; }
+    @Override public double getAdjustedRisk()      { return adjustedRisk; }
     public RiskLevel getRiskLevel()          { return riskLevel; }
     public java.util.List<com.nullguard.scoring.model.ImpactChain> getImpactMap() { return impactMap; }
 

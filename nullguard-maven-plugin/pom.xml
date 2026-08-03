@@ -14,6 +14,7 @@
         <maven.plugin.annotations.version>3.11.0</maven.plugin.annotations.version>
         <maven.plugin.api.version>3.9.6</maven.plugin.api.version>
         <maven.version>3.9.6</maven.version>
+        <jackson.version>2.16.1</jackson.version>
     </properties>
 
     <dependencies>
@@ -34,6 +35,14 @@
             <artifactId>maven-core</artifactId>
             <version>${maven.version}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- Used directly by NullGuardMojo to serialise dashboard sections; declared
+             explicitly rather than relied on transitively via nullguard-visualization. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
 
         <!-- NullGuard Dependencies -->

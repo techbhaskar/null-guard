@@ -17,11 +17,14 @@
             <artifactId>nullguard-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.nullguard</groupId>
-            <artifactId>nullguard-analysis</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+        <!--
+            nullguard-analysis was a dependency solely so BasicCallGraphBuilder could run
+            BasicInstructionExtractor and filter its IR for call instructions. That inverted the
+            layering - the call graph is a structural fact about the code, not a product of the
+            dataflow IR - and duplicated the IR lowering per method. Call sites now come from
+            com.nullguard.core.callsite.CallSiteExtractor, so this module depends only on core.
+            Do not reintroduce a dependency on nullguard-analysis here.
+        -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>

@@ -1,6 +1,6 @@
 package com.nullguard.visualization.model;
 
-import com.nullguard.scoring.model.RiskLevel;
+import com.nullguard.core.risk.RiskLevel;
 import java.util.Objects;
 
 public final class GraphNode {
@@ -67,8 +67,13 @@ public final class GraphNode {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         GraphNode graphNode = (GraphNode) o;
+        // apiExposureWeight and contractPenalty were omitted even though the constructor takes
+        // them, so two nodes differing only in those fields compared equal — breaking
+        // Set/Map semantics and disagreeing with AdjustedRiskModel.equals, which includes both.
         return Double.compare(graphNode.intrinsicRisk, intrinsicRisk) == 0 &&
                 Double.compare(graphNode.propagatedRisk, propagatedRisk) == 0 &&
+                Double.compare(graphNode.apiExposureWeight, apiExposureWeight) == 0 &&
+                Double.compare(graphNode.contractPenalty, contractPenalty) == 0 &&
                 Double.compare(graphNode.adjustedRisk, adjustedRisk) == 0 &&
                 external == graphNode.external &&
                 Objects.equals(methodId, graphNode.methodId) &&
@@ -77,6 +82,7 @@ public final class GraphNode {
 
     @Override
     public int hashCode() {
-        return Objects.hash(methodId, intrinsicRisk, propagatedRisk, adjustedRisk, riskLevel, external);
+        return Objects.hash(methodId, intrinsicRisk, propagatedRisk, apiExposureWeight,
+                contractPenalty, adjustedRisk, riskLevel, external);
     }
 }

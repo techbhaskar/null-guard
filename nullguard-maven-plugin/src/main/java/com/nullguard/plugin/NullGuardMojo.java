@@ -242,6 +242,15 @@ public class NullGuardMojo extends AbstractMojo {
         }
         reasonJson.append("\n}");
 
+        // The JSON graph export intentionally carries only {summary, graph}. The dashboard
+        // also renders suggestions, API endpoints and hotspots, so those collections are
+        // serialised separately here and merged into the client-side `data` object.
+        // Without this the browser hits `data.suggestions.map(...)` on undefined, which
+        // aborts the whole script and silently blanks every section below it.
+        String apiJson      = toJson(result.getApiEndpoints());
+        String suggestJson  = toJson(result.getSuggestions());
+        String hotspotJson  = toJson(result.getHotspots());
+
         String cycleSection = "";
         if (!result.getCycleWarnings().isEmpty()) {
             StringBuilder cwHtml = new StringBuilder();
@@ -295,6 +304,7 @@ public class NullGuardMojo extends AbstractMojo {
             ".badge { padding: 4px 10px; border-radius: 99px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }\n" +
             ".badge-CRITICAL { background: rgba(239,68,68,0.2); color: #fca5a5; }\n" +
             ".badge-HIGH { background: rgba(245,158,11,0.2); color: #fcd34d; }\n" +
+            ".badge-MEDIUM, .badge-MODERATE { background: rgba(59,130,246,0.2); color: #93c5fd; }\n" +
             ".badge-LOW { background: rgba(16,185,129,0.2); color: #6ee7b7; }\n" +
             "progress { width: 100%; height: 6px; border-radius: 3px; appearance: none; }\n" +
             "progress::-webkit-progress-bar { background: var(--border); border-radius: 3px; }\n" +
@@ -356,9 +366,25 @@ public class NullGuardMojo extends AbstractMojo {
             "</main>\n" +
             "\n" +
             "<script>\n" +
-            "const data = " + jsonOutput + "; const reasons = " + reasonJson.toString() + ";\n" +
-            "const s = data.summary; const nodes = data.graph.nodes; const edges = data.graph.edges;\n" +
+            "const data = Object.assign({}, " + jsonOutput + ", {\n" +
+            "  apiEndpoints: " + apiJson + ",\n" +
+            "  suggestions: " + suggestJson + ",\n" +
+            "  hotspots: " + hotspotJson + "\n" +
+            "});\n" +
+            "const reasons = " + reasonJson.toString() + ";\n" +
+            "const s = data.summary || {}; const nodes = (data.graph && data.graph.nodes) || {}; const edges = (data.graph && data.graph.edges) || [];\n" +
             "const inDegree = {}; edges.forEach(e => inDegree[e.to] = (inDegree[e.to]||0)+1);\n" +
+            "\n" +
+            "/* Each section renders inside its own guard so that one bad record or one missing\n" +
+            "   collection degrades a single panel instead of blanking the entire dashboard. */\n" +
+            "function panel(id, fn) {\n" +
+            "  try { fn(); }\n" +
+            "  catch (err) {\n" +
+            "    console.error('NullGuard: failed to render ' + id, err);\n" +
+            "    const el = document.getElementById(id);\n" +
+            "    if (el) el.innerHTML = \"<tbody><tr><td style='color:var(--danger)'>Render error: \" + err.message + \"</td></tr></tbody>\";\n" +
+            "  }\n" +
+            "}\n" +
             "\n" +
             "function show(id) {\n" +
             "  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));\n" +
@@ -376,22 +402,36 @@ public class NullGuardMojo extends AbstractMojo {
             "  <div class='stat-box'><span class='stat-label'>API Coverage</span><span class='stat-value'>${s.totalMethods}</span><span style='font-size:0.75rem'>Total methods analysed</span></div>`;\n" +
             "\n" +
             "/* Render Suggestions */\n" +
+            "panel('sTable', () => {\n" +
+            "const rows = data.suggestions || [];\n" +
             "document.getElementById('sTable').innerHTML = `<thead><tr><th>Type</th><th>Location</th><th>Message</th><th>Impact</th></tr></thead>\n" +
-            "  <tbody>${data.suggestions.map(s => `<tr><td><span class='badge' style='background:rgba(59,130,246,0.1);color:var(--primary)'>${s.suggestionType}</span></td><td><code>${s.methodId.split('.').pop()}</code></td><td>${s.message}</td><td><strong>${s.finalScore.toFixed(2)}</strong></td></tr>`).join('')}</tbody>`;\n" +
+            "  <tbody>${rows.length ? rows.map(s => `<tr><td><span class='badge' style='background:rgba(59,130,246,0.1);color:var(--primary)'>${s.suggestionType}</span></td><td><code>${s.methodId.split('.').pop()}</code></td><td>${s.message}</td><td><strong>${s.finalScore.toFixed(2)}</strong></td></tr>`).join('') : `<tr><td colspan='4' style='color:var(--text-muted)'>No suggestions produced.</td></tr>`}</tbody>`;\n" +
+            "});\n" +
             "\n" +
             "/* Render APIs */\n" +
+            "panel('apiTable', () => {\n" +
+            "const apis = data.apiEndpoints || [];\n" +
             "document.getElementById('apiTable').innerHTML = `<thead><tr><th>Endpoint</th><th>Risk</th><th>Coverage</th><th>Downstream Chain</th></tr></thead>\n" +
-            "  <tbody>${data.apiEndpoints.map(e => `<tr>\n" +
+            "  <tbody>${apis.length ? apis.map(e => `<tr>\n" +
             "    <td><span class='badge' style='background:rgba(16,185,129,0.1);color:var(--success)'>${e.httpMethod}</span> <code style='color:var(--primary)'>${e.path}</code><br><span style='font-size:0.7rem;color:var(--text-muted)'>${e.endpointId}</span></td>\n" +
             "    <td><div style='display:flex;align-items:center;gap:8px;'><progress value='${e.apiRiskScore*10}' max='100'></progress><span>${e.apiRiskScore.toFixed(2)}</span></div></td>\n" +
             "    <td><span class='badge' style='background:#27272a'>${e.propagationDepth} hops</span></td>\n" +
-            "    <td><details><summary style='font-size:0.7rem;cursor:pointer;color:var(--text-muted)'>View ${e.propagationChain.length} methods</summary><div style='margin-top:0.5rem;padding:0.75rem;background:#18181b;border-radius:8px;font-size:0.75rem;'>${e.propagationChain.map(m=>`<div style='padding:2px 0;color:var(--text-muted)'>↳ ${m}</div>`).join('')}</div></details></td>\n" +
-            "  </tr>`).join('')}</tbody>`;\n" +
+            "    <td><details><summary style='font-size:0.7rem;cursor:pointer;color:var(--text-muted)'>View ${(e.propagationChain||[]).length} methods</summary><div style='margin-top:0.5rem;padding:0.75rem;background:#18181b;border-radius:8px;font-size:0.75rem;'>${(e.propagationChain||[]).map(m=>`<div style='padding:2px 0;color:var(--text-muted)'>↳ ${m}</div>`).join('')}</div></details></td>\n" +
+            "  </tr>`).join('') : `<tr><td colspan='4' style='color:var(--text-muted)'>No API endpoints detected. NullGuard resolves entry points from controller annotations - if this project exposes REST endpoints, check that the mapping annotations are on the classpath the analyser scanned.</td></tr>`}</tbody>`;\n" +
+            "});\n" +
             "\n" +
-            "/* Render Hotspots */\n" +
-            "const hs = Object.values(nodes).filter(n => (inDegree[n.methodId]||0) > 3 || n.adjustedRisk > 40).sort((a,b)=>(inDegree[b.methodId]||0)-(inDegree[a.methodId]||0));\n" +
+            "/* Render Hotspots – prefer the engine's own hotspot ranking; fall back to a\n" +
+            "   call-graph heuristic only when the pipeline produced no hotspots at all. */\n" +
+            "panel('hsTable', () => {\n" +
+            "const engineHs = (data.hotspots || []).map(h => {\n" +
+            "  const n = nodes[h.methodRef] || {};\n" +
+            "  return { methodId: h.methodRef, adjustedRisk: h.hotspotScore, severity: h.severity, impactMap: n.impactMap || [] };\n" +
+            "});\n" +
+            "const hs = engineHs.length ? engineHs.sort((a,b)=>b.adjustedRisk-a.adjustedRisk)\n" +
+            "  : Object.values(nodes).filter(n => (inDegree[n.methodId]||0) > 3 || n.adjustedRisk > 40).sort((a,b)=>(inDegree[b.methodId]||0)-(inDegree[a.methodId]||0));\n" +
             "document.getElementById('hsTable').innerHTML = `<thead><tr><th>Critical Method</th><th>Calls</th><th>Risk</th><th>Blast Radius</th></tr></thead>\n" +
-            "  <tbody>${hs.slice(0,15).map(n => `<tr><td><code style='color:var(--primary)'>${n.methodId.split('.').pop()}</code><br><span style='font-size:0.75rem;color:var(--text-muted)'>${n.methodId}</span></td><td><span class='badge' style='background:rgba(59,130,246,0.1);color:var(--primary)'>${inDegree[n.methodId]||0} calls</span></td><td><progress value='${n.adjustedRisk}' max='100'></progress></td><td><span class='badge badge-CRITICAL'>${n.impactMap ? n.impactMap.length : 0} APIs Affected</span></td></tr>`).join('')}</tbody>`;\n" +
+            "  <tbody>${hs.length ? hs.slice(0,15).map(n => `<tr><td><code style='color:var(--primary)'>${n.methodId.split('.').pop()}</code><br><span style='font-size:0.75rem;color:var(--text-muted)'>${n.methodId}</span></td><td><span class='badge' style='background:rgba(59,130,246,0.1);color:var(--primary)'>${inDegree[n.methodId]||0} calls</span></td><td><div style='display:flex;align-items:center;gap:8px;'><progress value='${n.adjustedRisk}' max='100'></progress><span style='font-size:0.75rem'>${n.adjustedRisk.toFixed(2)}</span></div></td><td><span class='badge badge-${n.severity || 'LOW'}'>${n.impactMap ? n.impactMap.length : 0} APIs Affected</span></td></tr>`).join('') : `<tr><td colspan='4' style='color:var(--text-muted)'>No hotspots above threshold.</td></tr>`}</tbody>`;\n" +
+            "});\n" +
             "\n" +
             "/* Render Explorer */\n" +
             "function renderMethods(q='') {\n" +
@@ -408,8 +448,8 @@ public class NullGuardMojo extends AbstractMojo {
             "      </tr>`;\n" +
             "    }).join('')}</tbody>`;\n" +
             "}\n" +
-            "document.getElementById('gSearch').addEventListener('input', e => renderMethods(e.target.value));\n" +
-            "renderMethods();\n" +
+            "document.getElementById('gSearch').addEventListener('input', e => panel('riskTable', () => renderMethods(e.target.value)));\n" +
+            "panel('riskTable', () => renderMethods());\n" +
             "show('overview');\n" +
             "</script></body></html>";
     }
@@ -435,5 +475,24 @@ public class NullGuardMojo extends AbstractMojo {
                        .replace("\r", "")
                        .replace("←", "<-")    // safe ASCII for JSON
                + "\"";
+    }
+
+    /**
+     * Serialises a collection to a JSON array for embedding in the dashboard script.
+     *
+     * <p>Returns {@code []} rather than propagating on failure: a serialisation problem in
+     * one collection must not take down report generation for the whole build. The failure
+     * is logged so it is still visible.
+     */
+    private String toJson(Object value) {
+        if (value == null) return "[]";
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper()
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(value);
+        } catch (Exception e) {
+            getLog().warn("NullGuard: could not serialise dashboard section to JSON: " + e.getMessage());
+            return "[]";
+        }
     }
 }

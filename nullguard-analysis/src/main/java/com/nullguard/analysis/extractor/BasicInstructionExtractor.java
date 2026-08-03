@@ -239,54 +239,8 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
      * @param callee the callee text, used to find the correct opening parenthesis
      */
     static int countArguments(String src, String callee) {
-        if (src == null || callee == null || callee.isEmpty()) {
-            return MethodCallInstruction.UNKNOWN_ARG_COUNT;
-        }
-        int calleeAt = src.indexOf(callee);
-        if (calleeAt < 0) return MethodCallInstruction.UNKNOWN_ARG_COUNT;
-
-        int open = src.indexOf('(', calleeAt + callee.length() - 1);
-        if (open < 0) return MethodCallInstruction.UNKNOWN_ARG_COUNT;
-
-        int depth = 0;
-        int count = 0;
-        boolean sawContent = false;
-        boolean inString = false;
-        boolean inChar = false;
-
-        for (int i = open; i < src.length(); i++) {
-            char c = src.charAt(i);
-
-            if (inString) {
-                if (c == '\\') i++;
-                else if (c == '"') inString = false;
-                continue;
-            }
-            if (inChar) {
-                if (c == '\\') i++;
-                else if (c == '\'') inChar = false;
-                continue;
-            }
-            if (c == '"') { inString = true; sawContent = true; continue; }
-            if (c == '\'') { inChar = true; sawContent = true; continue; }
-
-            if (c == '(' || c == '[' || c == '<') {
-                depth++;
-                if (depth > 1) sawContent = true;
-            } else if (c == ')' || c == ']' || c == '>') {
-                depth--;
-                if (depth == 0) {
-                    return sawContent ? count + 1 : 0;
-                }
-                if (depth < 0) return MethodCallInstruction.UNKNOWN_ARG_COUNT;
-            } else if (c == ',' && depth == 1) {
-                count++;
-                sawContent = true;
-            } else if (depth == 1 && !Character.isWhitespace(c)) {
-                sawContent = true;
-            }
-        }
-        return MethodCallInstruction.UNKNOWN_ARG_COUNT;   // unbalanced
+        // Delegates to core so the call-graph module and this extractor cannot drift apart.
+        return com.nullguard.core.callsite.CallSiteExtractor.countArguments(src, callee);
     }
 
     private static String extractCalleeFromSrc(String src) {

@@ -4,7 +4,7 @@ import com.nullguard.analysis.lattice.NullState;
 import com.nullguard.analysis.engine.NullAnalysisModel;
 import com.nullguard.analysis.risk.IntrinsicRiskCalculator;
 import com.nullguard.analysis.risk.RiskModel;
-import com.nullguard.analysis.risk.RiskLevel;
+import com.nullguard.core.risk.RiskLevel;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;

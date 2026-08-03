@@ -4,7 +4,7 @@ import com.nullguard.callgraph.model.GlobalCallGraph;
 import com.nullguard.scoring.config.ScoringConfig;
 import com.nullguard.scoring.model.AdjustedRiskModel;
 import com.nullguard.scoring.model.ProjectRiskSummary;
-import com.nullguard.scoring.model.RiskLevel;
+import com.nullguard.core.risk.RiskLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

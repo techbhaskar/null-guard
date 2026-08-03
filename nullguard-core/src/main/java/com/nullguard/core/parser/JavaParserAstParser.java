@@ -21,6 +21,9 @@ import java.util.stream.Stream;
 
 public final class JavaParserAstParser implements AstParser {
 
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(JavaParserAstParser.class);
+
     private final JavaParser javaParser;
 
     public JavaParserAstParser() {
@@ -50,7 +53,19 @@ public final class JavaParserAstParser implements AstParser {
                     .collect(Collectors.toList());
 
             for (Path path : javaFiles) {
-                javaParser.parse(path).getResult().ifPresent(cu -> {
+                com.github.javaparser.ParseResult<com.github.javaparser.ast.CompilationUnit> result =
+                        javaParser.parse(path);
+
+                // Unparseable files used to vanish silently: .getResult().ifPresent(...) with
+                // getProblems() never read. On a project where nothing parses, the pipeline then
+                // reported a clean bill of health rather than a failure.
+                if (result.getResult().isEmpty()) {
+                    LOG.warn("Could not parse {} - skipping. {} problem(s): {}",
+                            path, result.getProblems().size(), result.getProblems());
+                    continue;
+                }
+
+                result.getResult().ifPresent(cu -> {
                     String pkgName = cu.getPackageDeclaration()
                             .map(pd -> pd.getNameAsString()).orElse("default");
                     PackageModel.Builder packageBuilder = packageMap.computeIfAbsent(
@@ -71,8 +86,19 @@ public final class JavaParserAstParser implements AstParser {
                             com.nullguard.core.cfg.ControlFlowModel cfg = null;
                             try {
                                 cfg = cfgBuilder.build(md);
-                            } catch (Exception ignored) {
-                                // Non-parseable body (abstract / native) → leave null
+                            } catch (Exception e) {
+                                // Abstract and native methods legitimately have no body, so this
+                                // is expected and stays non-fatal. It must not be silent though:
+                                // a method with no CFG is skipped by MethodSummaryEngine and
+                                // contributes zero risk, so a systematic failure here would look
+                                // like a clean project.
+                                if (md.getBody().isPresent()) {
+                                    LOG.warn("CFG construction failed for {}; this method will "
+                                            + "contribute no risk.", md.getSignature().asString(), e);
+                                } else {
+                                    LOG.debug("No body for {} (abstract or native); no CFG built.",
+                                            md.getSignature().asString());
+                                }
                             }
                             MethodModel.Builder methodBuilder = MethodModel.builder()
                                     .methodName(md.getNameAsString())

@@ -3,7 +3,7 @@ package com.nullguard.visualization.graph;
 import com.nullguard.callgraph.model.GlobalCallGraph;
 import com.nullguard.core.model.ProjectModel;
 import com.nullguard.scoring.model.AdjustedRiskModel;
-import com.nullguard.scoring.model.RiskLevel;
+import com.nullguard.core.risk.RiskLevel;
 import com.nullguard.visualization.model.PropagationGraph;
 import org.junit.jupiter.api.Test;
 

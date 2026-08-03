@@ -1,6 +1,11 @@
 package com.nullguard.core.model;
 
 import com.nullguard.core.cfg.ControlFlowModel;
+import com.nullguard.core.spi.MethodAnalysisArtifacts.AdjustedRiskSource;
+import com.nullguard.core.spi.MethodAnalysisArtifacts.ContractPenaltySource;
+import com.nullguard.core.spi.MethodAnalysisArtifacts.IntrinsicRiskSource;
+import com.nullguard.core.spi.MethodAnalysisArtifacts.ReachCountSource;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,14 +32,21 @@ public final class MethodModel {
 
     private final Object nullAnalysisModel;
 
+    // ── Analysis artifacts ────────────────────────────────────────────────────
+    // These were plain `Object` and were read back by consuming modules through
+    // reflection, wrapped in catch blocks that fell back to 0.0. A rename in any
+    // producing module silently zeroed every score with no compile error. They are now
+    // typed to read views declared in nullguard-core, so the same mistake is a build
+    // failure. See MethodAnalysisArtifacts.
+
     /** Set by MethodSummaryEngine after the CFG / null-state pass. */
-    private Object methodSummary;
+    private IntrinsicRiskSource methodSummary;
     /** Set by ContractAnalyzer after method summary is available. */
-    private Object contractModel;
+    private ContractPenaltySource contractModel;
     /** Set by FixpointRiskPropagationEngine during risk propagation. */
-    private Object adjustedRiskModel;
+    private AdjustedRiskSource adjustedRiskModel;
     /** Set by ReachTracker during API flow analysis. */
-    private Object reachData;
+    private ReachCountSource reachData;
 
     private final Object riskModel;
     private final Object suggestions;
@@ -58,28 +70,28 @@ public final class MethodModel {
     public String getSignature()  { return signature; }
 
     public Optional<ControlFlowModel> getControlFlowModel()  { return Optional.ofNullable(controlFlowModel); }
-    public Optional<Object>           getNullAnalysisModel()  { return Optional.ofNullable(nullAnalysisModel); }
-    public Optional<Object>           getMethodSummary()      { return Optional.ofNullable(methodSummary); }
-    public Optional<Object>           getRiskModel()          { return Optional.ofNullable(riskModel); }
-    public Optional<Object>           getContractModel()      { return Optional.ofNullable(contractModel); }
-    public Optional<Object>           getAdjustedRiskModel()  { return Optional.ofNullable(adjustedRiskModel); }
-    public Optional<Object>           getReachData()          { return Optional.ofNullable(reachData); }
-    public Optional<Object>           getSuggestions()        { return Optional.ofNullable(suggestions); }
-    public Optional<Object>           getIssues()             { return Optional.ofNullable(issues); }
+    public Optional<Object>                getNullAnalysisModel() { return Optional.ofNullable(nullAnalysisModel); }
+    public Optional<IntrinsicRiskSource>   getMethodSummary()     { return Optional.ofNullable(methodSummary); }
+    public Optional<Object>                getRiskModel()         { return Optional.ofNullable(riskModel); }
+    public Optional<ContractPenaltySource> getContractModel()     { return Optional.ofNullable(contractModel); }
+    public Optional<AdjustedRiskSource>    getAdjustedRiskModel() { return Optional.ofNullable(adjustedRiskModel); }
+    public Optional<ReachCountSource>      getReachData()         { return Optional.ofNullable(reachData); }
+    public Optional<Object>                getSuggestions()       { return Optional.ofNullable(suggestions); }
+    public Optional<Object>                getIssues()            { return Optional.ofNullable(issues); }
 
     // ── Post-construction setters (analysis modules only) ─────────────────────
 
     /** Called by MethodSummaryEngine after the null-state analysis pass. */
-    public void setMethodSummary(Object summary)          { this.methodSummary     = summary; }
+    public void setMethodSummary(IntrinsicRiskSource summary)      { this.methodSummary     = summary; }
 
     /** Called by ContractAnalyzer after analyzing method boundary contracts. */
-    public void setContractModel(Object contract)         { this.contractModel     = contract; }
+    public void setContractModel(ContractPenaltySource contract)   { this.contractModel     = contract; }
 
     /** Called by FixpointRiskPropagationEngine after risk propagation. */
-    public void setAdjustedRiskModel(Object riskModel)   { this.adjustedRiskModel = riskModel; }
+    public void setAdjustedRiskModel(AdjustedRiskSource riskModel) { this.adjustedRiskModel = riskModel; }
 
     /** Called by ReachTracker after API flow mapping. */
-    public void setReachData(Object reach)                { this.reachData         = reach; }
+    public void setReachData(ReachCountSource reach)               { this.reachData         = reach; }
 
     // ── Builder ───────────────────────────────────────────────────────────────
 
@@ -90,9 +102,9 @@ public final class MethodModel {
         private String signature;
         private ControlFlowModel controlFlowModel;
         private Object nullAnalysisModel;
-        private Object methodSummary;
+        private IntrinsicRiskSource methodSummary;
         private Object riskModel;
-        private Object contractModel;
+        private ContractPenaltySource contractModel;
         private Object suggestions;
         private Object issues;
 
@@ -100,9 +112,9 @@ public final class MethodModel {
         public Builder signature(String signature)             { this.signature = signature; return this; }
         public Builder controlFlowModel(ControlFlowModel cfm)  { this.controlFlowModel = cfm; return this; }
         public Builder nullAnalysisModel(Object m)             { this.nullAnalysisModel = m; return this; }
-        public Builder methodSummary(Object s)                 { this.methodSummary = s; return this; }
+        public Builder methodSummary(IntrinsicRiskSource s)    { this.methodSummary = s; return this; }
         public Builder riskModel(Object r)                     { this.riskModel = r; return this; }
-        public Builder contractModel(Object c)                 { this.contractModel = c; return this; }
+        public Builder contractModel(ContractPenaltySource c)  { this.contractModel = c; return this; }
         public Builder suggestions(Object s)                   { this.suggestions = s; return this; }
         public Builder issues(Object i)                        { this.issues = i; return this; }
 

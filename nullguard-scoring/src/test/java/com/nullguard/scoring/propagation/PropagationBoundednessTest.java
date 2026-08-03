@@ -81,7 +81,7 @@ class PropagationBoundednessTest {
     void highRiskThresholdIsAligned() {
         // 70 vs 60 previously: a method at 65 was rendered HIGH but excluded from highRiskMethods.
         assertTrue(ScoringConfig.builder().build().getHighRiskThreshold()
-                        == com.nullguard.scoring.model.RiskLevel.HIGH.getMin(),
+                        == com.nullguard.core.risk.RiskLevel.HIGH.getMin(),
                 "two contradictory definitions of high risk");
     }
 

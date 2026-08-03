@@ -1,7 +1,7 @@
 package com.nullguard.visualization.export;
 
 import com.nullguard.scoring.model.ProjectRiskSummary;
-import com.nullguard.scoring.model.RiskLevel;
+import com.nullguard.core.risk.RiskLevel;
 import com.nullguard.visualization.model.GraphEdge;
 import com.nullguard.visualization.model.GraphNode;
 import com.nullguard.visualization.model.PropagationGraph;

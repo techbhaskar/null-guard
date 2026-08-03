@@ -1,6 +1,6 @@
 package com.nullguard.scoring.config;
 
-import com.nullguard.scoring.model.RiskLevel;
+import com.nullguard.core.risk.RiskLevel;
 
 public final class ScoringConfig {
     private final double decayFactor;
@@ -46,7 +46,7 @@ public final class ScoringConfig {
         private double convergenceThreshold = 0.01;
         private int maxIterations = 100;
         /**
-         * Default aligned with {@link com.nullguard.scoring.model.RiskLevel#HIGH}, which starts
+         * Default aligned with {@link com.nullguard.core.risk.RiskLevel#HIGH}, which starts
          * at 60. These were 70 and 60 respectively, so a method scoring 65 was rendered as HIGH
          * and coloured orange in the graph while being excluded from {@code highRiskMethods}
          * and {@code highRiskRatio} — two live, contradictory definitions of "high risk".

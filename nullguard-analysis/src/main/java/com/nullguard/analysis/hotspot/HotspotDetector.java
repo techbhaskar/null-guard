@@ -39,7 +39,14 @@ public class HotspotDetector {
      * Evaluates every method in the project and populates the hotspot list.
      * Called after risk propagation so that {@link ReachData} is available.
      */
-    public void finalize(ProjectModel project) {
+    /**
+     * Identifies architectural hotspots across the project.
+     *
+     * <p>Renamed from {@code finalize}. That name shadowed {@link Object#finalize()} — it
+     * compiled, because the signature differs, but it is a genuinely hazardous name for a public
+     * API method and produced static-analysis noise on every call site.
+     */
+    public void detect(ProjectModel project) {
         hotspots.clear();
 
         for (ModuleModel mod : project.getModules().values()) {
@@ -102,35 +109,20 @@ public class HotspotDetector {
         return "LOW";
     }
 
-    // ── Reflection helpers (cross-module without compile-time dependency) ─────
+    // ── Typed artifact accessors ──────────────────────────────────────────────
+    // These were reflective probes wrapped in catch blocks returning 0.0 / 0. Both are now
+    // ordinary interface calls against read views declared in nullguard-core, so a rename
+    // upstream is a compile error rather than a silently zeroed metric.
 
     private static double extractAdjustedRisk(MethodModel method) {
-        // AdjustedRiskModel is stored as an Object to avoid circular module deps —
-        // use reflection to read getAdjustedRisk()
         return method.getAdjustedRiskModel()
-                .map(obj -> {
-                    try {
-                        return ((Number) obj.getClass()
-                                .getMethod("getAdjustedRisk")
-                                .invoke(obj)).doubleValue();
-                    } catch (Exception e) {
-                        return 0.0;
-                    }
-                })
+                .map(com.nullguard.core.spi.MethodAnalysisArtifacts.AdjustedRiskSource::getAdjustedRisk)
                 .orElse(0.0);
     }
 
     private static int extractApiReachCount(MethodModel method) {
         return method.getReachData()
-                .map(obj -> {
-                    try {
-                        return ((Number) obj.getClass()
-                                .getMethod("getCount")
-                                .invoke(obj)).intValue();
-                    } catch (Exception e) {
-                        return 0;
-                    }
-                })
+                .map(com.nullguard.core.spi.MethodAnalysisArtifacts.ReachCountSource::getCount)
                 .orElse(0);
     }
 }

@@ -7,10 +7,12 @@ import com.nullguard.core.model.PackageModel;
 import com.nullguard.core.model.ProjectModel;
 import com.nullguard.analysis.config.AnalysisConfig;
 import com.nullguard.analysis.lattice.NullState;
+import com.nullguard.analysis.summary.MethodSummary;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ContractAnalyzer – detects API contract violations across method boundaries.
@@ -50,9 +52,7 @@ public class ContractAnalyzer {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel method : cls.getMethods().values()) {
 
-                        String methodId = pkg.getPackageName() + "."
-                                + cls.getClassName() + "#"
-                                + method.getSignature();
+                        String methodId = com.nullguard.core.model.MethodIds.of(pkg, cls, method);
 
                         analyzeMethod(methodId, method);
                     }
@@ -72,9 +72,14 @@ public class ContractAnalyzer {
     // ── Internal helpers ──────────────────────────────────────────────────────
 
     private void analyzeMethod(String methodId, MethodModel method) {
-        method.getMethodSummary().ifPresent(summaryObj -> {
-            boolean returnViolation    = detectReturnViolation(summaryObj);
-            boolean parameterViolation = detectParameterViolation(summaryObj);
+        // MethodSummary is produced in this same module, so a cast is all that was ever
+        // needed. The slot is typed to a core read view, so narrow it explicitly here.
+        method.getMethodSummary()
+                .filter(MethodSummary.class::isInstance)
+                .map(MethodSummary.class::cast)
+                .ifPresent(summary -> {
+            boolean returnViolation    = detectReturnViolation(summary);
+            boolean parameterViolation = detectParameterViolation(summary);
 
             if (returnViolation || parameterViolation) {
                 // Penalty: 10pts per return violation, 5pts per parameter violation
@@ -86,63 +91,36 @@ public class ContractAnalyzer {
         });
     }
 
-    /**
-     * Returns true if the method summary indicates the method CAN return null
-     * (i.e., returnNullability == NULL or the method has a nullable return flag).
-     */
-    private static boolean detectReturnViolation(Object summaryObj) {
-        try {
-            // Try getReturnNullability() → NullState enum
-            Object nullState = summaryObj.getClass()
-                    .getMethod("getReturnNullability")
-                    .invoke(summaryObj);
-            if (nullState != null) {
-                String stateName = nullState.toString();
-                return "NULL".equals(stateName) || "UNKNOWN".equals(stateName);
-            }
-        } catch (Exception ignored) {}
+    // ── Typed contract detection ──────────────────────────────────────────────
+    // Both methods below were four reflective probes with `catch (Exception ignored) {}`
+    // and string comparisons against enum names. MethodSummary is in THIS module — the
+    // reflection bought nothing and hid every failure. NullState is compared by identity
+    // now, so a renamed constant is a compile error instead of a silently false result.
 
-        // Fallback: check isNullableReturn() if present
-        try {
-            Object result = summaryObj.getClass()
-                    .getMethod("isNullableReturn")
-                    .invoke(summaryObj);
-            return Boolean.TRUE.equals(result);
-        } catch (Exception ignored) {}
-
-        return false;
+    /** @return true if the method can return null, or nothing is known about its return */
+    private static boolean detectReturnViolation(MethodSummary summary) {
+        NullState returnState = summary.getReturnNullability();
+        return returnState == NullState.NULL || returnState == NullState.UNKNOWN;
     }
 
     /**
-     * Returns true if any parameter of the method has a NULL or UNKNOWN
-     * nullability state, indicating the method may accept nullable inputs
-     * without guarding them.
+     * @return true if any parameter is null-capable or unknown. Falls back to the
+     *         null-propagation flag when no parameter nullability was recorded, which is
+     *         currently always — {@code MethodSummaryEngine} never calls
+     *         {@code putParameterNullability}, so this remains a known gap rather than a
+     *         working parameter-contract check.
      */
-    private static boolean detectParameterViolation(Object summaryObj) {
-        try {
-            // getParameterNullability() → Map<String, NullState>
-            Object paramMap = summaryObj.getClass()
-                    .getMethod("getParameterNullability")
-                    .invoke(summaryObj);
-            if (paramMap instanceof java.util.Map<?, ?> map) {
-                for (Object state : map.values()) {
-                    String stateName = state.toString();
-                    if ("NULL".equals(stateName) || "UNKNOWN".equals(stateName)) {
-                        return true;
-                    }
+    private static boolean detectParameterViolation(MethodSummary summary) {
+        Map<String, NullState> parameters = summary.getParameterNullability();
+        if (parameters != null && !parameters.isEmpty()) {
+            for (NullState state : parameters.values()) {
+                if (state == NullState.NULL || state == NullState.UNKNOWN) {
+                    return true;
                 }
             }
-        } catch (Exception ignored) {}
-
-        // Fallback: isPropagatesNullFromCallee()
-        try {
-            Object result = summaryObj.getClass()
-                    .getMethod("isPropagatesNullFromCallee")
-                    .invoke(summaryObj);
-            return Boolean.TRUE.equals(result);
-        } catch (Exception ignored) {}
-
-        return false;
+            return false;
+        }
+        return summary.isPropagatesNullFromCallee();
     }
 
     // ── Value object for violation records ────────────────────────────────────

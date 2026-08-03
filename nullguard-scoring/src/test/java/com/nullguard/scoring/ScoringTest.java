@@ -1,6 +1,6 @@
 package com.nullguard.scoring;
 
-import com.nullguard.analysis.risk.RiskLevel;
+import com.nullguard.core.risk.RiskLevel;
 import com.nullguard.analysis.risk.RiskModel;
 import com.nullguard.analysis.summary.MethodSummary;
 import com.nullguard.callgraph.model.GlobalCallGraph;
@@ -255,27 +255,27 @@ public class ScoringTest {
         DefaultStabilityScorer scorer = new DefaultStabilityScorer();
         Map<String, AdjustedRiskModel> finalModels = new HashMap<>();
 
-        finalModels.put("m1", new AdjustedRiskModel(0, 0, 10.0, com.nullguard.scoring.model.RiskLevel.LOW));
+        finalModels.put("m1", new AdjustedRiskModel(0, 0, 10.0, RiskLevel.LOW));
         ProjectRiskSummary r1 = scorer.score(finalModels,
                 createCallGraph(new HashMap<>(), Set.of()), ScoringConfig.builder().build());
         assertEquals("A", r1.getGrade());   // stability = 90
 
-        finalModels.put("m1", new AdjustedRiskModel(0, 0, 20.0, com.nullguard.scoring.model.RiskLevel.LOW));
+        finalModels.put("m1", new AdjustedRiskModel(0, 0, 20.0, RiskLevel.LOW));
         ProjectRiskSummary r2 = scorer.score(finalModels,
                 createCallGraph(new HashMap<>(), Set.of()), ScoringConfig.builder().build());
         assertEquals("B", r2.getGrade());   // stability = 80
 
-        finalModels.put("m1", new AdjustedRiskModel(0, 0, 30.0, com.nullguard.scoring.model.RiskLevel.LOW));
+        finalModels.put("m1", new AdjustedRiskModel(0, 0, 30.0, RiskLevel.LOW));
         ProjectRiskSummary r3 = scorer.score(finalModels,
                 createCallGraph(new HashMap<>(), Set.of()), ScoringConfig.builder().build());
         assertEquals("C", r3.getGrade());   // stability = 70
 
-        finalModels.put("m1", new AdjustedRiskModel(0, 0, 40.0, com.nullguard.scoring.model.RiskLevel.MEDIUM));
+        finalModels.put("m1", new AdjustedRiskModel(0, 0, 40.0, RiskLevel.MEDIUM));
         ProjectRiskSummary r4 = scorer.score(finalModels,
                 createCallGraph(new HashMap<>(), Set.of()), ScoringConfig.builder().build());
         assertEquals("D", r4.getGrade());   // stability = 60
 
-        finalModels.put("m1", new AdjustedRiskModel(0, 0, 50.0, com.nullguard.scoring.model.RiskLevel.MEDIUM));
+        finalModels.put("m1", new AdjustedRiskModel(0, 0, 50.0, RiskLevel.MEDIUM));
         ProjectRiskSummary r5 = scorer.score(finalModels,
                 createCallGraph(new HashMap<>(), Set.of()), ScoringConfig.builder().build());
         assertEquals("F", r5.getGrade());   // stability = 50

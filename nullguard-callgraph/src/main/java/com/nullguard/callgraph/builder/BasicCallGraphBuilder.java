@@ -1,29 +1,42 @@
 package com.nullguard.callgraph.builder;
-import com.nullguard.core.model.ProjectModel;
-import com.nullguard.core.model.ModuleModel;
-import com.nullguard.core.model.PackageModel;
-import com.nullguard.core.model.ClassModel;
-import com.nullguard.core.model.MethodIds;
-import com.nullguard.core.model.MethodModel;
-import com.nullguard.analysis.ir.Instruction;
-import com.nullguard.analysis.ir.MethodCallInstruction;
-import com.nullguard.analysis.extractor.BasicInstructionExtractor;
+
 import com.nullguard.callgraph.model.ExternalReason;
 import com.nullguard.callgraph.model.GlobalCallGraph;
 import com.nullguard.callgraph.resolver.MethodResolver;
+import com.nullguard.core.callsite.CallSite;
+import com.nullguard.core.callsite.CallSiteExtractor;
+import com.nullguard.core.model.ClassModel;
+import com.nullguard.core.model.MethodIds;
+import com.nullguard.core.model.MethodModel;
+import com.nullguard.core.model.ModuleModel;
+import com.nullguard.core.model.PackageModel;
+import com.nullguard.core.model.ProjectModel;
+
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 
+/**
+ * Builds the project call graph from the CFG of each method.
+ *
+ * <h3>Layering</h3>
+ * This used to import {@code BasicInstructionExtractor} and {@code MethodCallInstruction} from
+ * {@code nullguard-analysis}, so the call graph — a structural fact about the code — was derived
+ * from the dataflow IR, a later and more specialised representation. That inverted the intended
+ * layering and re-ran the IR lowering a second time for every method. It now reads call sites
+ * straight off the CFG via {@link CallSiteExtractor}, and {@code nullguard-callgraph} depends
+ * only on {@code nullguard-core}.
+ */
 public final class BasicCallGraphBuilder implements CallGraphBuilder {
+
     private final MethodResolver resolver;
-    private final BasicInstructionExtractor extractor;
-    
+    private final CallSiteExtractor callSiteExtractor;
+
     public BasicCallGraphBuilder() {
         this.resolver = new MethodResolver();
-        this.extractor = new BasicInstructionExtractor();
+        this.callSiteExtractor = new CallSiteExtractor();
     }
-    
+
     @Override
     public GlobalCallGraph build(ProjectModel project) {
         LinkedHashMap<String, LinkedHashSet<String>> outgoing = new LinkedHashMap<>();
@@ -38,52 +51,46 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                         String callerId = MethodIds.of(pkg, cls, mth);
                         outgoing.putIfAbsent(callerId, new LinkedHashSet<>());
                         incoming.putIfAbsent(callerId, new LinkedHashSet<>());
-                        
-                        if (mth.getControlFlowModel().isPresent()) {
-                            List<Instruction> instructions = extractor.extract(mth.getControlFlowModel().get());
-                            for (Instruction inst : instructions) {
-                                if (inst instanceof MethodCallInstruction callInst) {
-                                    String calledName = extractCalledName(callInst.methodCall());
-                                    if (isGetterOrSetter(calledName)) continue;
-                                    // resolveAll returns concrete implementations first, so Spring's
-                                    // controller → serviceInterface → serviceImpl pattern is handled:
-                                    // edges are added to ALL concrete implementations, not just the interface.
-                                    // argCount discriminates overloads; UNKNOWN_ARG_COUNT skips that filter.
-                                    List<String> targets =
-                                            resolver.resolveAll(project, calledName, callInst.argCount());
 
-                                    if (!targets.isEmpty()) {
-                                        for (String calleeId : targets) {
-                                            outgoing.get(callerId).add(calleeId);
-                                            incoming.computeIfAbsent(calleeId, k -> new LinkedHashSet<>()).add(callerId);
-                                        }
-                                    } else {
-                                        String extId = MethodIds.external(calledName);
-                                        externalNodes.add(extId);
-                                        externalReasons.putIfAbsent(extId, resolver.classifyExternal(calledName));
-                                        outgoing.get(callerId).add(extId);
-                                        incoming.computeIfAbsent(extId, k -> new LinkedHashSet<>()).add(callerId);
-                                    }
+                        if (mth.getControlFlowModel().isEmpty()) continue;
+
+                        for (CallSite site : callSiteExtractor.extract(mth.getControlFlowModel().get())) {
+                            String calledName = site.calleeName();
+                            if (isGetterOrSetter(calledName)) continue;
+
+                            // resolveAll returns concrete implementations first, so Spring's
+                            // controller → serviceInterface → serviceImpl pattern is handled:
+                            // edges are added to ALL concrete implementations, not just the
+                            // interface. argCount discriminates overloads.
+                            List<String> targets =
+                                    resolver.resolveAll(project, calledName, site.argCount());
+
+                            if (!targets.isEmpty()) {
+                                for (String calleeId : targets) {
+                                    outgoing.get(callerId).add(calleeId);
+                                    incoming.computeIfAbsent(calleeId, k -> new LinkedHashSet<>())
+                                            .add(callerId);
                                 }
+                            } else {
+                                String extId = MethodIds.external(calledName);
+                                externalNodes.add(extId);
+                                externalReasons.putIfAbsent(extId, resolver.classifyExternal(calledName));
+                                outgoing.get(callerId).add(extId);
+                                incoming.computeIfAbsent(extId, k -> new LinkedHashSet<>())
+                                        .add(callerId);
                             }
                         }
                     }
                 }
             }
         }
-        
+
         return new GlobalCallGraph(outgoing, incoming, externalNodes, externalReasons);
-    }
-    
-    private String extractCalledName(String methodCallString) {
-        int parenIndex = methodCallString.indexOf('(');
-        if (parenIndex == -1) return methodCallString.trim();
-        return methodCallString.substring(0, parenIndex).trim();
     }
 
     /**
-     * Returns true for trivial accessor calls like "dataVO.getInvoiceNumber",
-     * "br.setAm", or "isActive" that add noise without architectural meaning.
+     * Returns true for trivial accessor calls like {@code dataVO.getInvoiceNumber},
+     * {@code br.setAm} or {@code isActive} that add noise without architectural meaning.
      */
     private static boolean isGetterOrSetter(String calledName) {
         String simple = calledName.contains(".")

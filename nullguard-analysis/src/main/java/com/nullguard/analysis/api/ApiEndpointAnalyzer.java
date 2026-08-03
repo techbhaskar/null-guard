@@ -49,6 +49,8 @@ public class ApiEndpointAnalyzer {
         List<APIFlowTrace> traces = flowPathExtractor.extractDistinctPaths(
                 project, callEdges, config.getPropagationDepthLimit());
 
+        reachTracker.reset();
+
         List<ApiEndpointModel> built = new ArrayList<>();
         for (APIFlowTrace trace : traces) {
             reachTracker.track(trace);
