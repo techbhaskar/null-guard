@@ -167,10 +167,11 @@ public class ScoringTest {
         AdjustedRiskModel modelA = result.get(idA);
         AdjustedRiskModel modelB = result.get(idB);
 
-        // v1.1: adjustedRisk >= 20.0 (base) because apiExposureWeight is added on top
-        // With apiExposureWeight the score will be > 20, so just check it is in [20, 100]
-        assertTrue(modelA.getAdjustedRisk() >= 20.0 && modelA.getAdjustedRisk() <= 100.0);
-        assertTrue(modelB.getAdjustedRisk() >= 20.0 && modelB.getAdjustedRisk() <= 100.0);
+        // The analytical fixed point is 20.0. Iteration intentionally stops once the largest
+        // update is below the configured threshold, so a valid approximation can be just under
+        // the limit (for example 19.990234375).
+        assertEquals(20.0, modelA.getAdjustedRisk(), config.getConvergenceThreshold());
+        assertEquals(20.0, modelB.getAdjustedRisk(), config.getConvergenceThreshold());
     }
 
     @Test

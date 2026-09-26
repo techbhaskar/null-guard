@@ -1,87 +1,120 @@
 package com.nullguard.core.callsite;
 
+import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.stmt.Statement;
 import com.nullguard.core.cfg.ControlFlowModel;
 import com.nullguard.core.cfg.ControlFlowNode;
 import com.nullguard.core.cfg.NodeType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
- * Extracts call sites directly from a {@link ControlFlowModel}.
+ * Extracts method-call sites directly from CFG node source using JavaParser's AST.
  *
- * <h3>Why this is in core</h3>
- * {@code nullguard-callgraph} declared a dependency on {@code nullguard-analysis} purely so that
- * {@code BasicCallGraphBuilder} could run {@code BasicInstructionExtractor} and filter the
- * resulting IR for {@code MethodCallInstruction}. That is a layering inversion: the call graph is
- * a structural fact about the code and has no business being derived from the dataflow IR, which
- * is a later and more specialised representation. It also meant the IR lowering ran twice per
- * method — once for the call graph and once for the null analysis.
+ * <p>Call sites are structural facts and therefore belong in core rather than in the later
+ * data-flow IR. AST extraction is important here: textual matching loses nested calls such as
+ * {@code client.send(mapper.map(value))} and calls contained in {@code return}, condition and
+ * {@code throw} expressions.
  *
- * <p>Call sites are a property of the CFG, which lives in core, so extraction belongs here. The
- * call-graph module now depends only on core, and the analysis module reuses
- * {@link #countArguments(String, String)} rather than keeping a second copy.
- *
- * <h3>Limits</h3>
- * This is regex over source text, not a resolved AST. The receiver pattern is anchored, so a
- * chained call {@code a.b().c()} yields only {@code a.b}, and a nested call {@code foo(bar())}
- * yields only {@code foo}. Those remain known gaps; closing them requires the symbol solver that
- * {@code JavaParserAstParser} configures and never queries.
+ * <p>This extractor deliberately does not resolve target types. It preserves the receiver and
+ * method name written at the call site; the call-graph resolver is responsible for mapping that
+ * structural call to project methods.
  */
 public final class CallSiteExtractor {
 
-    /** {@code receiver.method(} → group(1)=receiver, group(2)=method */
-    private static final Pattern RECEIVER_METHOD =
-            Pattern.compile("^([\\w$]+)\\.([\\w$]+)\\s*\\(");
-
-    /** Extracts every call site in the method, in CFG node order. */
+    /** Extracts every call site in CFG/source order. */
     public List<CallSite> extract(ControlFlowModel cfg) {
         List<CallSite> callSites = new ArrayList<>();
 
         for (ControlFlowNode node : cfg.getNodes().values()) {
-            if (node.getType() != NodeType.STATEMENT) continue;
+            if (!canContainCalls(node.getType())) continue;
 
-            String src = node.getSourceCode().trim();
-            if (!src.contains("(")) continue;
+            String source = node.getSourceCode().trim();
+            if (!source.contains("(")) continue;
 
-            String candidate = isAssignment(src) ? rightHandSide(src) : src;
-            if (candidate == null || !candidate.contains("(")) continue;
+            Node parsed = parseNode(source);
+            if (parsed == null) continue;
 
-            Matcher m = RECEIVER_METHOD.matcher(candidate);
-            if (m.find()) {
-                String receiver = m.group(1);
-                String callee = candidate.substring(m.start(), candidate.indexOf('(', m.start())).trim();
-                callSites.add(new CallSite(callee, receiver,
-                        countArguments(candidate, callee), node.getId(), node.getLineNumber()));
-            } else {
-                int paren = candidate.indexOf('(');
-                String callee = candidate.substring(0, paren).trim();
-                // Guard against garbage like "int x =" being read as a callee, which the old
-                // extractor produced whenever an assignment's RHS contained a comparison.
-                if (!callee.matches("[\\w$]+")) continue;
-                callSites.add(new CallSite(callee, null,
-                        countArguments(candidate, callee), node.getId(), node.getLineNumber()));
+            List<MethodCallExpr> calls = new ArrayList<>(parsed.findAll(MethodCallExpr.class));
+            calls.sort(Comparator
+                    .comparingInt((MethodCallExpr call) -> call.getBegin().map(p -> p.line).orElse(Integer.MAX_VALUE))
+                    .thenComparingInt(call -> call.getBegin().map(p -> p.column).orElse(Integer.MAX_VALUE))
+                    .thenComparing(call -> call.toString()));
+
+            for (MethodCallExpr call : calls) {
+                String receiver = call.getScope()
+                        .filter(NameExpr.class::isInstance)
+                        .map(NameExpr.class::cast)
+                        .map(NameExpr::getNameAsString)
+                        .orElse(null);
+                // Preserve a simple receiver (service.process) because it is useful to the
+                // resolver, but do not serialize an entire chained expression into an ID such
+                // as stream.filter(predicate).map. Complex scopes have no stable receiver name;
+                // resolving their terminal method by name/arity is safer until type solving is
+                // introduced.
+                String callee = call.getScope()
+                        .filter(NameExpr.class::isInstance)
+                        .map(NameExpr.class::cast)
+                        .map(scope -> scope.getNameAsString() + "." + call.getNameAsString())
+                        .orElseGet(call::getNameAsString);
+
+                callSites.add(new CallSite(
+                        callee,
+                        receiver,
+                        call.getArguments().size(),
+                        node.getId(),
+                        node.getLineNumber()));
             }
         }
+
         return Collections.unmodifiableList(callSites);
     }
 
-    // ── Shared text utilities ─────────────────────────────────────────────────────
+    private static boolean canContainCalls(NodeType type) {
+        return type == NodeType.STATEMENT
+                || type == NodeType.RETURN
+                || type == NodeType.CONDITION
+                || type == NodeType.THROW;
+    }
 
     /**
-     * Counts arguments at a call site so overloads can be discriminated by arity.
-     *
-     * <p>Commas nested inside parentheses, brackets, generics or string/char literals do not
-     * separate arguments. Returns {@link CallSite#UNKNOWN_ARG_COUNT} when the list cannot be
-     * located or is unbalanced — degrading to "unknown" is safe, because a consumer then skips
-     * arity filtering rather than filtering on a wrong number.
-     *
-     * @param src    text containing the call
-     * @param callee callee text, used to locate the correct opening parenthesis
+     * CFG nodes contain either complete statements or bare expressions (notably conditions).
+     * Try the statement grammar first, then the expression grammar. An unparseable node is left
+     * for later analysis rather than inventing a call from partial text.
      */
+    private static Node parseNode(String source) {
+        try {
+            Statement statement = StaticJavaParser.parseStatement(source);
+            return statement;
+        } catch (ParseProblemException statementFailure) {
+            String expressionSource = stripTrailingSemicolon(source);
+            try {
+                Expression expression = StaticJavaParser.parseExpression(expressionSource);
+                return expression;
+            } catch (ParseProblemException expressionFailure) {
+                return null;
+            }
+        }
+    }
+
+    private static String stripTrailingSemicolon(String source) {
+        String trimmed = source.trim();
+        return trimmed.endsWith(";")
+                ? trimmed.substring(0, trimmed.length() - 1).trim()
+                : trimmed;
+    }
+
+    // Kept as shared compatibility utilities for callers that reason about raw text.
+
+    /** Counts arguments at a named call site in raw source text. */
     public static int countArguments(String src, String callee) {
         if (src == null || callee == null || callee.isEmpty()) return CallSite.UNKNOWN_ARG_COUNT;
 
@@ -141,10 +174,7 @@ public final class CallSiteExtractor {
         return eq < 0 ? null : src.substring(eq + 1).trim();
     }
 
-    /**
-     * Index of the assignment {@code =}, skipping {@code ==}, {@code !=}, {@code <=},
-     * {@code >=} and compound operators' trailing {@code =}.
-     */
+    /** Index of an assignment {@code =}, excluding comparison operators. */
     public static int indexOfAssignmentOperator(String src) {
         if (src == null) return -1;
         for (int i = 0; i < src.length(); i++) {

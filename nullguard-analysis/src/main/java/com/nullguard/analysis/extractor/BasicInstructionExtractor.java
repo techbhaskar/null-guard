@@ -1,255 +1,186 @@
 package com.nullguard.analysis.extractor;
 
+import com.nullguard.analysis.ir.AssignmentInstruction;
+import com.nullguard.analysis.ir.ConditionalInstruction;
+import com.nullguard.analysis.ir.DereferenceInstruction;
+import com.nullguard.analysis.ir.Instruction;
+import com.nullguard.analysis.ir.MethodCallInstruction;
+import com.nullguard.analysis.ir.ReturnInstruction;
+import com.nullguard.analysis.ir.ThrowInstruction;
+import com.nullguard.core.callsite.CallSite;
+import com.nullguard.core.callsite.CallSiteExtractor;
 import com.nullguard.core.cfg.ControlFlowModel;
 import com.nullguard.core.cfg.ControlFlowNode;
-import com.nullguard.analysis.ir.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
- * BasicInstructionExtractor – maps CFG nodes to typed IR instructions.
+ * Maps CFG nodes to the typed instruction stream consumed by null-state analysis.
  *
- * <h3>Null-detection rules</h3>
- * <ul>
- *   <li>Assignment with null RHS  → {@link AssignmentInstruction} with source = "NULL_LITERAL"</li>
- *   <li>Assignment with non-null RHS → {@link AssignmentInstruction} with source = "NON_NULL"</li>
- *   <li>{@code return null}        → {@link ReturnInstruction} with returnValue = "NULL_LITERAL"</li>
- *   <li>Statement with {@code receiver.method(...)} → emits BOTH:
- *       <ol>
- *         <li>a {@link DereferenceInstruction} for the receiver (null-check tracking)</li>
- *         <li>a {@link MethodCallInstruction} with the callee name (call-graph edge building)</li>
- *       </ol>
- *   </li>
- *   <li>Standalone call {@code method(...)} → {@link MethodCallInstruction}</li>
- * </ul>
+ * <p>Structural call discovery is delegated to core's AST-backed {@link CallSiteExtractor} so
+ * the call graph and data-flow analysis see the same nested, returned and conditional calls.
  */
 public final class BasicInstructionExtractor implements InstructionExtractor {
 
-    /** {@link AssignmentInstruction#source()} marker: RHS is the literal {@code null}. */
+    /** {@link AssignmentInstruction#source()} marker for the literal {@code null}. */
     public static final String NULL_LITERAL = "NULL_LITERAL";
-    /** Marker: RHS is a method-call result, i.e. nullability is genuinely unknown. */
+    /** Marker for a method-call result whose nullability is not yet known. */
     public static final String CALL_RESULT = "CALL_RESULT";
-    /** Marker: RHS is a literal / constructor / expression that cannot be null. */
+    /** Marker for a literal, constructor or expression known not to be a call result. */
     public static final String NON_NULL = "NON_NULL";
-
-    // x = null;  /  x = foo.orElse(null)  /  Type x = null;
-    private static final Pattern NULL_ASSIGN_PATTERN =
-            Pattern.compile("(?:^|[\\s(,])([\\w$]+)\\s*(?:[+\\-*/%&|^]?=)(?!=)\\s*null\\s*[;,)]?");
 
     private static final Pattern OR_ELSE_NULL_PATTERN =
             Pattern.compile("\\.orElse\\(\\s*null\\s*\\)");
 
-    // Grab the LHS variable of any assignment
     private static final Pattern ASSIGNMENT_TARGET_PATTERN =
             Pattern.compile("(?:[\\w<>\\[\\],\\s]+\\s+)?([\\w$]+)\\s*(?:[+\\-*/%&|^]?=)(?!=)");
-
-    // Split  receiver.method(args)  → group(1)=receiver, group(2)=method
-    private static final Pattern RECEIVER_METHOD_PATTERN =
-            Pattern.compile("^([\\w$]+)\\.([\\w$]+)\\s*\\(");
 
     @Override
     public List<Instruction> extract(ControlFlowModel cfg) {
         List<Instruction> instructions = new ArrayList<>();
-        int instrIndex = 0;
+        int instructionIndex = 0;
+
+        Map<String, List<CallSite>> callsByNode = new CallSiteExtractor().extract(cfg).stream()
+                .collect(Collectors.groupingBy(
+                        CallSite::cfgNodeId,
+                        LinkedHashMap::new,
+                        Collectors.toList()));
 
         for (ControlFlowNode node : cfg.getNodes().values()) {
-            String src       = node.getSourceCode().trim();
-            String cfgId     = node.getId();
-            String methodSig = cfg.getMethodSignature();
-            String baseId    = methodSig + "_" + cfgId + "_";
-            int    line      = node.getLineNumber();
+            String source = node.getSourceCode().trim();
+            String cfgNodeId = node.getId();
+            String baseId = cfg.getMethodSignature() + "_" + cfgNodeId + "_";
+            int line = node.getLineNumber();
+            List<CallSite> calls = callsByNode.getOrDefault(cfgNodeId, List.of());
 
             switch (node.getType()) {
                 case STATEMENT -> {
-                    boolean isAssignment = src.contains("=") && !src.contains("==")
-                                           && !src.contains("!=") && !src.contains(">=")
-                                           && !src.contains("<=");
+                    if (CallSiteExtractor.isAssignment(source)) {
+                        instructionIndex = emitDereferences(
+                                calls, instructions, baseId, cfgNodeId, line, instructionIndex);
 
-                    if (isAssignment) {
-                        String target  = extractTarget(src);
-                        String rhsCall = extractRhsMethodCall(src);
-
-                        // ── The receiver on the RHS is dereferenced BEFORE the assignment lands.
-                        // `String name = user.getName();` is the single most common NPE shape in
-                        // Java, and this branch used to emit no DereferenceInstruction at all —
-                        // only bare-statement calls (`user.doIt();`) were ever counted. The deref
-                        // is emitted first so the forward analyser evaluates it against the state
-                        // *before* the target is written (matters for `n = n.next`).
-                        String rhsReceiver = extractRhsReceiver(src);
-                        if (rhsReceiver != null) {
-                            instructions.add(new DereferenceInstruction(
-                                    baseId + (instrIndex++), cfgId, line, rhsReceiver));
-                        }
-
-                        String source;
-                        if (isNullLiteralRhs(src)) {
-                            source = NULL_LITERAL;
-                        } else if (rhsCall != null) {
-                            // A method return is genuinely unknown. Marking it NON_NULL — as this
-                            // did — asserts the opposite of what is known and is precisely the
-                            // case a null checker exists to flag.
-                            source = CALL_RESULT;
+                        String assignmentSource;
+                        if (isNullLiteralRhs(source)) {
+                            assignmentSource = NULL_LITERAL;
+                        } else if (!calls.isEmpty()) {
+                            assignmentSource = CALL_RESULT;
                         } else {
-                            source = NON_NULL;
+                            assignmentSource = NON_NULL;
                         }
                         instructions.add(new AssignmentInstruction(
-                                baseId + (instrIndex++), cfgId, line, target, source));
+                                baseId + (instructionIndex++), cfgNodeId, line,
+                                extractTarget(source), assignmentSource));
 
-                        // Also emit a MethodCallInstruction so the call graph can track the callee.
-                        if (rhsCall != null) {
-                            instructions.add(new MethodCallInstruction(
-                                    baseId + (instrIndex++), cfgId, line, rhsCall,
-                                    countArguments(src, rhsCall)));
-                        }
-
-                    } else if (src.contains("(")) {
-                        // Not an assignment – could be:
-                        //   a) receiver.method(args)   → DereferenceInstruction + MethodCallInstruction
-                        //   b) method(args)            → MethodCallInstruction only
-                        Matcher m = RECEIVER_METHOD_PATTERN.matcher(src);
-                        if (m.find()) {
-                            String receiver = m.group(1);
-                            String callee   = src.substring(m.start(), src.indexOf('(', m.start())).trim();
-                            // DereferenceInstruction tracks null safety of the receiver
-                            instructions.add(new DereferenceInstruction(
-                                    baseId + (instrIndex++), cfgId, line, receiver));
-                            // MethodCallInstruction feeds the call graph builder
-                            instructions.add(new MethodCallInstruction(
-                                    baseId + (instrIndex++), cfgId, line, callee,
-                                    countArguments(src, callee)));
-                        } else {
-                            // Standalone call: method(args) — no explicit receiver
-                            String callee = extractCalleeFromSrc(src);
-                            instructions.add(new MethodCallInstruction(
-                                    baseId + (instrIndex++), cfgId, line, callee,
-                                    countArguments(src, callee)));
-                        }
+                        instructionIndex = emitMethodCalls(
+                                calls, instructions, baseId, cfgNodeId, line, instructionIndex);
+                    } else {
+                        instructionIndex = emitDereferences(
+                                calls, instructions, baseId, cfgNodeId, line, instructionIndex);
+                        instructionIndex = emitMethodCalls(
+                                calls, instructions, baseId, cfgNodeId, line, instructionIndex);
                     }
-                    // Pure field-access statements with '.' but no '(' are rare;
-                    // skip to avoid false dereference counts.
                 }
                 case RETURN -> {
-                    String retVal = src.replaceFirst("(?i)^return\\s*", "").replace(";", "").trim();
-                    String finalVal = "null".equals(retVal) ? NULL_LITERAL : retVal;
+                    instructionIndex = emitDereferences(
+                            calls, instructions, baseId, cfgNodeId, line, instructionIndex);
+                    instructionIndex = emitMethodCalls(
+                            calls, instructions, baseId, cfgNodeId, line, instructionIndex);
+
+                    String returnValue = source.replaceFirst("(?i)^return\\s*", "")
+                            .replace(";", "")
+                            .trim();
                     instructions.add(new ReturnInstruction(
-                            baseId + (instrIndex++), cfgId, line, finalVal));
+                            baseId + (instructionIndex++), cfgNodeId, line,
+                            "null".equals(returnValue) ? NULL_LITERAL : returnValue));
                 }
-                case CONDITION ->
+                case CONDITION -> {
+                    instructionIndex = emitDereferences(
+                            calls, instructions, baseId, cfgNodeId, line, instructionIndex);
+                    instructionIndex = emitMethodCalls(
+                            calls, instructions, baseId, cfgNodeId, line, instructionIndex);
                     instructions.add(new ConditionalInstruction(
-                            baseId + (instrIndex++), cfgId, line, src));
-                case THROW ->
+                            baseId + (instructionIndex++), cfgNodeId, line, source));
+                }
+                case THROW -> {
+                    instructionIndex = emitDereferences(
+                            calls, instructions, baseId, cfgNodeId, line, instructionIndex);
+                    instructionIndex = emitMethodCalls(
+                            calls, instructions, baseId, cfgNodeId, line, instructionIndex);
                     instructions.add(new ThrowInstruction(
-                            baseId + (instrIndex++), cfgId, line, src));
-                default -> { /* ENTRY/EXIT nodes carry no instructions */ }
+                            baseId + (instructionIndex++), cfgNodeId, line, source));
+                }
+                default -> {
+                    // ENTRY and EXIT nodes do not represent executable instructions.
+                }
             }
         }
+
         return Collections.unmodifiableList(instructions);
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
-
-    private static boolean isNullLiteralRhs(String src) {
-        if (OR_ELSE_NULL_PATTERN.matcher(src).find()) return true;
-        // Simple check: after the first '=' (not ==, !=, >=, <=) the RHS is "null"
-        int eq = indexOfAssignmentOperator(src);
-        if (eq < 0) return false;
-        String rhs = src.substring(eq + 1).trim();
-        return rhs.equals("null") || rhs.equals("null;") || rhs.startsWith("null ")
-               || rhs.startsWith("null,") || rhs.startsWith("null)");
-    }
-
-    /** Returns the index of the assignment '=' that is not part of ==, !=, >=, <=. */
-    private static int indexOfAssignmentOperator(String src) {
-        for (int i = 0; i < src.length(); i++) {
-            char c = src.charAt(i);
-            if (c == '=' ) {
-                if (i > 0) {
-                    char prev = src.charAt(i - 1);
-                    if (prev == '!' || prev == '<' || prev == '>' || prev == '=') continue;
-                }
-                if (i < src.length() - 1 && src.charAt(i + 1) == '=') continue;
-                return i;
-            }
+    private static int emitDereferences(List<CallSite> calls,
+                                        List<Instruction> instructions,
+                                        String baseId,
+                                        String cfgNodeId,
+                                        int line,
+                                        int instructionIndex) {
+        for (CallSite call : calls) {
+            String receiver = call.receiver();
+            if (!isDereferenceReceiver(receiver)) continue;
+            instructions.add(new DereferenceInstruction(
+                    baseId + (instructionIndex++), cfgNodeId, line, receiver));
         }
-        return -1;
+        return instructionIndex;
     }
 
-    private static String extractTarget(String src) {
-        Matcher m = ASSIGNMENT_TARGET_PATTERN.matcher(src);
-        if (m.find()) return m.group(1);
-        return "target";
-    }
-
-    /**
-     * If the RHS of an assignment is a method call, return the callee name;
-     * e.g. {@code User user = userRepository.findByEmail(email);} → {@code "findByEmail"}.
-     * Returns {@code null} if the RHS is not a method call expression.
-     */
-    private static String extractRhsMethodCall(String src) {
-        int eq = indexOfAssignmentOperator(src);
-        if (eq < 0) return null;
-        String rhs = src.substring(eq + 1).trim();
-        Matcher m = RECEIVER_METHOD_PATTERN.matcher(rhs);
-        if (m.find()) return rhs.substring(m.start(), rhs.indexOf('(', m.start())).trim();
-        // Standalone call on RHS: foo(...)
-        int p = rhs.indexOf('(');
-        if (p > 0) {
-            String candidate = rhs.substring(0, p).trim();
-            if (candidate.matches("[\\w$]+")) return candidate;
+    private static int emitMethodCalls(List<CallSite> calls,
+                                       List<Instruction> instructions,
+                                       String baseId,
+                                       String cfgNodeId,
+                                       int line,
+                                       int instructionIndex) {
+        for (CallSite call : calls) {
+            instructions.add(new MethodCallInstruction(
+                    baseId + (instructionIndex++), cfgNodeId, line,
+                    call.calleeName(), call.argCount()));
         }
-        return null;
+        return instructionIndex;
     }
 
-    /**
-     * If the RHS of an assignment dereferences a receiver, return the receiver variable;
-     * e.g. {@code String name = user.getName();} → {@code "user"}.
-     *
-     * <p>Receivers whose first character is upper-case are skipped: {@code Optional.of(x)},
-     * {@code String.valueOf(y)} and friends are static calls on a type name, not dereferences
-     * of a variable, and counting them would be a guaranteed false positive.
-     *
-     * @return the receiver identifier, or {@code null} if the RHS dereferences nothing
-     */
-    private static String extractRhsReceiver(String src) {
-        int eq = indexOfAssignmentOperator(src);
-        if (eq < 0) return null;
-        String rhs = src.substring(eq + 1).trim();
-        Matcher m = RECEIVER_METHOD_PATTERN.matcher(rhs);
-        if (!m.find()) return null;
-        String receiver = m.group(1);
-        if (receiver.isEmpty() || Character.isUpperCase(receiver.charAt(0))) return null;
-        return receiver;
+    private static boolean isDereferenceReceiver(String receiver) {
+        return receiver != null
+                && !receiver.isEmpty()
+                && !"this".equals(receiver)
+                && !"super".equals(receiver)
+                && !Character.isUpperCase(receiver.charAt(0));
     }
 
-    /**
-     * Counts the arguments passed at a call site, so the call-graph resolver can discriminate
-     * overloads. Without this, {@code foo(int)} and {@code foo(String, String)} are
-     * indistinguishable and whichever is iterated first wins.
-     *
-     * <p>Commas nested inside parentheses, generics, brackets or string/char literals do not
-     * separate arguments. Returns {@link MethodCallInstruction#UNKNOWN_ARG_COUNT} when the
-     * argument list cannot be located or is unbalanced, which makes the resolver skip arity
-     * filtering rather than filter on a wrong number.
-     *
-     * @param src    full source text of the statement
-     * @param callee the callee text, used to find the correct opening parenthesis
-     */
-    static int countArguments(String src, String callee) {
-        // Delegates to core so the call-graph module and this extractor cannot drift apart.
-        return com.nullguard.core.callsite.CallSiteExtractor.countArguments(src, callee);
+    private static boolean isNullLiteralRhs(String source) {
+        if (OR_ELSE_NULL_PATTERN.matcher(source).find()) return true;
+        int assignment = CallSiteExtractor.indexOfAssignmentOperator(source);
+        if (assignment < 0) return false;
+        String rhs = source.substring(assignment + 1).trim();
+        return rhs.equals("null")
+                || rhs.equals("null;")
+                || rhs.startsWith("null ")
+                || rhs.startsWith("null,")
+                || rhs.startsWith("null)");
     }
 
-    private static String extractCalleeFromSrc(String src) {
-        int p = src.indexOf('(');
-        if (p > 0) {
-            String before = src.substring(0, p).trim();
-            // If there's a dot, take the part after it
-            return before;
-        }
-        return src;
+    private static String extractTarget(String source) {
+        Matcher matcher = ASSIGNMENT_TARGET_PATTERN.matcher(source);
+        return matcher.find() ? matcher.group(1) : "target";
+    }
+
+    /** Backward-compatible raw-text argument counter. */
+    static int countArguments(String source, String callee) {
+        return CallSiteExtractor.countArguments(source, callee);
     }
 }
