@@ -5,6 +5,7 @@ import com.nullguard.scoring.config.ScoringConfig;
 
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.List;
 
 /**
  * Unified NullGuard configuration loaded once and passed into all modules
@@ -32,6 +33,8 @@ public final class NullGuardConfig {
 
     // Output parameters
     private final Path outputDirectory;
+    private final List<Path> sourceRoots;
+    private final List<Path> classpathEntries;
 
     private NullGuardConfig(Builder builder) {
         this.propagationDepthLimit   = builder.propagationDepthLimit;
@@ -47,6 +50,8 @@ public final class NullGuardConfig {
         this.failBuild               = builder.failBuild;
         this.failThreshold           = Objects.requireNonNull(builder.failThreshold);
         this.outputDirectory         = builder.outputDirectory;
+        this.sourceRoots             = List.copyOf(builder.sourceRoots);
+        this.classpathEntries        = List.copyOf(builder.classpathEntries);
     }
 
     // ── Analysis config projection ──────────────────────────────────────────
@@ -86,6 +91,8 @@ public final class NullGuardConfig {
     public boolean isFailBuild()       { return failBuild; }
     public String getFailThreshold()   { return failThreshold; }
     public Path getOutputDirectory()   { return outputDirectory; }
+    public List<Path> getSourceRoots() { return sourceRoots; }
+    public List<Path> getClasspathEntries() { return classpathEntries; }
 
     // ── Builder ─────────────────────────────────────────────────────────────
 
@@ -120,6 +127,8 @@ public final class NullGuardConfig {
 
         // Output
         private Path outputDirectory = null;
+        private List<Path> sourceRoots = List.of();
+        private List<Path> classpathEntries = List.of();
 
         public Builder propagationDepthLimit(int v)    { this.propagationDepthLimit   = v; return this; }
         public Builder propagationDecayExponent(double v){ this.propagationDecayExponent = v; return this; }
@@ -134,6 +143,14 @@ public final class NullGuardConfig {
         public Builder failBuild(boolean v)            { this.failBuild               = v; return this; }
         public Builder failThreshold(String v)         { this.failThreshold           = v; return this; }
         public Builder outputDirectory(Path v)         { this.outputDirectory         = v; return this; }
+        public Builder sourceRoots(List<Path> v) {
+            this.sourceRoots = v == null ? List.of() : List.copyOf(v);
+            return this;
+        }
+        public Builder classpathEntries(List<Path> v) {
+            this.classpathEntries = v == null ? List.of() : List.copyOf(v);
+            return this;
+        }
 
         public NullGuardConfig build() {
             NullGuardConfig config = new NullGuardConfig(this);

@@ -9,6 +9,9 @@ import com.nullguard.suggestions.model.Suggestion;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * NullGuardCliApplication – standalone CLI entry point for the NullGuard engine.
@@ -26,6 +29,7 @@ import java.nio.file.Paths;
  *     --max-iterations=&lt;int&gt;        Maximum fixpoint iterations        (default: 100)
  *     --high-risk-threshold=&lt;int&gt;   High-risk score threshold 0-100   (default: 70)
  *     --output=&lt;dir&gt;                Output directory for reports       (default: ./nullguard-out)
+ *     --classpath=&lt;paths&gt;           Dependency classpath, separated by the platform path separator
  * </pre>
  *
  * <h3>Exit codes</h3>
@@ -83,6 +87,7 @@ public final class NullGuardCliApplication {
         // colour the graph: a method at 65 rendered HIGH but was excluded from highRiskMethods.
         int     highRiskThresh  = com.nullguard.core.risk.RiskLevel.HIGH.getMin();
         Path    outputDir       = Paths.get("nullguard-out");
+        List<Path> classpathEntries = new ArrayList<>();
 
         for (String arg : args) {
             if (arg.startsWith("--")) {
@@ -102,6 +107,12 @@ public final class NullGuardCliApplication {
                     highRiskThresh = Integer.parseInt(arg.substring("--high-risk-threshold=".length()));
                 } else if (arg.startsWith("--output=")) {
                     outputDir = Paths.get(arg.substring("--output=".length()));
+                } else if (arg.startsWith("--classpath=")) {
+                    String rawClasspath = arg.substring("--classpath=".length());
+                    for (String entry : rawClasspath.split(
+                            java.util.regex.Pattern.quote(File.pathSeparator))) {
+                        if (!entry.isBlank()) classpathEntries.add(Paths.get(entry));
+                    }
                 } else {
                     System.err.println("[NullGuard] Unknown option: " + arg);
                     return EXIT_BAD_ARGS;
@@ -135,6 +146,8 @@ public final class NullGuardCliApplication {
                 .maxScoringIterations(maxIterations)
                 .highRiskThreshold(highRiskThresh)
                 .outputDirectory(outputDir)
+                .sourceRoots(List.of(sourcePath))
+                .classpathEntries(classpathEntries)
                 .build();
 
         // ── Execute via bootstrap ─────────────────────────────────────────────
@@ -249,5 +262,6 @@ public final class NullGuardCliApplication {
         System.out.println("  --max-iterations=<int>        Max fixpoint iterations      (default: 100)");
         System.out.println("  --high-risk-threshold=<int>   High-risk score (0-100)      (default: 60)");
         System.out.println("  --output=<dir>                Output directory             (default: ./nullguard-out)");
+        System.out.println("  --classpath=<paths>           Dependency classpath (" + File.pathSeparator + " separated)");
     }
 }

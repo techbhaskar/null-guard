@@ -8,6 +8,7 @@ import com.nullguard.core.spi.MethodAnalysisArtifacts.ReachCountSource;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.List;
 
 /**
  * MethodModel – immutable-by-construction method descriptor.
@@ -29,6 +30,7 @@ public final class MethodModel {
     private final String methodName;
     private final String signature;
     private final ControlFlowModel controlFlowModel;
+    private final List<SemanticCallSite> semanticCallSites;
 
     private final Object nullAnalysisModel;
 
@@ -56,6 +58,7 @@ public final class MethodModel {
         this.methodName        = Objects.requireNonNull(builder.methodName, "Method name cannot be null");
         this.signature         = Objects.requireNonNull(builder.signature, "Signature cannot be null");
         this.controlFlowModel  = builder.controlFlowModel;
+        this.semanticCallSites = List.copyOf(builder.semanticCallSites);
         this.nullAnalysisModel = builder.nullAnalysisModel;
         this.methodSummary     = builder.methodSummary;
         this.riskModel         = builder.riskModel;
@@ -70,6 +73,7 @@ public final class MethodModel {
     public String getSignature()  { return signature; }
 
     public Optional<ControlFlowModel> getControlFlowModel()  { return Optional.ofNullable(controlFlowModel); }
+    public List<SemanticCallSite> getSemanticCallSites()      { return semanticCallSites; }
     public Optional<Object>                getNullAnalysisModel() { return Optional.ofNullable(nullAnalysisModel); }
     public Optional<IntrinsicRiskSource>   getMethodSummary()     { return Optional.ofNullable(methodSummary); }
     public Optional<Object>                getRiskModel()         { return Optional.ofNullable(riskModel); }
@@ -101,6 +105,7 @@ public final class MethodModel {
         private String methodName;
         private String signature;
         private ControlFlowModel controlFlowModel;
+        private List<SemanticCallSite> semanticCallSites = List.of();
         private Object nullAnalysisModel;
         private IntrinsicRiskSource methodSummary;
         private Object riskModel;
@@ -111,6 +116,10 @@ public final class MethodModel {
         public Builder methodName(String methodName)           { this.methodName = methodName; return this; }
         public Builder signature(String signature)             { this.signature = signature; return this; }
         public Builder controlFlowModel(ControlFlowModel cfm)  { this.controlFlowModel = cfm; return this; }
+        public Builder semanticCallSites(List<SemanticCallSite> calls) {
+            this.semanticCallSites = calls == null ? List.of() : List.copyOf(calls);
+            return this;
+        }
         public Builder nullAnalysisModel(Object m)             { this.nullAnalysisModel = m; return this; }
         public Builder methodSummary(IntrinsicRiskSource s)    { this.methodSummary = s; return this; }
         public Builder riskModel(Object r)                     { this.riskModel = r; return this; }

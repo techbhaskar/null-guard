@@ -69,7 +69,8 @@ public final class EngineBootstrap {
     private static AnalysisPipeline buildPipeline(NullGuardConfig config) {
 
         // ── Layer 1: Core ────────────────────────────────────────────────────
-        JavaParserAstParser coreParser = new JavaParserAstParser();
+        JavaParserAstParser coreParser = new JavaParserAstParser(
+                config.getSourceRoots(), config.getClasspathEntries());
 
         // ── Layer 2: Call Graph (depends on core IR from analysis) ───────────
         BasicCallGraphBuilder callGraphBuilder = new BasicCallGraphBuilder();

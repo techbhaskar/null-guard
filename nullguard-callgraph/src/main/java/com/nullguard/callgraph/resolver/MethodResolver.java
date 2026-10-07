@@ -7,6 +7,7 @@ import com.nullguard.core.model.MethodModel;
 import com.nullguard.core.model.ModuleModel;
 import com.nullguard.core.model.PackageModel;
 import com.nullguard.core.model.ProjectModel;
+import com.nullguard.core.model.ResolvedCallTarget;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,17 +42,24 @@ import java.util.Set;
  *       that actually has a body rather than dead-ending on the interface declaration.</li>
  * </ul>
  *
- * <p><strong>Still not done:</strong> real type resolution. {@code JavaSymbolSolver} is
- * configured in {@code JavaParserAstParser} and remains unqueried, so virtual dispatch and
- * interface hierarchies are approximated by naming convention, not resolved. That is the
- * remaining correctness gap in this component.
+ * <p>When the parser supplies a {@link ResolvedCallTarget}, resolution uses its declaring type,
+ * exact source signature, and the resolved class hierarchy. The name/arity path remains as a
+ * conservative fallback for calls that JavaParser cannot solve because source or bytecode is
+ * unavailable.
  *
  * <p>Not thread-safe: the name index is memoised against the last project seen.
  */
 public final class MethodResolver {
 
     /** One candidate target method. */
-    private record Candidate(String id, String className, int arity, boolean hasBody) { }
+    private record Candidate(String id,
+                             String className,
+                             String qualifiedClassName,
+                             String signature,
+                             int arity,
+                             boolean hasBody,
+                             boolean interfaceType,
+                             Set<String> assignableTypes) { }
 
     /** Simple JDK types that commonly appear as static-call receivers. */
     private static final Set<String> JDK_RECEIVERS = Set.of(
@@ -121,6 +129,44 @@ public final class MethodResolver {
     }
 
     /**
+     * Resolves a symbol-solver target to its exact project method and possible runtime
+     * implementations. Interface calls prefer body-bearing implementations; calls declared on
+     * concrete base classes retain the base implementation and any overriding subclasses.
+     */
+    public List<String> resolveAll(ProjectModel project, ResolvedCallTarget target) {
+        if (project == null || target == null) return List.of();
+        ensureIndexed(project);
+
+        List<Candidate> byName = index.getOrDefault(target.methodName(), List.of());
+        if (byName.isEmpty()) return List.of();
+
+        List<Candidate> exactOwner = filter(byName, candidate ->
+                candidate.qualifiedClassName().equals(target.declaringType())
+                        && candidate.arity() == target.parameterCount());
+        List<Candidate> runtimeImplementations = filter(byName, candidate ->
+                !candidate.interfaceType()
+                        && candidate.hasBody()
+                        && !candidate.qualifiedClassName().equals(target.declaringType())
+                        && candidate.assignableTypes().contains(target.declaringType())
+                        && candidate.arity() == target.parameterCount());
+
+        exactOwner = preferSignature(exactOwner, target.signature());
+        runtimeImplementations = preferSignature(runtimeImplementations, target.signature());
+
+        boolean ownerIsInterface = exactOwner.stream().anyMatch(Candidate::interfaceType);
+        List<String> resolved = new ArrayList<>();
+        if (!ownerIsInterface) {
+            exactOwner.stream().filter(Candidate::hasBody).map(Candidate::id).forEach(resolved::add);
+        }
+        runtimeImplementations.stream().map(Candidate::id).forEach(resolved::add);
+
+        if (resolved.isEmpty()) {
+            exactOwner.stream().map(Candidate::id).forEach(resolved::add);
+        }
+        return Collections.unmodifiableList(resolved);
+    }
+
+    /**
      * Best-effort classification of a callee that did not resolve to a project method, so that
      * {@link ExternalReason} and {@code ExternalMethodNode} stop being dead declarations.
      *
@@ -137,6 +183,18 @@ public final class MethodResolver {
         return ExternalReason.UNRESOLVED;
     }
 
+    /** Classifies a successfully resolved method whose declaring type is outside the project. */
+    public ExternalReason classifyExternal(ResolvedCallTarget target) {
+        if (target == null) return ExternalReason.UNRESOLVED;
+        String declaringType = target.declaringType();
+        if (declaringType.startsWith("java.")
+                || declaringType.startsWith("javax.")
+                || declaringType.startsWith("jdk.")) {
+            return ExternalReason.JDK;
+        }
+        return ExternalReason.THIRD_PARTY;
+    }
+
     // ── Indexing ──────────────────────────────────────────────────────────────────
 
     private void ensureIndexed(ProjectModel project) {
@@ -151,8 +209,12 @@ public final class MethodResolver {
                              .add(new Candidate(
                                      MethodIds.of(pkg, cls, mth),
                                      cls.getClassName(),
+                                     qualifiedName(pkg, cls),
+                                     mth.getSignature(),
                                      arityOf(mth.getSignature()),
-                                     mth.getControlFlowModel().isPresent()));
+                                     mth.getControlFlowModel().isPresent(),
+                                     cls.isInterfaceType(),
+                                     cls.getAssignableTypes()));
                     }
                 }
             }
@@ -228,6 +290,24 @@ public final class MethodResolver {
             if (p.test(c)) out.add(c);
         }
         return out;
+    }
+
+    private static List<Candidate> preferSignature(List<Candidate> candidates, String signature) {
+        List<Candidate> exact = filter(candidates,
+                candidate -> normalizeSignature(candidate.signature())
+                        .equals(normalizeSignature(signature)));
+        return exact.isEmpty() ? candidates : exact;
+    }
+
+    private static String normalizeSignature(String signature) {
+        return signature == null ? "" : signature.replaceAll("\\s+", "");
+    }
+
+    private static String qualifiedName(PackageModel pkg, ClassModel cls) {
+        String qualified = cls.getQualifiedName();
+        return qualified == null || qualified.isBlank()
+                ? pkg.getPackageName() + "." + cls.getClassName()
+                : qualified;
     }
 
     /** Namespace for the arity sentinel, kept out of the public surface of this class. */

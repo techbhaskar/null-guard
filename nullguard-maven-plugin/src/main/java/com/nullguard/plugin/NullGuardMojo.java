@@ -11,6 +11,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
 import java.io.File;
@@ -36,7 +37,8 @@ import java.util.Date;
  *   <li>Apply hotspot fail policy and exit with correct Maven failure code</li>
  * </ul>
  */
-@Mojo(name = "analyze", defaultPhase = LifecyclePhase.VERIFY)
+@Mojo(name = "analyze", defaultPhase = LifecyclePhase.VERIFY,
+        requiresDependencyResolution = ResolutionScope.COMPILE)
 public class NullGuardMojo extends AbstractMojo {
 
     // ── Maven-injected parameters ─────────────────────────────────────────────
@@ -106,6 +108,12 @@ public class NullGuardMojo extends AbstractMojo {
                     .maxScoringIterations(maxScoringIterations)
                     .highRiskThreshold(highRiskThreshold)
                     .outputDirectory(outputDir)
+                    .sourceRoots(project.getCompileSourceRoots().stream()
+                            .map(Paths::get)
+                            .toList())
+                    .classpathEntries(project.getCompileClasspathElements().stream()
+                            .map(Paths::get)
+                            .toList())
                     .build();
 
             // ── 2. Run pipeline via bootstrap ───────────────────────────────

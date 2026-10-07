@@ -11,6 +11,8 @@ import com.nullguard.core.model.MethodModel;
 import com.nullguard.core.model.ModuleModel;
 import com.nullguard.core.model.PackageModel;
 import com.nullguard.core.model.ProjectModel;
+import com.nullguard.core.model.ResolvedCallTarget;
+import com.nullguard.core.model.SemanticCallSite;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -52,32 +54,38 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                         outgoing.putIfAbsent(callerId, new LinkedHashSet<>());
                         incoming.putIfAbsent(callerId, new LinkedHashSet<>());
 
-                        if (mth.getControlFlowModel().isEmpty()) continue;
+                        if (!mth.getSemanticCallSites().isEmpty()) {
+                            for (SemanticCallSite site : mth.getSemanticCallSites()) {
+                                String calledName = site.getWrittenName();
+                                if (isGetterOrSetter(calledName)) continue;
 
-                        for (CallSite site : callSiteExtractor.extract(mth.getControlFlowModel().get())) {
-                            String calledName = site.calleeName();
-                            if (isGetterOrSetter(calledName)) continue;
-
-                            // resolveAll returns concrete implementations first, so Spring's
-                            // controller → serviceInterface → serviceImpl pattern is handled:
-                            // edges are added to ALL concrete implementations, not just the
-                            // interface. argCount discriminates overloads.
-                            List<String> targets =
-                                    resolver.resolveAll(project, calledName, site.argCount());
-
-                            if (!targets.isEmpty()) {
-                                for (String calleeId : targets) {
-                                    outgoing.get(callerId).add(calleeId);
-                                    incoming.computeIfAbsent(calleeId, k -> new LinkedHashSet<>())
-                                            .add(callerId);
-                                }
-                            } else {
-                                String extId = MethodIds.external(calledName);
-                                externalNodes.add(extId);
-                                externalReasons.putIfAbsent(extId, resolver.classifyExternal(calledName));
-                                outgoing.get(callerId).add(extId);
-                                incoming.computeIfAbsent(extId, k -> new LinkedHashSet<>())
-                                        .add(callerId);
+                                ResolvedCallTarget resolvedTarget =
+                                        site.getResolvedTarget().orElse(null);
+                                List<String> targets = resolvedTarget == null
+                                        ? resolver.resolveAll(
+                                                project, calledName, site.getArgumentCount())
+                                        : resolver.resolveAll(project, resolvedTarget);
+                                String externalName = resolvedTarget == null
+                                        ? calledName
+                                        : resolvedTarget.qualifiedSignature();
+                                ExternalReason externalReason = resolvedTarget == null
+                                        ? resolver.classifyExternal(calledName)
+                                        : resolver.classifyExternal(resolvedTarget);
+                                connect(callerId, targets, externalName, externalReason,
+                                        outgoing, incoming, externalNodes, externalReasons);
+                            }
+                        } else if (mth.getControlFlowModel().isPresent()) {
+                            // Models built by clients or older parsers have no semantic metadata.
+                            // Preserve the name/arity fallback for backward compatibility.
+                            for (CallSite site : callSiteExtractor.extract(
+                                    mth.getControlFlowModel().get())) {
+                                String calledName = site.calleeName();
+                                if (isGetterOrSetter(calledName)) continue;
+                                List<String> targets = resolver.resolveAll(
+                                        project, calledName, site.argCount());
+                                connect(callerId, targets, calledName,
+                                        resolver.classifyExternal(calledName),
+                                        outgoing, incoming, externalNodes, externalReasons);
                             }
                         }
                     }
@@ -86,6 +94,31 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
         }
 
         return new GlobalCallGraph(outgoing, incoming, externalNodes, externalReasons);
+    }
+
+    private static void connect(
+            String callerId,
+            List<String> targets,
+            String externalName,
+            ExternalReason externalReason,
+            LinkedHashMap<String, LinkedHashSet<String>> outgoing,
+            LinkedHashMap<String, LinkedHashSet<String>> incoming,
+            LinkedHashSet<String> externalNodes,
+            LinkedHashMap<String, ExternalReason> externalReasons) {
+        if (!targets.isEmpty()) {
+            for (String calleeId : targets) {
+                outgoing.get(callerId).add(calleeId);
+                incoming.computeIfAbsent(calleeId, ignored -> new LinkedHashSet<>())
+                        .add(callerId);
+            }
+            return;
+        }
+
+        String externalId = MethodIds.external(externalName);
+        externalNodes.add(externalId);
+        externalReasons.putIfAbsent(externalId, externalReason);
+        outgoing.get(callerId).add(externalId);
+        incoming.computeIfAbsent(externalId, ignored -> new LinkedHashSet<>()).add(callerId);
     }
 
     /**

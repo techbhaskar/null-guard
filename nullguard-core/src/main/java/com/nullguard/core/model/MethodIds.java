@@ -59,7 +59,11 @@ public final class MethodIds {
         Objects.requireNonNull(pkg, "pkg");
         Objects.requireNonNull(cls, "cls");
         Objects.requireNonNull(method, "method");
-        return of(pkg.getPackageName(), cls.getClassName(), method.getSignature());
+        String declaringType = cls.getQualifiedName();
+        if (declaringType == null || declaringType.isBlank()) {
+            declaringType = pkg.getPackageName() + "." + cls.getClassName();
+        }
+        return declaringType + SIGNATURE_SEPARATOR + method.getSignature();
     }
 
     /** Builds the id for an unresolved / library callee. */
