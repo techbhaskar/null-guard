@@ -2,6 +2,12 @@ name: Verify NullGuard
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      large_benchmark:
+        description: Run the synthetic benchmark through 50,000 methods
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -38,6 +44,7 @@ jobs:
             examples/orders-service/target/nullguard/**
   benchmark:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -45,8 +52,18 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - run: mvn --batch-mode verify -Dnullguard.benchmark=true
+      - name: Benchmark (smoke by default, 50k on manual request)
+        env:
+          LARGE_BENCHMARK: ${{ inputs.large_benchmark || false }}
+          JAVA_TOOL_OPTIONS: -Xmx6g
+        run: |
+          sizes=10,100,500
+          if [ "$LARGE_BENCHMARK" = "true" ]; then
+            sizes=10,100,500,1000,5000,10000,25000,50000
+          fi
+          mvn --batch-mode verify -Dnullguard.benchmark=true -Dnullguard.benchmark.sizes="$sizes"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: benchmark
           path: nullguard-maven-plugin/target/benchmark.json

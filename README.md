@@ -440,7 +440,21 @@ Run the opt-in pipeline benchmark:
 mvn verify -Dnullguard.benchmark=true
 ```
 
-Measurements for 10, 100, and 500 methods, including warmup and three samples per size, are written to `nullguard-maven-plugin/target/benchmark.json`. Heap usage is a sampled observation, not peak memory. These measurements do not establish the historical 50k-method scalability target.
+The default smoke run measures 10, 100, and 500 methods. To extend it through 50,000 methods in PowerShell:
+
+```powershell
+$benchmarkPreviousJavaOptions = $env:JAVA_TOOL_OPTIONS
+try {
+    $env:JAVA_TOOL_OPTIONS = '-Xmx6g'
+    mvn verify "-Dnullguard.benchmark=true" "-Dnullguard.benchmark.sizes=10,100,500,1000,5000,10000,25000,50000"
+} finally {
+    $env:JAVA_TOOL_OPTIONS = $benchmarkPreviousJavaOptions
+}
+```
+
+Use a machine with enough free memory for the 6 GiB test heap plus Maven and the OS. Sizes are configurable from 1 to 50,000; `nullguard.benchmark.samples` defaults to 3 and `nullguard.benchmark.warmups` to 1. Sources are split into classes with at most 100 methods. Each warmup and measured sample asserts the complete method count. `nullguard-maven-plugin/target/benchmark.json` records requested sizes, completion status, chronological samples, median, heap limit, and sampled used heap; completed sizes are checkpointed so a later failure does not erase them. Heap usage is not peak memory. An interrupted report marked `running` does not establish completion.
+
+Automatic CI retains the small smoke benchmark. Manually dispatch **Verify NullGuard** with `large_benchmark` enabled for the full 50k run. This synthetic independent-method workload does not establish scalability for dependency-heavy real services or dense call graphs.
 
 See [the recorded benchmark observations](docs/performance_baseline.md) for the initial local baseline and its limits.
 
