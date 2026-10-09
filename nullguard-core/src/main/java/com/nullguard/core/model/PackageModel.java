@@ -24,7 +24,14 @@ public final class PackageModel {
         private final Map<String, ClassModel> classes = new LinkedHashMap<>();
 
         public Builder packageName(String packageName) { this.packageName = packageName; return this; }
-        public Builder addClass(ClassModel classModel) { this.classes.put(classModel.getClassName(), classModel); return this; }
+        public Builder addClass(ClassModel classModel) {
+            String qualified = classModel.getQualifiedName();
+            String prefix = packageName + ".";
+            String key = qualified == null || qualified.isBlank() ? classModel.getClassName()
+                    : qualified.startsWith(prefix) ? qualified.substring(prefix.length()) : qualified;
+            this.classes.put(key, classModel);
+            return this;
+        }
         public PackageModel build() { return new PackageModel(this); }
     }
 }

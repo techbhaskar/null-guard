@@ -71,9 +71,24 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
     private static final int MAX_ITERATIONS = 100_000;
 
     private final InstructionExtractor extractor;
+    private final Map<String, NullState> initialStates;
+    private final Map<String, NullState> callReturns;
+    private final boolean primitiveReturn;
 
     public ForwardDataFlowAnalyzer(InstructionExtractor extractor) {
+        this(extractor, Map.of(), Map.of());
+    }
+
+    public ForwardDataFlowAnalyzer(InstructionExtractor extractor, Map<String, NullState> initialStates,
+                                   Map<String, NullState> callReturns) {
+        this(extractor, initialStates, callReturns, false);
+    }
+    public ForwardDataFlowAnalyzer(InstructionExtractor extractor, Map<String, NullState> initialStates,
+                                   Map<String, NullState> callReturns, boolean primitiveReturn) {
         this.extractor = extractor;
+        this.initialStates = Map.copyOf(initialStates);
+        this.callReturns = Map.copyOf(callReturns);
+        this.primitiveReturn = primitiveReturn;
     }
 
     @Override
@@ -101,6 +116,7 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
             queued.remove(nodeId);
 
             Map<String, NullState> joined = joinPredecessors(cfg, incoming.get(nodeId), nodeOut);
+            if (nodeId.equals(cfg.getEntryNodeId())) joined = initialStates;
             Map<String, NullState> out = transferNode(cfg, nodeId, byNode, joined);
 
             nodeIn.put(nodeId, joined);
@@ -191,8 +207,13 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
         }
 
         for (Instruction inst : byNode.getOrDefault(nodeId, List.of())) {
+            NullState assigned = inst instanceof AssignmentInstruction && node != null
+                    ? ExpressionNullability.evaluate(ExpressionNullability.assignmentRhs(node.getSourceCode()), state, callReturns) : null;
             applyTransfer(inst, state);
+            if (inst instanceof AssignmentInstruction assign && node != null)
+                state.put(assign.target(), assigned);
         }
+        if (node != null) state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
         return state;
     }
 
@@ -239,7 +260,7 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
                 instIn.put(inst.id(), before);
 
                 if (inst instanceof DereferenceInstruction deref) {
-                    NullState receiver = before.getOrDefault(deref.variableName(), NullState.UNKNOWN);
+                    NullState receiver = ExpressionNullability.evaluate(deref.variableName(), before, callReturns);
                     // NULL is a definite NPE; UNKNOWN is a possible one. Branch refinement now
                     // eliminates the guarded cases, so this no longer needs a textual
                     // isGuardedBy() heuristic to suppress false positives.
@@ -248,16 +269,20 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
                     }
                 }
 
-                if (inst instanceof ReturnInstruction ret && NULL_LITERAL.equals(ret.returnValue())) {
-                    returnsNull = true;
+                if (inst instanceof ReturnInstruction ret && !ret.returnValue().isBlank()) {
+                    NullState returned = NULL_LITERAL.equals(ret.returnValue()) ? NullState.NULL
+                            : ExpressionNullability.evaluate(ret.returnValue(), before, callReturns);
+                    if (returned != NullState.NON_NULL && !primitiveReturn) returnsNull = true;
                 }
 
-                if (inst instanceof AssignmentInstruction assign
-                        && before.getOrDefault(assign.target(), NullState.UNKNOWN) == NullState.NULL) {
+                if (inst instanceof AssignmentInstruction assign && CALL_RESULT.equals(assign.source()) && node != null
+                        && ExpressionNullability.evaluate(ExpressionNullability.assignmentRhs(node.getSourceCode()), before, callReturns) != NullState.NON_NULL) {
                     propagatesNullFromCallee = true;
                 }
 
                 applyTransfer(inst, state);
+                if (inst instanceof AssignmentInstruction assign && node != null)
+                    state.put(assign.target(), ExpressionNullability.evaluate(ExpressionNullability.assignmentRhs(node.getSourceCode()), before, callReturns));
                 instOut.put(inst.id(), Map.copyOf(state));
             }
         }

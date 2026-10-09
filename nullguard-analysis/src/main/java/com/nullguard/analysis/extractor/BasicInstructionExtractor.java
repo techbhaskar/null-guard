@@ -155,6 +155,11 @@ public final class BasicInstructionExtractor implements InstructionExtractor {
     }
 
     private static boolean isDereferenceReceiver(String receiver) {
+        // A qualified static type such as java.util.Objects is not a nullable instance.
+        if (receiver != null && receiver.matches("[a-zA-Z_$][\\w$]*(?:\\.[a-zA-Z_$][\\w$]*)*")) {
+            String tail = receiver.substring(receiver.lastIndexOf('.') + 1);
+            if (Character.isUpperCase(tail.charAt(0))) return false;
+        }
         return receiver != null
                 && !receiver.isEmpty()
                 && !"this".equals(receiver)

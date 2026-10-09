@@ -96,7 +96,7 @@ public final class JavaParserAstParser implements AstParser {
                                             (ClassOrInterfaceDeclaration type) -> sourcePosition(type))
                                     .thenComparing(ClassOrInterfaceDeclaration::getNameAsString))
                             .forEach(type -> packageBuilder.addClass(
-                                    buildClass(type, packageName, cfgBuilder)));
+                                    buildClass(type, packageName, cfgBuilder, normalizedRoot.relativize(path))));
                 });
             }
         } catch (IOException e) {
@@ -110,7 +110,7 @@ public final class JavaParserAstParser implements AstParser {
 
     private ClassModel buildClass(ClassOrInterfaceDeclaration declaration,
                                   String packageName,
-                                  BasicControlFlowBuilder cfgBuilder) {
+                                  BasicControlFlowBuilder cfgBuilder, Path sourcePath) {
         String fallbackQualifiedName = packageName + "." + declaration.getNameAsString();
         ClassModel.Builder classBuilder = ClassModel.builder()
                 .className(declaration.getNameAsString())
@@ -138,14 +138,14 @@ public final class JavaParserAstParser implements AstParser {
         // also includes methods of nested classes and duplicated them in their enclosing class.
         declaration.getMethods().stream()
                 .sorted(Comparator.comparing(method -> method.getSignature().asString()))
-                .forEach(method -> classBuilder.addMethod(buildMethod(method, cfgBuilder)));
+                .forEach(method -> classBuilder.addMethod(buildMethod(method, cfgBuilder, sourcePath)));
         return classBuilder.build();
     }
 
-    private MethodModel buildMethod(MethodDeclaration method, BasicControlFlowBuilder cfgBuilder) {
+    private MethodModel buildMethod(MethodDeclaration method, BasicControlFlowBuilder cfgBuilder, Path sourcePath) {
         ControlFlowModel cfg = null;
         try {
-            cfg = cfgBuilder.build(method);
+            if (method.getBody().isPresent()) cfg = cfgBuilder.build(method);
         } catch (Exception cfgFailure) {
             if (method.getBody().isPresent()) {
                 LOG.warn("CFG construction failed for {}; this method will contribute no risk.",
@@ -157,6 +157,14 @@ public final class JavaParserAstParser implements AstParser {
         }
 
         return MethodModel.builder()
+                .sourceLocation(method.getRange().map(r -> new com.nullguard.core.model.SourceLocation(
+                        sourcePath.toString().replace('\\', '/'), r.begin.line, r.begin.column, r.end.line, r.end.column)).orElse(null))
+                .parameters(method.getParameters().stream().map(p -> new com.nullguard.core.model.ParameterModel(
+                        p.getNameAsString(), p.getType().isPrimitiveType(), hasAnnotation(p, "NonNull", "NotNull", "Nonnull"),
+                        hasAnnotation(p, "Nullable", "CheckForNull"))).toList())
+                .nonNullReturn(hasAnnotation(method, "NonNull", "NotNull", "Nonnull"))
+                .primitiveReturn(method.getType().isPrimitiveType())
+                .nullableReturn(hasAnnotation(method, "Nullable", "CheckForNull"))
                 .methodName(method.getNameAsString())
                 .signature(method.getSignature().asString())
                 .controlFlowModel(cfg)
@@ -190,6 +198,10 @@ public final class JavaParserAstParser implements AstParser {
                     writtenCallName(call), call.getArguments().size(), target));
         }
         return List.copyOf(semanticCalls);
+    }
+
+    private static boolean hasAnnotation(com.github.javaparser.ast.nodeTypes.NodeWithAnnotations<?> node, String... names) {
+        return node.getAnnotations().stream().anyMatch(a -> java.util.Arrays.asList(names).contains(a.getName().getIdentifier()));
     }
 
     private ParserEnvironment createParser(Path projectRoot) throws IOException {

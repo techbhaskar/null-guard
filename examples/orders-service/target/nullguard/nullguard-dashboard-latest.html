@@ -1,0 +1,2399 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><title>NullGuard Stability Intelligence</title>
+<link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' rel='stylesheet'>
+<style>
+:root { 
+  --bg: #09090b; --sidebar: #09090b; --card: #09090b; --border: #27272a; 
+  --text-main: #fafafa; --text-muted: #a1a1aa; --primary: #3b82f6; 
+  --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --accent: #1d4ed8;
+}
+* { box-sizing: border-box; transition: all 0.2s ease; }
+body { font-family:'Inter', system-ui, sans-serif; background:var(--bg); color:var(--text-main); margin:0; display:flex; height:100vh; overflow:hidden; }
+
+/* Sidebar */
+.sidebar { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1.5rem; gap: 2rem; }
+.brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.25rem; color: var(--primary); }
+.nav { display: flex; flex-direction: column; gap: 0.5rem; }
+.nav-item { padding: 0.75rem 1rem; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
+.nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+.nav-item.active { background: var(--accent); color: white; }
+
+/* Main Content */
+.main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; sticky; top:0; background: rgba(9,9,11,0.8); backdrop-filter: blur(12px); z-index: 10; }
+.content { padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; display: none; }
+.content.active { display: block; animation: fadeIn 0.4s ease; }
+
+/* Cards & Layout */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+.stat-box { border: 1px solid var(--border); padding: 1.5rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.5rem; }
+.stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+.stat-value { font-size: 2rem; font-weight: 700; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th { text-align: left; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); padding: 1rem; border-bottom: 1px solid var(--border); }
+td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: top; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* Badges & Monospace */
+code, pre { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+.badge { padding: 4px 10px; border-radius: 99px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+.badge-CRITICAL { background: rgba(239,68,68,0.2); color: #fca5a5; }
+.badge-HIGH { background: rgba(245,158,11,0.2); color: #fcd34d; }
+.badge-MEDIUM, .badge-MODERATE { background: rgba(59,130,246,0.2); color: #93c5fd; }
+.badge-LOW { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+progress { width: 100%; height: 6px; border-radius: 3px; appearance: none; }
+progress::-webkit-progress-bar { background: var(--border); border-radius: 3px; }
+progress::-webkit-progress-value { background: var(--primary); border-radius: 3px; }
+
+/* Specialized Components */
+.impact-box { margin-top: 0.5rem; padding: 0.75rem; background: #18181b; border: 1px solid var(--border); border-radius: 8px; }
+.impact-header { color: var(--danger); font-size: 0.75rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
+.impact-list { margin: 0; padding-left: 1.25rem; list-style: none; }
+.impact-item { position: relative; margin-bottom: 4px; color: var(--text-muted); }
+.impact-item::before { content: '→'; position: absolute; left: -1.25rem; color: var(--danger); }
+.search-bar { background: #18181b; border: 1px solid var(--border); padding: 0.75rem 1.25rem; border-radius: 10px; color: white; width: 400px; }
+.warn-panel { background: rgba(239,68,68,0.05); border: 1px solid var(--danger); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style></head><body>
+
+<aside class='sidebar'>
+  <div class='brand'><div style='width:32px;height:32px;background:var(--primary);border-radius:8px;'></div> NullGuard Intelligence</div>
+  <nav class='nav'>
+    <a onclick="show('overview')" class='nav-item active' id='nav-overview'>Overview</a>
+    <a onclick="show('apis')" class='nav-item' id='nav-apis'>API Flow Mapping</a>
+    <a onclick="show('hotspots')" class='nav-item' id='nav-hotspots'>Architectural Hotspots</a>
+    <a onclick="show('explorer')" class='nav-item' id='nav-explorer'>Method Explorer</a>
+    <a onclick="show('raw')" class='nav-item' id='nav-raw'>JSON Telemetry</a>
+  </nav>
+  <div style='margin-top:auto; font-size:0.75rem; color:var(--text-muted);'>
+    Analysis: 20261009_060525<br>Project: orders-service-fixture
+  </div>
+</aside>
+
+<main class='main'>
+  <header class='header'>
+    <h2 id='pageTitle' style='margin:0; text-transform:none; letter-spacing:normal; color:var(--text-main); font-size:1.25rem;'>Summary Overview</h2>
+    <input type='text' id='gSearch' class='search-bar' placeholder='Search telemetry...'>
+  </header>
+
+  <section id='overview' class='content active'>
+    
+    <div class='grid' id='summaryGrid'></div>
+    <div class='card'><h3>Top Suggested Improvements</h3><table id='sTable'></table></div>
+  </section>
+
+  <section id='apis' class='content'>
+    <div class='card'><h3>Downstream API Breach Analysis</h3><table id='apiTable'></table></div>
+  </section>
+
+  <section id='hotspots' class='content'>
+    <div class='card'><h3>Critical Architectural Weakpoints</h3><table id='hsTable'></table></div>
+  </section>
+
+  <section id='explorer' class='content'>
+    <div class='card'><h3>Deep Method Risk Telemetry</h3><table id='riskTable'></table></div>
+  </section>
+
+  <section id='raw' class='content'>
+    <div class='card'><h3>NullGuard Data Dump</h3><pre style='white-space:pre-wrap;'>{
+  "summary" : {
+    "stabilityIndex" : 67.42857142857143,
+    "grade" : "D",
+    "averageRisk" : 32.57142857142857,
+    "maxRisk" : 100.0,
+    "highRiskRatio" : 0.25,
+    "totalMethods" : 28,
+    "highRiskMethods" : 7,
+    "blastRadiusScore" : 0.8571428571428571,
+    "totalExternalMethods" : 3,
+    "available" : true
+  },
+  "graph" : {
+    "nodes" : {
+      "sample.ContractExamples#chainedGoodConsumption()" : {
+        "methodId" : "sample.ContractExamples#chainedGoodConsumption()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#brokenReturn()" : {
+        "methodId" : "sample.ContractExamples#brokenReturn()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 10.0,
+        "adjustedRisk" : 20.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#badConsumption()" : {
+        "methodId" : "sample.ContractExamples#badConsumption()",
+        "intrinsicRisk" : 45.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 49.25,
+        "riskLevel" : "MEDIUM",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "ext#java.lang.String#trim()" : {
+        "methodId" : "ext#java.lang.String#trim()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL"
+        } ]
+      },
+      "sample.OrderRepository#find()" : {
+        "methodId" : "sample.OrderRepository#find()",
+        "intrinsicRisk" : 90.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 100.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL"
+        } ]
+      },
+      "sample.ContractExamples#primitiveExternal()" : {
+        "methodId" : "sample.ContractExamples#primitiveExternal()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#badArgument()" : {
+        "methodId" : "sample.ContractExamples#badArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 9.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getTwo()" : {
+        "methodId" : "sample.OrderController#getTwo()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#goodConsumption()" : {
+        "methodId" : "sample.ContractExamples#goodConsumption()",
+        "intrinsicRisk" : 25.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 29.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#requireNonNullGuard(String)" : {
+        "methodId" : "sample.ContractExamples#requireNonNullGuard(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#nullable()" : {
+        "methodId" : "sample.ContractExamples#nullable()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#aliasBadArgument()" : {
+        "methodId" : "sample.ContractExamples#aliasBadArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 5.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#guardedArgument(String)" : {
+        "methodId" : "sample.ContractExamples#guardedArgument(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getFive()" : {
+        "methodId" : "sample.OrderController#getFive()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#guardedParameter(String)" : {
+        "methodId" : "sample.ContractExamples#guardedParameter(String)",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#constant()" : {
+        "methodId" : "sample.ContractExamples#constant()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#primitive(int)" : {
+        "methodId" : "sample.ContractExamples#primitive(int)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getThree()" : {
+        "methodId" : "sample.OrderController#getThree()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ShadowServices.Risky#load()" : {
+        "methodId" : "sample.ShadowServices.Risky#load()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getFour()" : {
+        "methodId" : "sample.OrderController#getFour()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#goodArgument()" : {
+        "methodId" : "sample.ContractExamples#goodArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "ext#java.util.Objects#requireNonNull(T)" : {
+        "methodId" : "ext#java.util.Objects#requireNonNull(T)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ ]
+      },
+      "ext#java.lang.Integer#parseInt(java.lang.String)" : {
+        "methodId" : "ext#java.lang.Integer#parseInt(java.lang.String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#required(String)" : {
+        "methodId" : "sample.ContractExamples#required(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#chainedBadConsumption()" : {
+        "methodId" : "sample.ContractExamples#chainedBadConsumption()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 34.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#unsafeParameter(String)" : {
+        "methodId" : "sample.ContractExamples#unsafeParameter(String)",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 35.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getOne()" : {
+        "methodId" : "sample.OrderController#getOne()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.Services.Risky#load()" : {
+        "methodId" : "sample.Services.Risky#load()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 76.5,
+        "apiExposureWeight" : 100.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL"
+        } ]
+      }
+    },
+    "edges" : [ {
+      "from" : "sample.ContractExamples#aliasBadArgument()",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#badArgument()",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#badArgument()",
+      "to" : "sample.ContractExamples#nullable()"
+    }, {
+      "from" : "sample.ContractExamples#badConsumption()",
+      "to" : "sample.ContractExamples#nullable()"
+    }, {
+      "from" : "sample.ContractExamples#badConsumption()",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#chainedBadConsumption()",
+      "to" : "sample.ContractExamples#nullable()"
+    }, {
+      "from" : "sample.ContractExamples#chainedBadConsumption()",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#chainedGoodConsumption()",
+      "to" : "sample.ContractExamples#constant()"
+    }, {
+      "from" : "sample.ContractExamples#chainedGoodConsumption()",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#goodArgument()",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#goodArgument()",
+      "to" : "sample.ContractExamples#constant()"
+    }, {
+      "from" : "sample.ContractExamples#goodConsumption()",
+      "to" : "sample.ContractExamples#nullable()"
+    }, {
+      "from" : "sample.ContractExamples#goodConsumption()",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#guardedArgument(String)",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#guardedParameter(String)",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#primitiveExternal()",
+      "to" : "ext#java.lang.Integer#parseInt(java.lang.String)"
+    }, {
+      "from" : "sample.ContractExamples#requireNonNullGuard(String)",
+      "to" : "ext#java.util.Objects#requireNonNull(T)"
+    }, {
+      "from" : "sample.ContractExamples#requireNonNullGuard(String)",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#unsafeParameter(String)",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.OrderController#getFive()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.OrderController#getFour()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.OrderController#getOne()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.OrderController#getThree()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.OrderController#getTwo()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.Services.Risky#load()",
+      "to" : "sample.OrderRepository#find()"
+    }, {
+      "from" : "sample.OrderRepository#find()",
+      "to" : "ext#java.lang.String#trim()"
+    } ]
+  },
+  "schemaVersion" : "1.0",
+  "findings" : [ {
+    "ruleId" : "NG004",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#aliasBadArgument()",
+    "message" : "Nullable argument passed to 'value' of sample.ContractExamples#required(String)",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 24,
+      "startColumn" : 33,
+      "endLine" : 24,
+      "endColumn" : 52
+    }
+  }, {
+    "ruleId" : "NG004",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#badArgument()",
+    "message" : "Nullable argument passed to 'value' of sample.ContractExamples#required(String)",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 13,
+      "startColumn" : 28,
+      "endLine" : 13,
+      "endColumn" : 55
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#badConsumption()",
+    "message" : "Receiver 'result' may be null",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 19,
+      "startColumn" : 59,
+      "endLine" : 19,
+      "endColumn" : 79
+    }
+  }, {
+    "ruleId" : "NG003",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#brokenReturn()",
+    "message" : "Declared non-null return may be null",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 4,
+      "startColumn" : 38,
+      "endLine" : 4,
+      "endColumn" : 49
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#chainedBadConsumption()",
+    "message" : "Receiver 'nullable()' may be null",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 21,
+      "startColumn" : 38,
+      "endLine" : 21,
+      "endColumn" : 62
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#unsafeParameter(String)",
+    "message" : "Receiver 'value' may be null",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 8,
+      "startColumn" : 44,
+      "endLine" : 8,
+      "endColumn" : 63
+    }
+  }, {
+    "ruleId" : "NG002",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#unsafeParameter(String)",
+    "message" : "Parameter 'value' is dereferenced without a null guard",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 8,
+      "startColumn" : 44,
+      "endLine" : 8,
+      "endColumn" : 63
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getFive()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 14,
+      "startColumn" : 59,
+      "endLine" : 14,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getFive()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 14,
+      "startColumn" : 5,
+      "endLine" : 14,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getFive()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 14,
+      "startColumn" : 5,
+      "endLine" : 14,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getFour()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 13,
+      "startColumn" : 59,
+      "endLine" : 13,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getFour()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 13,
+      "startColumn" : 5,
+      "endLine" : 13,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getFour()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 13,
+      "startColumn" : 5,
+      "endLine" : 13,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getOne()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 10,
+      "startColumn" : 57,
+      "endLine" : 10,
+      "endColumn" : 78
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getOne()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 10,
+      "startColumn" : 5,
+      "endLine" : 10,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getOne()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 10,
+      "startColumn" : 5,
+      "endLine" : 10,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getThree()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 12,
+      "startColumn" : 61,
+      "endLine" : 12,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getThree()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 12,
+      "startColumn" : 5,
+      "endLine" : 12,
+      "endColumn" : 84
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getThree()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 12,
+      "startColumn" : 5,
+      "endLine" : 12,
+      "endColumn" : 84
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getTwo()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 11,
+      "startColumn" : 57,
+      "endLine" : 11,
+      "endColumn" : 78
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getTwo()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 11,
+      "startColumn" : 5,
+      "endLine" : 11,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getTwo()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 11,
+      "startColumn" : 5,
+      "endLine" : 11,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Receiver 'a' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 31,
+      "startColumn" : 26,
+      "endLine" : 31,
+      "endColumn" : 34
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Receiver 'b' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 32,
+      "startColumn" : 26,
+      "endLine" : 32,
+      "endColumn" : 34
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Receiver 'c' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 33,
+      "startColumn" : 26,
+      "endLine" : 33,
+      "endColumn" : 34
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Receiver 'd' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 34,
+      "startColumn" : 26,
+      "endLine" : 34,
+      "endColumn" : 34
+    }
+  }, {
+    "ruleId" : "NG005",
+    "severity" : "error",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Architectural hotspot: CRITICAL (score 179.1759469228055)",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 30,
+      "startColumn" : 5,
+      "endLine" : 36,
+      "endColumn" : 5
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 30,
+      "startColumn" : 5,
+      "endLine" : 36,
+      "endColumn" : 5
+    }
+  }, {
+    "ruleId" : "NG005",
+    "severity" : "error",
+    "methodId" : "sample.Services.Risky#load()",
+    "message" : "Architectural hotspot: CRITICAL (score 179.1759469228055)",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 19,
+      "startColumn" : 9,
+      "endLine" : 19,
+      "endColumn" : 69
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.Services.Risky#load()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 19,
+      "startColumn" : 9,
+      "endLine" : 19,
+      "endColumn" : 69
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.Services.Risky#load()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 19,
+      "startColumn" : 9,
+      "endLine" : 19,
+      "endColumn" : 69
+    }
+  } ],
+  "apiEndpoints" : [ {
+    "endpointId" : "sample.OrderController#getFive()",
+    "httpMethod" : "GET",
+    "path" : "/orders/five",
+    "propagationChain" : [ "sample.OrderController#getFive()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  }, {
+    "endpointId" : "sample.OrderController#getFour()",
+    "httpMethod" : "GET",
+    "path" : "/orders/four",
+    "propagationChain" : [ "sample.OrderController#getFour()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  }, {
+    "endpointId" : "sample.OrderController#getOne()",
+    "httpMethod" : "GET",
+    "path" : "/orders/one",
+    "propagationChain" : [ "sample.OrderController#getOne()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  }, {
+    "endpointId" : "sample.OrderController#getThree()",
+    "httpMethod" : "GET",
+    "path" : "/orders/three",
+    "propagationChain" : [ "sample.OrderController#getThree()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  }, {
+    "endpointId" : "sample.OrderController#getTwo()",
+    "httpMethod" : "GET",
+    "path" : "/orders/two",
+    "propagationChain" : [ "sample.OrderController#getTwo()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  } ],
+  "hotspots" : [ {
+    "methodRef" : "sample.OrderRepository#find()",
+    "hotspotScore" : 179.1759469228055,
+    "severity" : "CRITICAL"
+  }, {
+    "methodRef" : "sample.Services.Risky#load()",
+    "hotspotScore" : 179.1759469228055,
+    "severity" : "CRITICAL"
+  } ],
+  "suggestions" : [ {
+    "methodId" : "sample.OrderController#getFive()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getFour()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getOne()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getThree()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getTwo()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.Services.Risky#load()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getFive()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderController#getFour()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderController#getOne()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderController#getThree()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderController#getTwo()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderRepository#find()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.Services.Risky#load()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  } ]
+}</pre></div>
+  </section>
+</main>
+
+<script>
+const data = Object.assign({}, {
+  "summary" : {
+    "stabilityIndex" : 67.42857142857143,
+    "grade" : "D",
+    "averageRisk" : 32.57142857142857,
+    "maxRisk" : 100.0,
+    "highRiskRatio" : 0.25,
+    "totalMethods" : 28,
+    "highRiskMethods" : 7,
+    "blastRadiusScore" : 0.8571428571428571,
+    "totalExternalMethods" : 3,
+    "available" : true
+  },
+  "graph" : {
+    "nodes" : {
+      "sample.ContractExamples#chainedGoodConsumption()" : {
+        "methodId" : "sample.ContractExamples#chainedGoodConsumption()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#brokenReturn()" : {
+        "methodId" : "sample.ContractExamples#brokenReturn()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 10.0,
+        "adjustedRisk" : 20.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#badConsumption()" : {
+        "methodId" : "sample.ContractExamples#badConsumption()",
+        "intrinsicRisk" : 45.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 49.25,
+        "riskLevel" : "MEDIUM",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "ext#java.lang.String#trim()" : {
+        "methodId" : "ext#java.lang.String#trim()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "ext#java.lang.String#trim()", "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL"
+        } ]
+      },
+      "sample.OrderRepository#find()" : {
+        "methodId" : "sample.OrderRepository#find()",
+        "intrinsicRisk" : 90.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 100.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.OrderRepository#find()", "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL"
+        } ]
+      },
+      "sample.ContractExamples#primitiveExternal()" : {
+        "methodId" : "sample.ContractExamples#primitiveExternal()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#badArgument()" : {
+        "methodId" : "sample.ContractExamples#badArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 9.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getTwo()" : {
+        "methodId" : "sample.OrderController#getTwo()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#goodConsumption()" : {
+        "methodId" : "sample.ContractExamples#goodConsumption()",
+        "intrinsicRisk" : 25.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 29.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#requireNonNullGuard(String)" : {
+        "methodId" : "sample.ContractExamples#requireNonNullGuard(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#nullable()" : {
+        "methodId" : "sample.ContractExamples#nullable()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#aliasBadArgument()" : {
+        "methodId" : "sample.ContractExamples#aliasBadArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 5.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#guardedArgument(String)" : {
+        "methodId" : "sample.ContractExamples#guardedArgument(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getFive()" : {
+        "methodId" : "sample.OrderController#getFive()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#guardedParameter(String)" : {
+        "methodId" : "sample.ContractExamples#guardedParameter(String)",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#constant()" : {
+        "methodId" : "sample.ContractExamples#constant()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#primitive(int)" : {
+        "methodId" : "sample.ContractExamples#primitive(int)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getThree()" : {
+        "methodId" : "sample.OrderController#getThree()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ShadowServices.Risky#load()" : {
+        "methodId" : "sample.ShadowServices.Risky#load()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getFour()" : {
+        "methodId" : "sample.OrderController#getFour()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#goodArgument()" : {
+        "methodId" : "sample.ContractExamples#goodArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "ext#java.util.Objects#requireNonNull(T)" : {
+        "methodId" : "ext#java.util.Objects#requireNonNull(T)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ ]
+      },
+      "ext#java.lang.Integer#parseInt(java.lang.String)" : {
+        "methodId" : "ext#java.lang.Integer#parseInt(java.lang.String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#required(String)" : {
+        "methodId" : "sample.ContractExamples#required(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#chainedBadConsumption()" : {
+        "methodId" : "sample.ContractExamples#chainedBadConsumption()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 34.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#unsafeParameter(String)" : {
+        "methodId" : "sample.ContractExamples#unsafeParameter(String)",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 35.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getOne()" : {
+        "methodId" : "sample.OrderController#getOne()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 69.31471805599453,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.Services.Risky#load()" : {
+        "methodId" : "sample.Services.Risky#load()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 76.5,
+        "apiExposureWeight" : 100.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL"
+        } ]
+      }
+    },
+    "edges" : [ {
+      "from" : "sample.ContractExamples#aliasBadArgument()",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#badArgument()",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#badArgument()",
+      "to" : "sample.ContractExamples#nullable()"
+    }, {
+      "from" : "sample.ContractExamples#badConsumption()",
+      "to" : "sample.ContractExamples#nullable()"
+    }, {
+      "from" : "sample.ContractExamples#badConsumption()",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#chainedBadConsumption()",
+      "to" : "sample.ContractExamples#nullable()"
+    }, {
+      "from" : "sample.ContractExamples#chainedBadConsumption()",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#chainedGoodConsumption()",
+      "to" : "sample.ContractExamples#constant()"
+    }, {
+      "from" : "sample.ContractExamples#chainedGoodConsumption()",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#goodArgument()",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#goodArgument()",
+      "to" : "sample.ContractExamples#constant()"
+    }, {
+      "from" : "sample.ContractExamples#goodConsumption()",
+      "to" : "sample.ContractExamples#nullable()"
+    }, {
+      "from" : "sample.ContractExamples#goodConsumption()",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#guardedArgument(String)",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#guardedParameter(String)",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.ContractExamples#primitiveExternal()",
+      "to" : "ext#java.lang.Integer#parseInt(java.lang.String)"
+    }, {
+      "from" : "sample.ContractExamples#requireNonNullGuard(String)",
+      "to" : "ext#java.util.Objects#requireNonNull(T)"
+    }, {
+      "from" : "sample.ContractExamples#requireNonNullGuard(String)",
+      "to" : "sample.ContractExamples#required(String)"
+    }, {
+      "from" : "sample.ContractExamples#unsafeParameter(String)",
+      "to" : "ext#java.lang.String#trim()"
+    }, {
+      "from" : "sample.OrderController#getFive()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.OrderController#getFour()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.OrderController#getOne()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.OrderController#getThree()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.OrderController#getTwo()",
+      "to" : "sample.Services.Risky#load()"
+    }, {
+      "from" : "sample.Services.Risky#load()",
+      "to" : "sample.OrderRepository#find()"
+    }, {
+      "from" : "sample.OrderRepository#find()",
+      "to" : "ext#java.lang.String#trim()"
+    } ]
+  },
+  "schemaVersion" : "1.0",
+  "findings" : [ {
+    "ruleId" : "NG004",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#aliasBadArgument()",
+    "message" : "Nullable argument passed to 'value' of sample.ContractExamples#required(String)",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 24,
+      "startColumn" : 33,
+      "endLine" : 24,
+      "endColumn" : 52
+    }
+  }, {
+    "ruleId" : "NG004",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#badArgument()",
+    "message" : "Nullable argument passed to 'value' of sample.ContractExamples#required(String)",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 13,
+      "startColumn" : 28,
+      "endLine" : 13,
+      "endColumn" : 55
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#badConsumption()",
+    "message" : "Receiver 'result' may be null",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 19,
+      "startColumn" : 59,
+      "endLine" : 19,
+      "endColumn" : 79
+    }
+  }, {
+    "ruleId" : "NG003",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#brokenReturn()",
+    "message" : "Declared non-null return may be null",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 4,
+      "startColumn" : 38,
+      "endLine" : 4,
+      "endColumn" : 49
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#chainedBadConsumption()",
+    "message" : "Receiver 'nullable()' may be null",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 21,
+      "startColumn" : 38,
+      "endLine" : 21,
+      "endColumn" : 62
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#unsafeParameter(String)",
+    "message" : "Receiver 'value' may be null",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 8,
+      "startColumn" : 44,
+      "endLine" : 8,
+      "endColumn" : 63
+    }
+  }, {
+    "ruleId" : "NG002",
+    "severity" : "warning",
+    "methodId" : "sample.ContractExamples#unsafeParameter(String)",
+    "message" : "Parameter 'value' is dereferenced without a null guard",
+    "location" : {
+      "path" : "sample/ContractExamples.java",
+      "startLine" : 8,
+      "startColumn" : 44,
+      "endLine" : 8,
+      "endColumn" : 63
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getFive()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 14,
+      "startColumn" : 59,
+      "endLine" : 14,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getFive()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 14,
+      "startColumn" : 5,
+      "endLine" : 14,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getFive()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 14,
+      "startColumn" : 5,
+      "endLine" : 14,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getFour()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 13,
+      "startColumn" : 59,
+      "endLine" : 13,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getFour()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 13,
+      "startColumn" : 5,
+      "endLine" : 13,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getFour()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 13,
+      "startColumn" : 5,
+      "endLine" : 13,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getOne()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 10,
+      "startColumn" : 57,
+      "endLine" : 10,
+      "endColumn" : 78
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getOne()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 10,
+      "startColumn" : 5,
+      "endLine" : 10,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getOne()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 10,
+      "startColumn" : 5,
+      "endLine" : 10,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getThree()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 12,
+      "startColumn" : 61,
+      "endLine" : 12,
+      "endColumn" : 82
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getThree()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 12,
+      "startColumn" : 5,
+      "endLine" : 12,
+      "endColumn" : 84
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getThree()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 12,
+      "startColumn" : 5,
+      "endLine" : 12,
+      "endColumn" : 84
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderController#getTwo()",
+    "message" : "Receiver 'service' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 11,
+      "startColumn" : 57,
+      "endLine" : 11,
+      "endColumn" : 78
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getTwo()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 11,
+      "startColumn" : 5,
+      "endLine" : 11,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.OrderController#getTwo()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 11,
+      "startColumn" : 5,
+      "endLine" : 11,
+      "endColumn" : 80
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Receiver 'a' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 31,
+      "startColumn" : 26,
+      "endLine" : 31,
+      "endColumn" : 34
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Receiver 'b' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 32,
+      "startColumn" : 26,
+      "endLine" : 32,
+      "endColumn" : 34
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Receiver 'c' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 33,
+      "startColumn" : 26,
+      "endLine" : 33,
+      "endColumn" : 34
+    }
+  }, {
+    "ruleId" : "NG001",
+    "severity" : "warning",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Receiver 'd' may be null",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 34,
+      "startColumn" : 26,
+      "endLine" : 34,
+      "endColumn" : 34
+    }
+  }, {
+    "ruleId" : "NG005",
+    "severity" : "error",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Architectural hotspot: CRITICAL (score 179.1759469228055)",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 30,
+      "startColumn" : 5,
+      "endLine" : 36,
+      "endColumn" : 5
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.OrderRepository#find()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 30,
+      "startColumn" : 5,
+      "endLine" : 36,
+      "endColumn" : 5
+    }
+  }, {
+    "ruleId" : "NG005",
+    "severity" : "error",
+    "methodId" : "sample.Services.Risky#load()",
+    "message" : "Architectural hotspot: CRITICAL (score 179.1759469228055)",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 19,
+      "startColumn" : 9,
+      "endLine" : 19,
+      "endColumn" : 69
+    }
+  }, {
+    "ruleId" : "NG101",
+    "severity" : "note",
+    "methodId" : "sample.Services.Risky#load()",
+    "message" : "Add null check for return value to prevent propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 19,
+      "startColumn" : 9,
+      "endLine" : 19,
+      "endColumn" : 69
+    }
+  }, {
+    "ruleId" : "NG104",
+    "severity" : "note",
+    "methodId" : "sample.Services.Risky#load()",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "location" : {
+      "path" : "sample/OrderController.java",
+      "startLine" : 19,
+      "startColumn" : 9,
+      "endLine" : 19,
+      "endColumn" : 69
+    }
+  } ],
+  "apiEndpoints" : [ {
+    "endpointId" : "sample.OrderController#getFive()",
+    "httpMethod" : "GET",
+    "path" : "/orders/five",
+    "propagationChain" : [ "sample.OrderController#getFive()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  }, {
+    "endpointId" : "sample.OrderController#getFour()",
+    "httpMethod" : "GET",
+    "path" : "/orders/four",
+    "propagationChain" : [ "sample.OrderController#getFour()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  }, {
+    "endpointId" : "sample.OrderController#getOne()",
+    "httpMethod" : "GET",
+    "path" : "/orders/one",
+    "propagationChain" : [ "sample.OrderController#getOne()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  }, {
+    "endpointId" : "sample.OrderController#getThree()",
+    "httpMethod" : "GET",
+    "path" : "/orders/three",
+    "propagationChain" : [ "sample.OrderController#getThree()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  }, {
+    "endpointId" : "sample.OrderController#getTwo()",
+    "httpMethod" : "GET",
+    "path" : "/orders/two",
+    "propagationChain" : [ "sample.OrderController#getTwo()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+    "apiRiskScore" : 100.0,
+    "propagationDepth" : 3,
+    "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+  } ],
+  "hotspots" : [ {
+    "methodRef" : "sample.OrderRepository#find()",
+    "hotspotScore" : 179.1759469228055,
+    "severity" : "CRITICAL"
+  }, {
+    "methodRef" : "sample.Services.Risky#load()",
+    "hotspotScore" : 179.1759469228055,
+    "severity" : "CRITICAL"
+  } ],
+  "suggestions" : [ {
+    "methodId" : "sample.OrderController#getFive()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getFour()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getOne()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getThree()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getTwo()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.Services.Risky#load()",
+    "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+    "message" : "Refactor to reduce blast radius and contain propagation",
+    "riskReductionEstimate" : 20.0,
+    "confidence" : 0.7,
+    "priorityWeight" : 0.8,
+    "finalScore" : 11.200000000000001
+  }, {
+    "methodId" : "sample.OrderController#getFive()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderController#getFour()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderController#getOne()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderController#getThree()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderController#getTwo()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.OrderRepository#find()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  }, {
+    "methodId" : "sample.Services.Risky#load()",
+    "suggestionType" : "ADD_NULL_GUARD",
+    "message" : "Add null check for return value to prevent propagation",
+    "riskReductionEstimate" : 15.0,
+    "confidence" : 0.8,
+    "priorityWeight" : 0.7,
+    "finalScore" : 8.399999999999999
+  } ]
+}, {
+  apiEndpoints: [ {
+  "endpointId" : "sample.OrderController#getFive()",
+  "httpMethod" : "GET",
+  "path" : "/orders/five",
+  "propagationChain" : [ "sample.OrderController#getFive()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+  "apiRiskScore" : 100.0,
+  "propagationDepth" : 3,
+  "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+}, {
+  "endpointId" : "sample.OrderController#getFour()",
+  "httpMethod" : "GET",
+  "path" : "/orders/four",
+  "propagationChain" : [ "sample.OrderController#getFour()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+  "apiRiskScore" : 100.0,
+  "propagationDepth" : 3,
+  "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+}, {
+  "endpointId" : "sample.OrderController#getOne()",
+  "httpMethod" : "GET",
+  "path" : "/orders/one",
+  "propagationChain" : [ "sample.OrderController#getOne()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+  "apiRiskScore" : 100.0,
+  "propagationDepth" : 3,
+  "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+}, {
+  "endpointId" : "sample.OrderController#getThree()",
+  "httpMethod" : "GET",
+  "path" : "/orders/three",
+  "propagationChain" : [ "sample.OrderController#getThree()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+  "apiRiskScore" : 100.0,
+  "propagationDepth" : 3,
+  "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+}, {
+  "endpointId" : "sample.OrderController#getTwo()",
+  "httpMethod" : "GET",
+  "path" : "/orders/two",
+  "propagationChain" : [ "sample.OrderController#getTwo()", "sample.Services.Risky#load()", "sample.OrderRepository#find()", "ext#java.lang.String#trim()" ],
+  "apiRiskScore" : 100.0,
+  "propagationDepth" : 3,
+  "hotspotIndicators" : [ "ARCHITECTURAL_HOTSPOT" ]
+} ],
+  suggestions: [ {
+  "methodId" : "sample.OrderController#getFive()",
+  "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+  "message" : "Refactor to reduce blast radius and contain propagation",
+  "riskReductionEstimate" : 20.0,
+  "confidence" : 0.7,
+  "priorityWeight" : 0.8,
+  "finalScore" : 11.200000000000001
+}, {
+  "methodId" : "sample.OrderController#getFour()",
+  "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+  "message" : "Refactor to reduce blast radius and contain propagation",
+  "riskReductionEstimate" : 20.0,
+  "confidence" : 0.7,
+  "priorityWeight" : 0.8,
+  "finalScore" : 11.200000000000001
+}, {
+  "methodId" : "sample.OrderController#getOne()",
+  "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+  "message" : "Refactor to reduce blast radius and contain propagation",
+  "riskReductionEstimate" : 20.0,
+  "confidence" : 0.7,
+  "priorityWeight" : 0.8,
+  "finalScore" : 11.200000000000001
+}, {
+  "methodId" : "sample.OrderController#getThree()",
+  "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+  "message" : "Refactor to reduce blast radius and contain propagation",
+  "riskReductionEstimate" : 20.0,
+  "confidence" : 0.7,
+  "priorityWeight" : 0.8,
+  "finalScore" : 11.200000000000001
+}, {
+  "methodId" : "sample.OrderController#getTwo()",
+  "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+  "message" : "Refactor to reduce blast radius and contain propagation",
+  "riskReductionEstimate" : 20.0,
+  "confidence" : 0.7,
+  "priorityWeight" : 0.8,
+  "finalScore" : 11.200000000000001
+}, {
+  "methodId" : "sample.Services.Risky#load()",
+  "suggestionType" : "REFACTOR_HIGH_BLAST_RADIUS",
+  "message" : "Refactor to reduce blast radius and contain propagation",
+  "riskReductionEstimate" : 20.0,
+  "confidence" : 0.7,
+  "priorityWeight" : 0.8,
+  "finalScore" : 11.200000000000001
+}, {
+  "methodId" : "sample.OrderController#getFive()",
+  "suggestionType" : "ADD_NULL_GUARD",
+  "message" : "Add null check for return value to prevent propagation",
+  "riskReductionEstimate" : 15.0,
+  "confidence" : 0.8,
+  "priorityWeight" : 0.7,
+  "finalScore" : 8.399999999999999
+}, {
+  "methodId" : "sample.OrderController#getFour()",
+  "suggestionType" : "ADD_NULL_GUARD",
+  "message" : "Add null check for return value to prevent propagation",
+  "riskReductionEstimate" : 15.0,
+  "confidence" : 0.8,
+  "priorityWeight" : 0.7,
+  "finalScore" : 8.399999999999999
+}, {
+  "methodId" : "sample.OrderController#getOne()",
+  "suggestionType" : "ADD_NULL_GUARD",
+  "message" : "Add null check for return value to prevent propagation",
+  "riskReductionEstimate" : 15.0,
+  "confidence" : 0.8,
+  "priorityWeight" : 0.7,
+  "finalScore" : 8.399999999999999
+}, {
+  "methodId" : "sample.OrderController#getThree()",
+  "suggestionType" : "ADD_NULL_GUARD",
+  "message" : "Add null check for return value to prevent propagation",
+  "riskReductionEstimate" : 15.0,
+  "confidence" : 0.8,
+  "priorityWeight" : 0.7,
+  "finalScore" : 8.399999999999999
+}, {
+  "methodId" : "sample.OrderController#getTwo()",
+  "suggestionType" : "ADD_NULL_GUARD",
+  "message" : "Add null check for return value to prevent propagation",
+  "riskReductionEstimate" : 15.0,
+  "confidence" : 0.8,
+  "priorityWeight" : 0.7,
+  "finalScore" : 8.399999999999999
+}, {
+  "methodId" : "sample.OrderRepository#find()",
+  "suggestionType" : "ADD_NULL_GUARD",
+  "message" : "Add null check for return value to prevent propagation",
+  "riskReductionEstimate" : 15.0,
+  "confidence" : 0.8,
+  "priorityWeight" : 0.7,
+  "finalScore" : 8.399999999999999
+}, {
+  "methodId" : "sample.Services.Risky#load()",
+  "suggestionType" : "ADD_NULL_GUARD",
+  "message" : "Add null check for return value to prevent propagation",
+  "riskReductionEstimate" : 15.0,
+  "confidence" : 0.8,
+  "priorityWeight" : 0.7,
+  "finalScore" : 8.399999999999999
+} ],
+  hotspots: [ {
+  "methodRef" : "sample.OrderRepository#find()",
+  "hotspotScore" : 179.1759469228055,
+  "severity" : "CRITICAL"
+}, {
+  "methodRef" : "sample.Services.Risky#load()",
+  "hotspotScore" : 179.1759469228055,
+  "severity" : "CRITICAL"
+} ]
+});
+const reasons = {
+  "sample.ContractExamples#chainedGoodConsumption()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
+  "sample.ContractExamples#brokenReturn()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
+  "sample.ContractExamples#badConsumption()": ["Own null-risk: +45.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."],
+  "ext#java.lang.String#trim()": [],
+  "sample.OrderRepository#find()": ["Own null-risk: +90.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
+  "sample.ContractExamples#primitiveExternal()": [],
+  "sample.ContractExamples#badArgument()": ["<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."],
+  "sample.OrderController#getTwo()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.ContractExamples#goodConsumption()": ["Own null-risk: +25.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."],
+  "sample.ContractExamples#requireNonNullGuard(String)": [],
+  "sample.ContractExamples#nullable()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
+  "sample.ContractExamples#aliasBadArgument()": [],
+  "sample.ContractExamples#guardedArgument(String)": [],
+  "sample.OrderController#getFive()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.ContractExamples#guardedParameter(String)": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
+  "sample.ContractExamples#constant()": [],
+  "sample.ContractExamples#primitive(int)": [],
+  "sample.OrderController#getThree()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.ShadowServices.Risky#load()": [],
+  "sample.OrderController#getFour()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.ContractExamples#goodArgument()": [],
+  "ext#java.util.Objects#requireNonNull(T)": [],
+  "ext#java.lang.Integer#parseInt(java.lang.String)": [],
+  "sample.ContractExamples#required(String)": [],
+  "sample.ContractExamples#chainedBadConsumption()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."],
+  "sample.ContractExamples#unsafeParameter(String)": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
+  "sample.OrderController#getOne()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.Services.Risky#load()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls OrderRepository#find() (+76.50, own null-risk: 90.00)", "💡 Fix: OrderRepository#find() is a known null-risk source (intrinsic: 90.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor OrderRepository#find() to return Optional<T>."]
+};
+const s = data.summary || {}; const nodes = (data.graph && data.graph.nodes) || {}; const edges = (data.graph && data.graph.edges) || [];
+const inDegree = {}; edges.forEach(e => inDegree[e.to] = (inDegree[e.to]||0)+1);
+
+/* Each section renders inside its own guard so that one bad record or one missing
+   collection degrades a single panel instead of blanking the entire dashboard. */
+function panel(id, fn) {
+  try { fn(); }
+  catch (err) {
+    console.error('NullGuard: failed to render ' + id, err);
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = "<tbody><tr><td style='color:var(--danger)'>Render error: " + err.message + "</td></tr></tbody>";
+  }
+}
+
+function show(id) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-'+id).classList.add('active');
+  document.getElementById('pageTitle').innerText = document.getElementById('nav-'+id).innerText;
+}
+
+/* Render Summary */
+document.getElementById('summaryGrid').innerHTML = `
+  <div class='stat-box'><span class='stat-label'>Stability Grade</span><span class='stat-value' style='color:${s.grade==='A'?'var(--success)':'var(--danger)'}'>${s.grade}</span><span style='font-size:0.75rem'>Index: ${s.stabilityIndex.toFixed(2)}</span></div>
+  <div class='stat-box'><span class='stat-label'>Blast Radius Index</span><span class='stat-value' style='color:var(--primary)'>${s.blastRadiusScore.toFixed(2)}</span><span style='font-size:0.75rem'>Max Risk Detected: ${s.maxRisk.toFixed(2)}</span></div>
+  <div class='stat-box'><span class='stat-label'>Risk Distribution</span><span class='stat-value' style='color:var(--warning)'>${s.highRiskMethods}</span><span style='font-size:0.75rem'>High-risk methods detected</span></div>
+  <div class='stat-box'><span class='stat-label'>API Coverage</span><span class='stat-value'>${s.totalMethods}</span><span style='font-size:0.75rem'>Total methods analysed</span></div>`;
+
+/* Render Suggestions */
+panel('sTable', () => {
+const rows = data.suggestions || [];
+document.getElementById('sTable').innerHTML = `<thead><tr><th>Type</th><th>Location</th><th>Message</th><th>Impact</th></tr></thead>
+  <tbody>${rows.length ? rows.map(s => `<tr><td><span class='badge' style='background:rgba(59,130,246,0.1);color:var(--primary)'>${s.suggestionType}</span></td><td><code>${s.methodId.split('.').pop()}</code></td><td>${s.message}</td><td><strong>${s.finalScore.toFixed(2)}</strong></td></tr>`).join('') : `<tr><td colspan='4' style='color:var(--text-muted)'>No suggestions produced.</td></tr>`}</tbody>`;
+});
+
+/* Render APIs */
+panel('apiTable', () => {
+const apis = data.apiEndpoints || [];
+document.getElementById('apiTable').innerHTML = `<thead><tr><th>Endpoint</th><th>Risk</th><th>Coverage</th><th>Downstream Chain</th></tr></thead>
+  <tbody>${apis.length ? apis.map(e => `<tr>
+    <td><span class='badge' style='background:rgba(16,185,129,0.1);color:var(--success)'>${e.httpMethod}</span> <code style='color:var(--primary)'>${e.path}</code><br><span style='font-size:0.7rem;color:var(--text-muted)'>${e.endpointId}</span></td>
+    <td><div style='display:flex;align-items:center;gap:8px;'><progress value='${e.apiRiskScore*10}' max='100'></progress><span>${e.apiRiskScore.toFixed(2)}</span></div></td>
+    <td><span class='badge' style='background:#27272a'>${e.propagationDepth} hops</span></td>
+    <td><details><summary style='font-size:0.7rem;cursor:pointer;color:var(--text-muted)'>View ${(e.propagationChain||[]).length} methods</summary><div style='margin-top:0.5rem;padding:0.75rem;background:#18181b;border-radius:8px;font-size:0.75rem;'>${(e.propagationChain||[]).map(m=>`<div style='padding:2px 0;color:var(--text-muted)'>↳ ${m}</div>`).join('')}</div></details></td>
+  </tr>`).join('') : `<tr><td colspan='4' style='color:var(--text-muted)'>No API endpoints detected. NullGuard resolves entry points from controller annotations - if this project exposes REST endpoints, check that the mapping annotations are on the classpath the analyser scanned.</td></tr>`}</tbody>`;
+});
+
+/* Render Hotspots – prefer the engine's own hotspot ranking; fall back to a
+   call-graph heuristic only when the pipeline produced no hotspots at all. */
+panel('hsTable', () => {
+const engineHs = (data.hotspots || []).map(h => {
+  const n = nodes[h.methodRef] || {};
+  return { methodId: h.methodRef, adjustedRisk: h.hotspotScore, severity: h.severity, impactMap: n.impactMap || [] };
+});
+const hs = engineHs.length ? engineHs.sort((a,b)=>b.adjustedRisk-a.adjustedRisk)
+  : Object.values(nodes).filter(n => (inDegree[n.methodId]||0) > 3 || n.adjustedRisk > 40).sort((a,b)=>(inDegree[b.methodId]||0)-(inDegree[a.methodId]||0));
+document.getElementById('hsTable').innerHTML = `<thead><tr><th>Critical Method</th><th>Calls</th><th>Risk</th><th>Blast Radius</th></tr></thead>
+  <tbody>${hs.length ? hs.slice(0,15).map(n => `<tr><td><code style='color:var(--primary)'>${n.methodId.split('.').pop()}</code><br><span style='font-size:0.75rem;color:var(--text-muted)'>${n.methodId}</span></td><td><span class='badge' style='background:rgba(59,130,246,0.1);color:var(--primary)'>${inDegree[n.methodId]||0} calls</span></td><td><div style='display:flex;align-items:center;gap:8px;'><progress value='${n.adjustedRisk}' max='100'></progress><span style='font-size:0.75rem'>${n.adjustedRisk.toFixed(2)}</span></div></td><td><span class='badge badge-${n.severity || 'LOW'}'>${n.impactMap ? n.impactMap.length : 0} APIs Affected</span></td></tr>`).join('') : `<tr><td colspan='4' style='color:var(--text-muted)'>No hotspots above threshold.</td></tr>`}</tbody>`;
+});
+
+/* Render Explorer */
+function renderMethods(q='') {
+  const items = Object.values(nodes).filter(n => n.methodId.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>b.adjustedRisk - a.adjustedRisk);
+  document.getElementById('riskTable').innerHTML = `<thead><tr><th>Method Signature</th><th>Risk Factors</th><th>Impact Blast Analysis</th></tr></thead>
+    <tbody>${items.slice(0,100).map(n => {
+      const rs = reasons[n.methodId] || [];
+      const impact = n.impactMap || [];
+      return `<tr>
+        <td style='width:35%'><code style='color:var(--primary);cursor:pointer' title='${n.methodId}'>${n.methodId.includes('#') ? n.methodId.split('#')[1] : n.methodId.split('.').pop()}</code><br><span style='font-size:0.7rem;color:var(--text-muted)'>${n.methodId.includes('#') ? n.methodId.split('#')[0] : 'core'}</span></td>
+        <td><div style='display:flex;gap:4px;margin-bottom:4px;'><span class='badge badge-${n.riskLevel}'>${n.riskLevel}</span><span class='badge' style='background:#27272a'>Score: ${n.adjustedRisk.toFixed(2)}</span></div>
+          <details><summary style='font-size:0.7rem;cursor:pointer;color:var(--text-muted)'>View factors</summary><ul style='font-size:0.7rem;padding-left:1rem;color:var(--text-muted);margin-top:0.5rem;'>${rs.map(r=>`<li>${r}</li>`).join('')}</ul></details></td>
+        <td>${impact.length ? `<div class='impact-box'><div class='impact-header'>⚠️ BREACH IMPACT: ${impact.length} APIs</div><ul class='impact-list'>${impact.map(c=>`<li class='impact-item'>${c.severity}: <code>${c.entryPoint.split('.').pop()}</code></li>`).join('')}</ul></div>` : '<span style="color:var(--success);font-size:0.8rem">No API Impact Detected</span>'}</td>
+      </tr>`;
+    }).join('')}</tbody>`;
+}
+document.getElementById('gSearch').addEventListener('input', e => panel('riskTable', () => renderMethods(e.target.value)));
+panel('riskTable', () => renderMethods());
+show('overview');
+</script></body></html>

@@ -13,10 +13,17 @@ public final class VisualizationBundle {
 
     private final String jsonGraph;
     private final String dotGraph;
+    private final String sarif;
+    private final java.util.List<Finding> findings;
 
     public VisualizationBundle(String jsonGraph, String dotGraph) {
+        this(jsonGraph, dotGraph, "", java.util.List.of());
+    }
+    public VisualizationBundle(String jsonGraph, String dotGraph, String sarif, java.util.List<Finding> findings) {
         this.jsonGraph = Objects.requireNonNull(jsonGraph, "jsonGraph must not be null");
         this.dotGraph  = Objects.requireNonNull(dotGraph,  "dotGraph must not be null");
+        this.sarif = Objects.requireNonNull(sarif);
+        this.findings = java.util.List.copyOf(findings);
     }
 
     /** Full JSON graph export (includes summary + risk nodes). */
@@ -24,4 +31,6 @@ public final class VisualizationBundle {
 
     /** DOT/Graphviz graph export for visual rendering. */
     public String getDotGraph()  { return dotGraph; }
+    public String getSarif() { return sarif; }
+    public java.util.List<Finding> getFindings() { return findings; }
 }

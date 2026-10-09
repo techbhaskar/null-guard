@@ -1,273 +1,109 @@
+# NullGuard: current implementation contract
 
-# NullGuard Architecture
+Updated: 2026-10-09. Artifact version: `1.0-SNAPSHOT`. This document describes implemented behavior; the older v1.0 document is a historical design proposal.
 
-**Project:** NullGuard  
-**Version:** v1.1  
-**Status:** Architecture Frozen (Updated with API Flow Analysis)  
-**Type:** Static Analysis Platform for Java Stability Intelligence
+## Purpose and scope
 
----
+NullGuard analyzes Java source without running the target application. It combines CFG-based null-state analysis, resolved call relationships, boundary-contract checks, API reach, risk propagation, suggestions, and report exports. It remains an internal pilot pending validation on representative real services and release hardening.
 
-# Overview
+## Execution order
 
-NullGuard is an enterprise-grade static analysis engine designed to detect and quantify stability risks in Java codebases.
+1. Parse Java classes/interfaces, method signatures, parameter declarations, nullability annotations, source ranges, and semantic call sites.
+2. Build the global call graph using resolved targets where available and name/arity fallback otherwise.
+3. Iterate method return summaries across resolved calls. Run CFG data flow with parameter entry states and known callee return states.
+4. Check declared non-null returns, unchecked parameters, and nullable arguments passed to non-null or unguarded callee parameters.
+5. Discover annotated API entry points, traverse outgoing calls, and attach reverse API reach counts.
+6. Propagate numeric risk over the call graph to a bounded fixpoint and attach adjusted method risk.
+7. Detect hotspots using the final adjusted risks. Compute endpoint risk as the maximum adjusted risk among its reachable methods.
+8. Compute the stability summary and ranked suggestions.
+9. Export the graph, shared findings, JSON, DOT, and SARIF. The Maven entry point also writes HTML.
+10. Validate pipeline artifact presence and record call-cycle warnings.
+11. Apply the CLI/Maven failure policy after writing reports.
 
-The platform performs:
+Hotspot detection must run after step 6. Reading previously calculated hotspots is insufficient because adjusted risks are unavailable before propagation.
 
-- Nullability analysis
-- Risk propagation
-- API contract verification
-- API flow mapping
-- Stability scoring
-- Context-aware fix suggestions
-- Propagation visualization
+## Core model and identities
 
-Unlike traditional linters, NullGuard analyzes inter-procedural behavior across the entire codebase and understands API-to-method risk propagation.
+`ProjectModel -> ModuleModel -> PackageModel -> ClassModel -> MethodModel` contains source descriptors and typed analysis artifact views. Source descriptors are immutable; the analysis passes attach summaries, contracts, null-state models, risk, and API reach. Execution is sequential and engine instances should not be shared across concurrent invocations.
 
----
+Every cross-module method key uses `MethodIds.of(package, class, method)`, including nested qualified types, for example `sample.Services.Risky#load()`.
 
-# Architecture Philosophy
+`SourceLocation` stores source-root-relative paths and one-based inclusive start/end coordinates. CFG statement ranges come from JavaParser when available. Findings without an exact statement range use the statement line with column 1; method-level findings and suggestions use the declaration range. SARIF converts inclusive end columns to exclusive end columns.
 
-NullGuard follows a layered static analysis architecture.
+## Null-state and contract semantics
 
-Each layer produces structured intermediate models that feed the next stage of analysis.
+The lattice contains `NULL`, `NON_NULL`, and `UNKNOWN`. Reference parameters begin unknown unless annotated `@NonNull`, `@NotNull`, or `@Nonnull`; primitive parameters begin non-null. `@Nullable` and `@CheckForNull` returns remain potentially nullable. Annotation matching uses simple annotation names.
 
-Key principles:
+CFG joins and null-condition branches refine state. Early returns and throws protect downstream code. `Objects.requireNonNull` establishes non-null state on surviving paths. Assignments retain nullability from local aliases and resolved return summaries. Unknown dependency returns remain conservative.
 
-- Deterministic analysis
-- Immutable intermediate models
-- Full project-level reasoning
-- No runtime instrumentation
-- Scalable to large enterprise codebases
+Method summaries expose parameter entry nullability and whether any return can be null. Primitive returns are non-null on surviving paths; bodyless declarations do not acquire proven summaries from empty CFGs. Return-summary iteration follows resolved in-project calls. Recursive or unresolved reference returns remain unknown where non-nullness cannot be proven. A method returning null is not automatically a contract violation: NG003 requires a declared non-null return. Nullable returns still contribute intrinsic risk and may generate strengthening suggestions.
 
----
+NG002 identifies an unannotated reference parameter dereferenced without a guard. NG004 checks caller arguments against declared non-null or inferred unguarded callee parameters using CFG state at the call. Resolved target metadata is preferred, with call-graph candidates as a conservative fallback. Overloads sharing a written name and arity can be merged conservatively; runtime dependency injection and dispatch precision are not guaranteed.
 
-# System Architecture
+## API analysis
 
-Layer 1 – AST Parser  
-Layer 2 – Control Flow Graph Builder  
-Layer 3 – Null State Propagation Engine  
-Layer 4 – Global Call Graph Builder  
-Layer 5 – Risk Propagation Engine  
-Layer 6 – Stability Scoring Engine  
-Layer 7 – API Contract & Flow Analyzer  
-Layer 8 – Suggestion Engine  
-Layer 9 – Propagation Visualizer  
+Methods require common Spring MVC or JAX-RS mapping annotations. Private/protected methods are excluded. Controller/resource class names alone do not create endpoints. Method-level Spring mappings and JAX-RS `@Path` values and HTTP verbs are recognized; complex mappings and class-level path composition are not complete.
 
-Execution flow proceeds strictly top-down.
+The propagation chain is a deterministic bounded DFS reachability list, not an enumeration of independent paths through every branch. Reverse reach counts distinct API entries per method. Endpoint risk is the maximum adjusted method risk in that list. Endpoints reaching a hotspot carry an `ARCHITECTURAL_HOTSPOT` indicator. The legacy hybrid API-risk helper is not the active endpoint scoring formula.
 
----
+## Risk and gates
 
-# Analysis Pipeline
+Intrinsic score adds 20 per unguarded dereference, 10 for a null-capable return, and 15 for a null-propagation flag, clamped to 0–100. Numeric propagation uses caller/callee relationships, decay, convergence threshold, and iteration limits. API exposure and contract penalties are added before the final 0–100 clamp.
 
-Java Source Code  
-→ AST Parser  
-→ Control Flow Graph Builder  
-→ Null-State Analysis  
-→ Method Summary Extraction  
-→ Global Call Graph  
-→ Risk Propagation Engine  
-→ Stability Scoring  
-→ API Contract & Flow Analyzer  
-→ Suggestion Engine  
-→ Visualization Export  
+Stability index is `clamp(100 - average adjusted risk, 0, 100)`. Grades are A at 90+, B at 80+, C at 70+, D at 60+, otherwise F. An empty analysis yields `N/A`; it is not a clean-code guarantee.
 
----
+Hotspot candidates require adjusted risk >= 70 and distinct API reach >= 5 by default. The risk threshold is expressed in score points on the 0–100 scale, not a 0–1 fraction. Hotspot score is `adjustedRisk * ln(1 + reach)` and can exceed 100. Severity is LOW below 40, MODERATE at 40+, HIGH at 60+, CRITICAL at 80+.
 
-# Core Intermediate Representation (IR)
+The fail policy gates hotspot severity, not the stability index. With `failBuild=false` the same findings are reported without policy failure. CLI policy failure returns 1; Maven throws `MojoFailureException`. Invalid severity values are rejected. A no-data report does not currently automatically fail the build; consumers must check availability.
 
-ProjectModel
- ├── GlobalCallGraph
- ├── PropagationGraph
- ├── ApiFlowGraph
- ├── ProjectRiskSummary
- └── Modules
-      └── ModuleModel
-           └── PackageModel
-                └── ClassModel
-                     └── MethodModel
-                          ├── ControlFlowModel
-                          ├── NullAnalysisModel
-                          ├── MethodSummary
-                          ├── RiskModel
-                          ├── ContractModel
-                          ├── Suggestions
-                          └── Issues
+## Configuration
 
----
+There is no YAML configuration loader. Use Maven properties/plugin configuration, CLI flags, or the `NullGuardConfig` builder.
 
-# API Flow Model
+| Setting | Default |
+| --- | --- |
+| scoring decay | 0.85, valid range [0,1) |
+| external penalty multiplier | 1.2 |
+| convergence threshold | 0.001 |
+| maximum scoring iterations | 100 |
+| high-risk method threshold | 60 |
+| hotspot risk threshold | 70 points |
+| hotspot API reach threshold | 5 |
+| API traversal depth limit | 10 |
+| fail build | false |
+| failing hotspot severity | CRITICAL |
 
-ApiEndpointModel
- ├── path
- ├── httpMethod
- ├── controllerMethod
- ├── callPaths[]
- ├── apiRiskScore
- ├── propagationDepth
- └── hotspotIndicators
+Hotspot risk/reach and traversal depth are currently builder settings, not public Maven/CLI options. Maven supplies compile source roots/classpath; CLI accepts `--classpath` with the platform path separator. The parser scans the selected source directory; extra roots assist resolution rather than automatically adding all their files to the analysis.
 
----
+## Findings and output contract
 
-# API Flow Mapping
+JSON has `schemaVersion: "1.0"`, `summary`, `graph`, `findings`, `apiEndpoints`, `hotspots`, and `suggestions`. Each finding contains stable rule ID, SARIF-style level, method ID, message, and source location where source is available. External-node suggestions may have no source location.
 
-Example:
+| Rule | Meaning |
+| --- | --- |
+| NG001 | Possible null dereference |
+| NG002 | Unchecked nullable parameter |
+| NG003 | Declared non-null return violation |
+| NG004 | Nullable caller argument violates callee requirements |
+| NG005 | Architectural hotspot |
+| NG101 | Add null guard suggestion |
+| NG102 | Strengthen contract suggestion |
+| NG103 | Validate external return suggestion |
+| NG104 | Refactor blast radius suggestion |
+| NG105 | Break risk chain suggestion |
 
-GET /orders/{id}
+SARIF 2.1.0 shares the same findings and rule catalog. Artifact paths are relative to `SOURCE_ROOT`, whose URI points to the analyzed root. Consumers moving reports to a different machine may need to remap that base. CLI and Maven write `nullguard-results.sarif`. Maven also writes timestamped/latest HTML, JSON, and DOT. CLI writes latest JSON and DOT only. Reports are written before enforcing a hotspot gate.
 
-OrderController.getOrder()
-    ↓
-OrderService.fetchOrder()
-    ↓
-OrderRepository.findById()
+## Verification and benchmarks
 
----
+`mvn verify` runs module tests plus pipeline, actual CLI entry-point, and actual Mojo execution tests. The checked-in `examples/orders-service` fixture connects five annotated API methods to a nested service and risky repository and includes guarded/unguarded contract examples. Its annotations are stand-ins for source testing, not a running Spring application. Tests exercise canonical IDs, reach, endpoint risk, hotspots, contract diagnostics, report locations, SARIF fields, report-only mode, and failing build policy.
 
-# API Contract Verification
+JaCoCo produces per-module HTML/XML coverage measurements under `target/site/jacoco`. The auxiliary `nullguard-coverage` module combines all execution data under `target/site/jacoco-aggregate`, including upstream modules exercised by integration tests. CI enforces at least 80% aggregate instruction coverage and 60% branch coverage with `scripts/summarize_coverage.py`; Maven itself measures coverage without invoking this Python gate. GitHub Actions defines JDK 17/21 Linux/Windows builds, tests the packaged CLI and Maven-injected goal, validates SARIF against the OASIS schema, and archives reports; these hosted matrix runs require pushing the workflow.
 
-Detects:
+`mvn verify -Dnullguard.benchmark=true` runs an opt-in workload of 10, 100, and 500 methods. Each size has warmup and three measured full pipeline runs. `nullguard-maven-plugin/target/benchmark.json` records median time, samples, sampled used heap, Java/OS, and CPU count. This is a reproducible smoke benchmark, not a peak-memory profiler or evidence for 50k-method support.
 
-- nullable return values crossing API boundaries
-- missing null guards
-- nullable parameters without validation
-- contract mismatches between caller and callee
+## Remaining work
 
----
+Real-framework fixtures and metadata, interface/proxy precision, annotation package disambiguation, general expression semantics, multi-module analysis aggregation, incremental caching, baseline/diff gates, robust incomplete-analysis policies, published artifacts, security/release policies, and larger benchmark corpora remain work items. CFG exception handling is conservative and finally blocks are not duplicated over every abrupt exit.
 
-# API Blast Radius Analysis
-
-Example propagation:
-
-API → Service → Util → SharedUtil
-
-Shared utilities used by many APIs become architectural hotspots.
-
----
-
-# Risk Propagation
-
-Propagation uses:
-
-- reverse call graph traversal
-- decay factor
-- fixpoint iteration
-
----
-
-# API Risk Amplification
-
-AdjustedRisk = BaseRisk × log(N + 1)
-
-Where N = number of APIs using the method.
-
----
-
-# Stability Scoring
-
-FinalRisk =
-IntrinsicRisk
-+ PropagatedRisk
-+ APIExposureWeight
-+ ContractPenalty
-
----
-
-# Architectural Hotspot Detection
-
-Triggered when:
-
-methodUsedByAPIs > threshold  
-AND propagatedRisk > threshold
-
----
-
-# Suggestion Engine
-
-Ranking formula:
-
-Score =
-(estimatedRiskReduction × 0.5)
-+ (confidence × 0.3)
-+ (priorityWeight × 0.2)
-
----
-
-# Visualization
-
-Exports graphs in:
-
-- JSON
-- Graphviz DOT
-
-Supports propagation heatmaps and API dependency graphs.
-
----
-
-# Configuration
-
-Example:
-
-nullguard:
-  decayFactor: 0.6
-  failBuildIfStabilityBelow: 75
-  highRiskThreshold: 70
-  propagationDepthLimit: 10
-
----
-
-# Module Structure
-
-nullguard-core  
-nullguard-analysis  
-nullguard-callgraph  
-nullguard-scoring  
-nullguard-suggestions  
-nullguard-visualization  
-nullguard-cli  
-nullguard-maven-plugin  
-
----
-
-# Non-Goals (v1.0)
-
-- runtime agents
-- CVE scanning
-- SBOM generation
-- bytecode analysis
-- Kotlin support
-- auto-fix rewriting
-- IDE plugin
-- SaaS dashboard
-
----
-
-# Scalability Targets
-
-Designed to support:
-
-- 50k+ methods
-- parallel analysis
-- deterministic results
-- enterprise monorepos
-
----
-
-# Definition of Done
-
-v1.0 complete when:
-
-- full analysis pipeline works
-- stability index computed
-- risk propagation verified
-- contract violations detected
-- suggestions generated
-- visualization export available
-- CLI operational
-- Maven plugin operational
-- test coverage > 80%
-
----
-
-# Architecture Status
-
-This architecture is frozen for NullGuard v1.1.
+OpenAPI generation, Swagger UI, and the unified developer portal are the next product phase. They are not implemented by this hardening pass.

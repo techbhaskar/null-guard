@@ -96,8 +96,7 @@ public class ApiEndpointAnalyzer {
             for (PackageModel pkg : mod.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel m : cls.getMethods().values()) {
-                        String id = pkg.getPackageName() + "." + cls.getClassName()
-                                    + "#" + m.getSignature();
+                        String id = com.nullguard.core.model.MethodIds.of(pkg, cls, m);
                         index.put(id, m);
                     }
                 }

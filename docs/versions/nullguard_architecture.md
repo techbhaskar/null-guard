@@ -1,5 +1,7 @@
 # NullGuard Architecture
 
+> Historical v1.0 design. Its configuration examples and scalability targets are not implementation guarantees. See [the current implementation contract](nullguard_architecture_v1_1.md).
+
 **Project:** NullGuard\
 **Version:** v1.0\
 **Status:** Architecture Frozen\

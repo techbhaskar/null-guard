@@ -70,6 +70,14 @@ public final class NullGuardCliApplication {
      * @return exit code
      */
     public int run(String[] args) {
+        try { return runValidated(args); }
+        catch (IllegalArgumentException invalid) {
+            System.err.println("[NullGuard] Invalid arguments: " + invalid.getMessage());
+            return EXIT_BAD_ARGS;
+        }
+    }
+
+    private int runValidated(String[] args) {
         if (args.length == 0) {
             printUsage();
             return EXIT_BAD_ARGS;
@@ -232,9 +240,11 @@ public final class NullGuardCliApplication {
             Files.writeString(jsonFile, result.getVisualizations().getJsonGraph());
             Path dotFile  = outputDir.resolve("nullguard-graph-latest.dot");
             Files.writeString(dotFile, result.getVisualizations().getDotGraph());
+            Files.writeString(outputDir.resolve("nullguard-results.sarif"), result.getVisualizations().getSarif());
             System.out.println("Reports written to: " + outputDir.toAbsolutePath());
         } catch (Exception e) {
             System.err.println("[NullGuard] WARNING: Failed to write reports – " + e.getMessage());
+            throw new IllegalStateException("Failed to write reports", e);
         }
     }
 

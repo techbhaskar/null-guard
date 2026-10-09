@@ -54,9 +54,7 @@ public class HotspotDetector {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel method : cls.getMethods().values()) {
 
-                        String methodId = pkg.getPackageName() + "."
-                                + cls.getClassName() + "#"
-                                + method.getSignature();
+                        String methodId = com.nullguard.core.model.MethodIds.of(pkg, cls, method);
 
                         // Gather adjusted risk from stored AdjustedRiskModel (via reflection)
                         double adjustedRisk = extractAdjustedRisk(method);
@@ -75,7 +73,8 @@ public class HotspotDetector {
         }
 
         // Sort hotspots descending by score for deterministic output
-        hotspots.sort((a, b) -> Double.compare(b.getHotspotScore(), a.getHotspotScore()));
+        hotspots.sort(java.util.Comparator.comparingDouble(ArchitecturalHotspot::getHotspotScore)
+                .reversed().thenComparing(ArchitecturalHotspot::getMethodRef));
     }
 
     public List<ArchitecturalHotspot> getArchitecturalHotspots() {

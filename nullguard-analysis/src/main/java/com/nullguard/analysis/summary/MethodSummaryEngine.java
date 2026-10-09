@@ -34,13 +34,9 @@ public class MethodSummaryEngine {
     private static final org.slf4j.Logger LOG =
             org.slf4j.LoggerFactory.getLogger(MethodSummaryEngine.class);
 
-    private final AnalysisConfig config;
-    private final ForwardDataFlowAnalyzer dataFlowAnalyzer;
     private final IntrinsicRiskCalculator riskCalculator;
 
     public MethodSummaryEngine(AnalysisConfig config) {
-        this.config = config;
-        this.dataFlowAnalyzer = new ForwardDataFlowAnalyzer(new BasicInstructionExtractor());
         this.riskCalculator   = new IntrinsicRiskCalculator();
     }
 
@@ -53,29 +49,38 @@ public class MethodSummaryEngine {
      * this Javadoc described all three, none of which ever existed in the code.
      */
     public void run(ProjectModel project) {
-        for (ModuleModel mod : project.getModules().values()) {
-            for (PackageModel pkg : mod.getPackages().values()) {
-                for (ClassModel cls : pkg.getClasses().values()) {
-                    for (MethodModel method : cls.getMethods().values()) {
-                        attachSummary(mod, pkg, method);
-                    }
-                }
+        java.util.Map<String, MethodModel> methods = new java.util.TreeMap<>();
+        project.getModules().values().forEach(mod -> mod.getPackages().values().forEach(pkg ->
+                pkg.getClasses().values().forEach(cls -> cls.getMethods().values().forEach(method ->
+                        methods.put(com.nullguard.core.model.MethodIds.of(pkg, cls, method), method)))));
+        // Start unknown and iterate summaries across resolved calls, including recursive cycles.
+        for (int pass = 0; pass < Math.max(2, methods.size() + 1); pass++) {
+            boolean changed = false;
+            for (MethodModel method : methods.values()) {
+                var previous = method.getMethodSummary().filter(MethodSummary.class::isInstance).map(MethodSummary.class::cast).orElse(null);
+                attachSummary(method, methods);
+                var current = method.getMethodSummary().filter(MethodSummary.class::isInstance).map(MethodSummary.class::cast).orElse(null);
+                if (current != null && (previous == null || previous.getReturnNullability() != current.getReturnNullability())) changed = true;
             }
+            if (!changed) break;
         }
     }
 
-    private void attachSummary(ModuleModel mod, PackageModel pkg, MethodModel method) {
+    private void attachSummary(MethodModel method, java.util.Map<String, MethodModel> methods) {
         // Only process methods that have a CFG attached (built by the fixed parser)
         if (method.getControlFlowModel().isEmpty()) return;
 
         // If a summary was already attached (e.g. by a prior pass), skip
-        if (method.getMethodSummary().isPresent()) return;
 
         try {
             com.nullguard.core.cfg.ControlFlowModel cfg = method.getControlFlowModel().get();
 
             // Run data-flow analysis
-            NullAnalysisModel nullModel = dataFlowAnalyzer.analyze(cfg);
+            java.util.Map<String, NullState> parameters = new java.util.LinkedHashMap<>();
+            method.getParameters().forEach(p -> parameters.put(p.name(), p.primitive() || p.nonNull() ? NullState.NON_NULL : NullState.UNKNOWN));
+            java.util.Map<String, NullState> returns = callReturns(method, methods);
+            NullAnalysisModel nullModel = new ForwardDataFlowAnalyzer(new BasicInstructionExtractor(), parameters, returns, method.isPrimitiveReturn()).analyze(cfg);
+            method.setNullAnalysisModel(nullModel);
 
             // Compute intrinsic risk from null model
             RiskModel riskProfile = riskCalculator.calculate(nullModel);
@@ -84,11 +89,12 @@ public class MethodSummaryEngine {
             NullState returnNull = nullModel.isNullableReturn()
                     ? NullState.NULL : NullState.NON_NULL;
 
-            MethodSummary summary = MethodSummary.builder()
+            MethodSummary.Builder builder = MethodSummary.builder()
                     .returnNullability(returnNull)
                     .propagatesNullFromCallee(nullModel.isPropagatesNullFromCallee())
-                    .intrinsicRiskProfile(riskProfile)
-                    .build();
+                    .intrinsicRiskProfile(riskProfile);
+            parameters.forEach(builder::putParameterNullability);
+            MethodSummary summary = builder.build();
 
             // Use the package-private setter — same package (com.nullguard.core.model)
             // avoids reflection on a final field which silently fails in Java 17+
@@ -100,5 +106,18 @@ public class MethodSummaryEngine {
             LOG.warn("Null analysis failed for {}; this method will contribute no risk.",
                      method.getSignature(), e);
         }
+    }
+
+    public static java.util.Map<String, NullState> callReturns(MethodModel method, java.util.Map<String, MethodModel> methods) {
+        java.util.Map<String, NullState> returns = new java.util.HashMap<>();
+        for (var call : method.getSemanticCallSites()) {
+            var target = call.getResolvedTarget().map(t -> methods.get(t.qualifiedSignature())).orElse(null);
+            NullState value = NullState.UNKNOWN;
+            if (target != null) value = target.isPrimitiveReturn() ? NullState.NON_NULL : target.isNullableReturn() ? NullState.UNKNOWN
+                    : target.getMethodSummary().filter(MethodSummary.class::isInstance).map(MethodSummary.class::cast)
+                    .map(MethodSummary::getReturnNullability).orElse(NullState.UNKNOWN);
+            returns.merge(call.getWrittenName() + "/" + call.getArgumentCount(), value, NullState::merge);
+        }
+        return returns;
     }
 }

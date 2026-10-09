@@ -37,7 +37,7 @@ public class AnalysisOrchestrator {
         // riskEngine.propagate(project) was here. It was an empty method body, and risk
         // propagation is actually performed by FixpointRiskPropagationEngine in
         // nullguard-scoring — the call only made the pipeline look like it did more than it did.
-        contractAnalyzer.analyze(project);
+        contractAnalyzer.analyze(project, callEdges);
 
         apiEndpointAnalyzer.build(project, callEdges);
 
@@ -46,7 +46,6 @@ public class AnalysisOrchestrator {
         // isHotspotCandidate always failed and getArchitecturalHotspots() always returned empty.
         apiEndpointAnalyzer.getReachTracker().applyTo(project);
 
-        hotspotDetector.detect(project);
     }
 
     public HotspotDetector getHotspotDetector() {

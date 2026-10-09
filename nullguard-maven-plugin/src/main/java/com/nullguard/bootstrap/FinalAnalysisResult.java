@@ -56,6 +56,7 @@ public final class FinalAnalysisResult implements Serializable {
     public List<ArchitecturalHotspot> getHotspots()      { return hotspots; }
     public List<Suggestion> getSuggestions()             { return suggestions; }
     public VisualizationBundle getVisualizations()       { return visualizations; }
+    public List<Finding> getFindings() { return visualizations.getFindings(); }
     public TimingMetrics getTiming()                     { return timing; }
     public List<String> getCycleWarnings()               { return cycleWarnings; }
     public Map<String, List<String>> getRiskReasonMap()  { return riskReasonMap; }
@@ -79,7 +80,7 @@ public final class FinalAnalysisResult implements Serializable {
             case "HIGH":     return 3;
             case "MODERATE": return 2;
             case "LOW":      return 1;
-            default:         return 0;
+            default:         throw new IllegalArgumentException("Unknown severity: " + severity);
         }
     }
 

@@ -132,6 +132,8 @@ public class NullGuardMojo extends AbstractMojo {
             // ── 5. Apply hotspot fail policy ────────────────────────────────
             applyFailPolicy(result);
 
+        } catch (MojoFailureException policyFailure) {
+            throw policyFailure;
         } catch (Exception e) {
             getLog().error("NullGuard analysis failed", e);
             throw new MojoExecutionException("NullGuard analysis failed: " + e.getMessage(), e);
@@ -151,6 +153,7 @@ public class NullGuardMojo extends AbstractMojo {
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String jsonContent = result.getVisualizations().getJsonGraph();
         String dotContent  = result.getVisualizations().getDotGraph();
+        Files.writeString(outputDir.resolve("nullguard-results.sarif"), result.getVisualizations().getSarif());
 
         // ── JSON ──────────────────────────────────────────────────────────────
         Path jsonFile = outputDir.resolve("nullguard-report-" + timestamp + ".json");

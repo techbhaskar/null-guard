@@ -130,6 +130,17 @@ public final class AnalysisPipeline {
         Map<String, AdjustedRiskModel> riskMap = timed(ctx, "risk-propagation",
                 () -> riskPropagationEngine.propagate(projectModel, callGraph, config.toScoringConfig(), apiEndpoints));
         ctx.setAdjustedRiskMap(riskMap);
+        analysisOrchestrator.getHotspotDetector().detect(projectModel);
+        var hotspotMethods = analysisOrchestrator.getHotspotDetector().getArchitecturalHotspots().stream()
+                .map(ArchitecturalHotspot::getMethodRef).collect(java.util.stream.Collectors.toSet());
+        for (ApiEndpointModel endpoint : apiEndpoints) {
+            double endpointRisk = endpoint.getPropagationChain().stream()
+                    .map(riskMap::get).filter(Objects::nonNull)
+                    .mapToDouble(AdjustedRiskModel::getAdjustedRisk).max().orElse(0.0);
+            endpoint.setApiRiskScore(endpointRisk);
+            endpoint.setHotspotIndicators(endpoint.getPropagationChain().stream().anyMatch(hotspotMethods::contains)
+                    ? List.of("ARCHITECTURAL_HOTSPOT") : List.of());
+        }
 
         // Store per-method risk contributor explanations for dashboard rendering
         if (riskPropagationEngine instanceof com.nullguard.scoring.propagation.FixpointRiskPropagationEngine) {
@@ -163,7 +174,19 @@ public final class AnalysisPipeline {
         VisualizationBundle vizBundle = timed(ctx, "visualization-export", () -> {
             String json = jsonGraphExporter.export(propGraph, riskSummary);
             String dot  = dotGraphExporter.export(propGraph);
-            return new VisualizationBundle(json, dot);
+            FindingExporter exporter = new FindingExporter();
+            List<Finding> findings = exporter.collect(projectModel, hotspots, suggestions);
+            try {
+                var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                var report = (com.fasterxml.jackson.databind.node.ObjectNode) mapper.readTree(json);
+                report.put("schemaVersion", "1.0");
+                report.set("findings", mapper.valueToTree(findings));
+                report.set("apiEndpoints", mapper.valueToTree(apiEndpoints));
+                report.set("hotspots", mapper.valueToTree(hotspots));
+                report.set("suggestions", mapper.valueToTree(suggestions));
+                json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(report);
+            } catch (java.io.IOException failure) { throw new IllegalStateException("Cannot assemble report", failure); }
+            return new VisualizationBundle(json, dot, exporter.sarif(findings, projectRoot), findings);
         });
         ctx.setVisualizationBundle(vizBundle);
 

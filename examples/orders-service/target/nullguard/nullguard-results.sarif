@@ -1,0 +1,793 @@
+{
+  "version" : "2.1.0",
+  "runs" : [ {
+    "results" : [ {
+      "ruleId" : "NG004",
+      "level" : "warning",
+      "message" : {
+        "text" : "Nullable argument passed to 'value' of sample.ContractExamples#required(String)"
+      },
+      "properties" : {
+        "methodId" : "sample.ContractExamples#aliasBadArgument()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 24,
+            "startColumn" : 33,
+            "endLine" : 24,
+            "endColumn" : 53
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/ContractExamples.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG004",
+      "level" : "warning",
+      "message" : {
+        "text" : "Nullable argument passed to 'value' of sample.ContractExamples#required(String)"
+      },
+      "properties" : {
+        "methodId" : "sample.ContractExamples#badArgument()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 13,
+            "startColumn" : 28,
+            "endLine" : 13,
+            "endColumn" : 56
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/ContractExamples.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'result' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.ContractExamples#badConsumption()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 19,
+            "startColumn" : 59,
+            "endLine" : 19,
+            "endColumn" : 80
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/ContractExamples.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG003",
+      "level" : "warning",
+      "message" : {
+        "text" : "Declared non-null return may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.ContractExamples#brokenReturn()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 4,
+            "startColumn" : 38,
+            "endLine" : 4,
+            "endColumn" : 50
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/ContractExamples.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'nullable()' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.ContractExamples#chainedBadConsumption()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 21,
+            "startColumn" : 38,
+            "endLine" : 21,
+            "endColumn" : 63
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/ContractExamples.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'value' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.ContractExamples#unsafeParameter(String)"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 8,
+            "startColumn" : 44,
+            "endLine" : 8,
+            "endColumn" : 64
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/ContractExamples.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG002",
+      "level" : "warning",
+      "message" : {
+        "text" : "Parameter 'value' is dereferenced without a null guard"
+      },
+      "properties" : {
+        "methodId" : "sample.ContractExamples#unsafeParameter(String)"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 8,
+            "startColumn" : 44,
+            "endLine" : 8,
+            "endColumn" : 64
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/ContractExamples.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'service' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getFive()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 14,
+            "startColumn" : 59,
+            "endLine" : 14,
+            "endColumn" : 81
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG101",
+      "level" : "note",
+      "message" : {
+        "text" : "Add null check for return value to prevent propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getFive()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 14,
+            "startColumn" : 5,
+            "endLine" : 14,
+            "endColumn" : 83
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG104",
+      "level" : "note",
+      "message" : {
+        "text" : "Refactor to reduce blast radius and contain propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getFive()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 14,
+            "startColumn" : 5,
+            "endLine" : 14,
+            "endColumn" : 83
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'service' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getFour()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 13,
+            "startColumn" : 59,
+            "endLine" : 13,
+            "endColumn" : 81
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG101",
+      "level" : "note",
+      "message" : {
+        "text" : "Add null check for return value to prevent propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getFour()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 13,
+            "startColumn" : 5,
+            "endLine" : 13,
+            "endColumn" : 83
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG104",
+      "level" : "note",
+      "message" : {
+        "text" : "Refactor to reduce blast radius and contain propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getFour()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 13,
+            "startColumn" : 5,
+            "endLine" : 13,
+            "endColumn" : 83
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'service' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getOne()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 10,
+            "startColumn" : 57,
+            "endLine" : 10,
+            "endColumn" : 79
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG101",
+      "level" : "note",
+      "message" : {
+        "text" : "Add null check for return value to prevent propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getOne()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 10,
+            "startColumn" : 5,
+            "endLine" : 10,
+            "endColumn" : 81
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG104",
+      "level" : "note",
+      "message" : {
+        "text" : "Refactor to reduce blast radius and contain propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getOne()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 10,
+            "startColumn" : 5,
+            "endLine" : 10,
+            "endColumn" : 81
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'service' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getThree()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 12,
+            "startColumn" : 61,
+            "endLine" : 12,
+            "endColumn" : 83
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG101",
+      "level" : "note",
+      "message" : {
+        "text" : "Add null check for return value to prevent propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getThree()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 12,
+            "startColumn" : 5,
+            "endLine" : 12,
+            "endColumn" : 85
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG104",
+      "level" : "note",
+      "message" : {
+        "text" : "Refactor to reduce blast radius and contain propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getThree()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 12,
+            "startColumn" : 5,
+            "endLine" : 12,
+            "endColumn" : 85
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'service' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getTwo()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 11,
+            "startColumn" : 57,
+            "endLine" : 11,
+            "endColumn" : 79
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG101",
+      "level" : "note",
+      "message" : {
+        "text" : "Add null check for return value to prevent propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getTwo()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 11,
+            "startColumn" : 5,
+            "endLine" : 11,
+            "endColumn" : 81
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG104",
+      "level" : "note",
+      "message" : {
+        "text" : "Refactor to reduce blast radius and contain propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderController#getTwo()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 11,
+            "startColumn" : 5,
+            "endLine" : 11,
+            "endColumn" : 81
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'a' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderRepository#find()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 31,
+            "startColumn" : 26,
+            "endLine" : 31,
+            "endColumn" : 35
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'b' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderRepository#find()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 32,
+            "startColumn" : 26,
+            "endLine" : 32,
+            "endColumn" : 35
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'c' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderRepository#find()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 33,
+            "startColumn" : 26,
+            "endLine" : 33,
+            "endColumn" : 35
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG001",
+      "level" : "warning",
+      "message" : {
+        "text" : "Receiver 'd' may be null"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderRepository#find()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 34,
+            "startColumn" : 26,
+            "endLine" : 34,
+            "endColumn" : 35
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG005",
+      "level" : "error",
+      "message" : {
+        "text" : "Architectural hotspot: CRITICAL (score 179.1759469228055)"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderRepository#find()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 30,
+            "startColumn" : 5,
+            "endLine" : 36,
+            "endColumn" : 6
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG101",
+      "level" : "note",
+      "message" : {
+        "text" : "Add null check for return value to prevent propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.OrderRepository#find()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 30,
+            "startColumn" : 5,
+            "endLine" : 36,
+            "endColumn" : 6
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG005",
+      "level" : "error",
+      "message" : {
+        "text" : "Architectural hotspot: CRITICAL (score 179.1759469228055)"
+      },
+      "properties" : {
+        "methodId" : "sample.Services.Risky#load()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 19,
+            "startColumn" : 9,
+            "endLine" : 19,
+            "endColumn" : 70
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG101",
+      "level" : "note",
+      "message" : {
+        "text" : "Add null check for return value to prevent propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.Services.Risky#load()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 19,
+            "startColumn" : 9,
+            "endLine" : 19,
+            "endColumn" : 70
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    }, {
+      "ruleId" : "NG104",
+      "level" : "note",
+      "message" : {
+        "text" : "Refactor to reduce blast radius and contain propagation"
+      },
+      "properties" : {
+        "methodId" : "sample.Services.Risky#load()"
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "region" : {
+            "startLine" : 19,
+            "startColumn" : 9,
+            "endLine" : 19,
+            "endColumn" : 70
+          },
+          "artifactLocation" : {
+            "uriBaseId" : "SOURCE_ROOT",
+            "uri" : "sample/OrderController.java"
+          }
+        }
+      } ]
+    } ],
+    "originalUriBaseIds" : {
+      "SOURCE_ROOT" : {
+        "uri" : "file:///D:/react_learn/null-guard/examples/orders-service/src/main/java/"
+      }
+    },
+    "columnKind" : "utf16CodeUnits",
+    "tool" : {
+      "driver" : {
+        "rules" : [ {
+          "name" : "Possiblenulldereference",
+          "id" : "NG001",
+          "shortDescription" : {
+            "text" : "Possible null dereference"
+          }
+        }, {
+          "name" : "Uncheckednullableparameter",
+          "id" : "NG002",
+          "shortDescription" : {
+            "text" : "Unchecked nullable parameter"
+          }
+        }, {
+          "name" : "Non-nullreturncontractviolation",
+          "id" : "NG003",
+          "shortDescription" : {
+            "text" : "Non-null return contract violation"
+          }
+        }, {
+          "name" : "Callerargumentcontractviolation",
+          "id" : "NG004",
+          "shortDescription" : {
+            "text" : "Caller argument contract violation"
+          }
+        }, {
+          "name" : "Architecturalhotspot",
+          "id" : "NG005",
+          "shortDescription" : {
+            "text" : "Architectural hotspot"
+          }
+        }, {
+          "name" : "Addnullguard",
+          "id" : "NG101",
+          "shortDescription" : {
+            "text" : "Add null guard"
+          }
+        }, {
+          "name" : "Strengthencontract",
+          "id" : "NG102",
+          "shortDescription" : {
+            "text" : "Strengthen contract"
+          }
+        }, {
+          "name" : "Validateexternalreturn",
+          "id" : "NG103",
+          "shortDescription" : {
+            "text" : "Validate external return"
+          }
+        }, {
+          "name" : "Refactorhighblastradius",
+          "id" : "NG104",
+          "shortDescription" : {
+            "text" : "Refactor high blast radius"
+          }
+        }, {
+          "name" : "Breakriskchain",
+          "id" : "NG105",
+          "shortDescription" : {
+            "text" : "Break risk chain"
+          }
+        } ],
+        "name" : "NullGuard",
+        "version" : "1.0-SNAPSHOT"
+      }
+    }
+  } ],
+  "$schema" : "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
+}

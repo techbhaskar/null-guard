@@ -1,134 +1,96 @@
 package com.nullguard.analysis.contract;
 
-import com.nullguard.core.model.ClassModel;
-import com.nullguard.core.model.MethodModel;
-import com.nullguard.core.model.ModuleModel;
-import com.nullguard.core.model.PackageModel;
-import com.nullguard.core.model.ProjectModel;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.nullguard.analysis.config.AnalysisConfig;
+import com.nullguard.analysis.engine.ExpressionNullability;
+import com.nullguard.analysis.engine.NullAnalysisModel;
+import com.nullguard.analysis.extractor.BasicInstructionExtractor;
+import com.nullguard.analysis.ir.DereferenceInstruction;
 import com.nullguard.analysis.lattice.NullState;
 import com.nullguard.analysis.summary.MethodSummary;
+import com.nullguard.analysis.summary.MethodSummaryEngine;
+import com.nullguard.core.model.*;
+import java.util.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-/**
- * ContractAnalyzer – detects API contract violations across method boundaries.
- *
- * <p>Two violation types (v1.0 &amp; v1.1 spec):
- * <ol>
- *   <li><b>Return-contract violation</b>: a method's MethodSummary declares
- *       {@code returnsNull=true} (i.e., it can return null). Any caller that
- *       does not guard the result has a boundary amplification risk.</li>
- *   <li><b>Parameter-contract violation</b>: a method summary shows that at
- *       least one parameter has a {@code UNKNOWN} or {@code NULL} nullability
- *       state, indicating unchecked nullable inputs.</li>
- * </ol>
- *
- * <p>Each violation attaches a {@link ContractModel} to the violating
- * {@link MethodModel} via {@code MethodModel.setContractModel()}.
- */
+/** Checks declared contracts and actual caller arguments against converged summaries. */
 public class ContractAnalyzer {
-
-    private final AnalysisConfig config;
-    private final List<ContractViolation> violations;
-
-    public ContractAnalyzer(AnalysisConfig config) {
-        this.config     = config;
-        this.violations = new ArrayList<>();
-    }
-
-    /**
-     * Analyzes every method in the project and attaches a {@link ContractModel}
-     * where a violation is found.
-     */
-    public void analyze(ProjectModel project) {
+    private final List<ContractViolation> violations = new ArrayList<>();
+    public ContractAnalyzer(AnalysisConfig config) {}
+    public void analyze(ProjectModel project) { analyze(project, Map.of()); }
+    public void analyze(ProjectModel project, Map<String, Set<String>> edges) {
         violations.clear();
-
-        for (ModuleModel mod : project.getModules().values()) {
-            for (PackageModel pkg : mod.getPackages().values()) {
-                for (ClassModel cls : pkg.getClasses().values()) {
-                    for (MethodModel method : cls.getMethods().values()) {
-
-                        String methodId = com.nullguard.core.model.MethodIds.of(pkg, cls, method);
-
-                        analyzeMethod(methodId, method);
+        Map<String, MethodModel> methods = new TreeMap<>();
+        project.getModules().values().forEach(mod -> mod.getPackages().values().forEach(pkg ->
+                pkg.getClasses().values().forEach(cls -> cls.getMethods().values().forEach(m -> methods.put(MethodIds.of(pkg, cls, m), m)))));
+        Map<String, Set<String>> required = new HashMap<>();
+        methods.forEach((id, method) -> {
+            Set<String> names = new LinkedHashSet<>();
+            method.getParameters().stream().filter(p -> p.nonNull() || p.primitive()).forEach(p -> names.add(p.name()));
+            model(method).ifPresent(model -> method.getControlFlowModel().ifPresent(cfg -> {
+                for (var inst : new BasicInstructionExtractor().extract(cfg))
+                    if (inst instanceof DereferenceInstruction d && model.getInStates().getOrDefault(d.id(), Map.of())
+                            .getOrDefault(d.variableName(), NullState.UNKNOWN) != NullState.NON_NULL
+                            && method.getParameters().stream().anyMatch(p -> p.name().equals(d.variableName()))) names.add(d.variableName());
+            }));
+            required.put(id, names);
+        });
+        methods.forEach((id, method) -> check(id, method, methods, required, edges));
+    }
+    private void check(String id, MethodModel method, Map<String, MethodModel> methods,
+                       Map<String, Set<String>> required, Map<String, Set<String>> edges) {
+        List<ContractModel.ContractIssue> issues = new ArrayList<>();
+        var summary = method.getMethodSummary().filter(MethodSummary.class::isInstance).map(MethodSummary.class::cast).orElse(null);
+        if (summary == null) return;
+        if (method.isNonNullReturn() && summary.getReturnNullability() != NullState.NON_NULL)
+            issues.add(new ContractModel.ContractIssue("NG003", "Declared non-null return may be null", method.getSourceLocation().map(SourceLocation::startLine).orElse(1)));
+        method.getParameters().stream().filter(p -> !p.primitive() && !p.nonNull() && required.get(id).contains(p.name()))
+                .forEach(p -> issues.add(new ContractModel.ContractIssue("NG002", "Parameter '" + p.name() + "' is dereferenced without a null guard", method.getSourceLocation().map(SourceLocation::startLine).orElse(1))));
+        var nullModel = model(method).orElse(null);
+        if (nullModel != null) method.getControlFlowModel().ifPresent(cfg -> {
+            var instructions = new BasicInstructionExtractor().extract(cfg);
+            var returns = MethodSummaryEngine.callReturns(method, methods);
+            for (var node : cfg.getNodes().values()) {
+                if (node.getLineNumber() < 1 || node.getType() == com.nullguard.core.cfg.NodeType.ENTRY) continue;
+                Node ast;
+                try { ast = StaticJavaParser.parseStatement(node.getSourceCode()); }
+                catch (RuntimeException statement) {
+                    try { ast = StaticJavaParser.parseExpression(node.getSourceCode()); }
+                    catch (RuntimeException expression) { continue; }
+                }
+                Map<String, NullState> state = instructions.stream().filter(i -> i.cfgNodeId().equals(node.getId()))
+                        .findFirst().map(i -> nullModel.getInStates().getOrDefault(i.id(), Map.of())).orElse(Map.of());
+                for (var call : ast.findAll(MethodCallExpr.class)) {
+                    String key = ExpressionNullability.callKey(call);
+                    Set<String> candidates = new LinkedHashSet<>();
+                    method.getSemanticCallSites().stream().filter(c -> (c.getWrittenName() + "/" + c.getArgumentCount()).equals(key))
+                            .flatMap(c -> c.getResolvedTarget().stream()).map(ResolvedCallTarget::qualifiedSignature)
+                            .filter(methods::containsKey).forEach(candidates::add);
+                    if (candidates.isEmpty()) edges.getOrDefault(id, Set.of()).stream().filter(methods::containsKey)
+                            .filter(c -> methods.get(c).getMethodName().equals(call.getNameAsString())
+                                    && methods.get(c).getParameters().size() == call.getArguments().size()).forEach(candidates::add);
+                    for (String calleeId : candidates) {
+                        var callee = methods.get(calleeId);
+                        for (int n = 0; n < Math.min(call.getArguments().size(), callee.getParameters().size()); n++) {
+                            var parameter = callee.getParameters().get(n);
+                            if (required.get(calleeId).contains(parameter.name()) && ExpressionNullability.evaluate(call.getArgument(n), state, returns) != NullState.NON_NULL)
+                                issues.add(new ContractModel.ContractIssue("NG004", "Nullable argument passed to '" + parameter.name() + "' of " + calleeId, node.getLineNumber()));
+                        }
                     }
                 }
             }
-        }
-    }
-
-    public List<ContractViolation> getViolations() {
-        return Collections.unmodifiableList(violations);
-    }
-
-    public int getViolationCount() {
-        return violations.size();
-    }
-
-    // ── Internal helpers ──────────────────────────────────────────────────────
-
-    private void analyzeMethod(String methodId, MethodModel method) {
-        // MethodSummary is produced in this same module, so a cast is all that was ever
-        // needed. The slot is typed to a core read view, so narrow it explicitly here.
-        method.getMethodSummary()
-                .filter(MethodSummary.class::isInstance)
-                .map(MethodSummary.class::cast)
-                .ifPresent(summary -> {
-            boolean returnViolation    = detectReturnViolation(summary);
-            boolean parameterViolation = detectParameterViolation(summary);
-
-            if (returnViolation || parameterViolation) {
-                // Penalty: 10pts per return violation, 5pts per parameter violation
-                int penalty = (returnViolation ? 10 : 0) + (parameterViolation ? 5 : 0);
-                ContractModel model = new ContractModel(returnViolation, parameterViolation, penalty);
-                method.setContractModel(model);
-                violations.add(new ContractViolation(methodId, returnViolation, parameterViolation, penalty));
-            }
         });
+        boolean returnViolation = issues.stream().anyMatch(i -> i.ruleId().equals("NG003"));
+        boolean parameterViolation = issues.stream().anyMatch(i -> !i.ruleId().equals("NG003"));
+        int penalty = (returnViolation ? 10 : 0) + (parameterViolation ? 5 : 0);
+        method.setContractModel(new ContractModel(returnViolation, parameterViolation, penalty, issues.stream().distinct().toList()));
+        if (!issues.isEmpty()) violations.add(new ContractViolation(id, returnViolation, parameterViolation, penalty));
     }
-
-    // ── Typed contract detection ──────────────────────────────────────────────
-    // Both methods below were four reflective probes with `catch (Exception ignored) {}`
-    // and string comparisons against enum names. MethodSummary is in THIS module — the
-    // reflection bought nothing and hid every failure. NullState is compared by identity
-    // now, so a renamed constant is a compile error instead of a silently false result.
-
-    /** @return true if the method can return null, or nothing is known about its return */
-    private static boolean detectReturnViolation(MethodSummary summary) {
-        NullState returnState = summary.getReturnNullability();
-        return returnState == NullState.NULL || returnState == NullState.UNKNOWN;
+    private static Optional<NullAnalysisModel> model(MethodModel method) {
+        return method.getNullAnalysisModel().filter(NullAnalysisModel.class::isInstance).map(NullAnalysisModel.class::cast);
     }
-
-    /**
-     * @return true if any parameter is null-capable or unknown. Falls back to the
-     *         null-propagation flag when no parameter nullability was recorded, which is
-     *         currently always — {@code MethodSummaryEngine} never calls
-     *         {@code putParameterNullability}, so this remains a known gap rather than a
-     *         working parameter-contract check.
-     */
-    private static boolean detectParameterViolation(MethodSummary summary) {
-        Map<String, NullState> parameters = summary.getParameterNullability();
-        if (parameters != null && !parameters.isEmpty()) {
-            for (NullState state : parameters.values()) {
-                if (state == NullState.NULL || state == NullState.UNKNOWN) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        return summary.isPropagatesNullFromCallee();
-    }
-
-    // ── Value object for violation records ────────────────────────────────────
-
-    public record ContractViolation(
-            String methodId,
-            boolean returnViolation,
-            boolean parameterViolation,
-            int penalty
-    ) {}
+    public List<ContractViolation> getViolations() { return List.copyOf(violations); }
+    public int getViolationCount() { return violations.size(); }
+    public record ContractViolation(String methodId, boolean returnViolation, boolean parameterViolation, int penalty) {}
 }

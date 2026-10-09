@@ -51,9 +51,7 @@ public final class CallSiteExtractor {
 
             for (MethodCallExpr call : calls) {
                 String receiver = call.getScope()
-                        .filter(NameExpr.class::isInstance)
-                        .map(NameExpr.class::cast)
-                        .map(NameExpr::getNameAsString)
+                        .map(Object::toString)
                         .orElse(null);
                 // Preserve a simple receiver (service.process) because it is useful to the
                 // resolver, but do not serialize an entire chained expression into an ID such

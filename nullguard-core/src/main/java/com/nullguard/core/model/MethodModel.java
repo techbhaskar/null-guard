@@ -32,7 +32,12 @@ public final class MethodModel {
     private final ControlFlowModel controlFlowModel;
     private final List<SemanticCallSite> semanticCallSites;
 
-    private final Object nullAnalysisModel;
+    private Object nullAnalysisModel;
+    private final SourceLocation sourceLocation;
+    private final List<ParameterModel> parameters;
+    private final boolean nonNullReturn;
+    private final boolean nullableReturn;
+    private final boolean primitiveReturn;
 
     // ── Analysis artifacts ────────────────────────────────────────────────────
     // These were plain `Object` and were read back by consuming modules through
@@ -60,6 +65,11 @@ public final class MethodModel {
         this.controlFlowModel  = builder.controlFlowModel;
         this.semanticCallSites = List.copyOf(builder.semanticCallSites);
         this.nullAnalysisModel = builder.nullAnalysisModel;
+        this.sourceLocation = builder.sourceLocation;
+        this.parameters = List.copyOf(builder.parameters);
+        this.nonNullReturn = builder.nonNullReturn;
+        this.nullableReturn = builder.nullableReturn;
+        this.primitiveReturn = builder.primitiveReturn;
         this.methodSummary     = builder.methodSummary;
         this.riskModel         = builder.riskModel;
         this.contractModel     = builder.contractModel;
@@ -71,6 +81,12 @@ public final class MethodModel {
 
     public String getMethodName() { return methodName; }
     public String getSignature()  { return signature; }
+    public Optional<SourceLocation> getSourceLocation() { return Optional.ofNullable(sourceLocation); }
+    public List<ParameterModel> getParameters() { return parameters; }
+    public boolean isNonNullReturn() { return nonNullReturn; }
+    public boolean isNullableReturn() { return nullableReturn; }
+    public boolean isPrimitiveReturn() { return primitiveReturn; }
+    public void setNullAnalysisModel(Object model) { this.nullAnalysisModel = model; }
 
     public Optional<ControlFlowModel> getControlFlowModel()  { return Optional.ofNullable(controlFlowModel); }
     public List<SemanticCallSite> getSemanticCallSites()      { return semanticCallSites; }
@@ -107,6 +123,11 @@ public final class MethodModel {
         private ControlFlowModel controlFlowModel;
         private List<SemanticCallSite> semanticCallSites = List.of();
         private Object nullAnalysisModel;
+        private SourceLocation sourceLocation;
+        private List<ParameterModel> parameters = List.of();
+        private boolean nonNullReturn;
+        private boolean nullableReturn;
+        private boolean primitiveReturn;
         private IntrinsicRiskSource methodSummary;
         private Object riskModel;
         private ContractPenaltySource contractModel;
@@ -121,6 +142,11 @@ public final class MethodModel {
             return this;
         }
         public Builder nullAnalysisModel(Object m)             { this.nullAnalysisModel = m; return this; }
+        public Builder sourceLocation(SourceLocation location) { this.sourceLocation = location; return this; }
+        public Builder parameters(List<ParameterModel> values) { this.parameters = List.copyOf(values); return this; }
+        public Builder nonNullReturn(boolean value) { this.nonNullReturn = value; return this; }
+        public Builder nullableReturn(boolean value) { this.nullableReturn = value; return this; }
+        public Builder primitiveReturn(boolean value) { this.primitiveReturn = value; return this; }
         public Builder methodSummary(IntrinsicRiskSource s)    { this.methodSummary = s; return this; }
         public Builder riskModel(Object r)                     { this.riskModel = r; return this; }
         public Builder contractModel(ContractPenaltySource c)  { this.contractModel = c; return this; }

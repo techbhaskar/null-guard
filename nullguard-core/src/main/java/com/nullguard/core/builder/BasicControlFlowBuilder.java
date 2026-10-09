@@ -93,6 +93,7 @@ public final class BasicControlFlowBuilder implements ControlFlowBuilder {
         final String methodName;
         final String exitId;
         int nextIndex = 1;
+        final java.util.Map<String, com.nullguard.core.model.SourceLocation> ranges = new java.util.HashMap<>();
 
         Ctx(String methodName, String exitId) {
             this.methodName = methodName;
@@ -107,6 +108,8 @@ public final class BasicControlFlowBuilder implements ControlFlowBuilder {
 
         String exitId = methodName + "_-1_0";
         Ctx ctx = new Ctx(methodName, exitId);
+        method.walk(node -> node.getRange().ifPresent(r -> ctx.ranges.putIfAbsent(r.begin.line + "|" + node.toString().trim(),
+                new com.nullguard.core.model.SourceLocation("", r.begin.line, r.begin.column, r.end.line, r.end.column))));
 
         // ── Entry node ────────────────────────────────────────────────────────────
         // Source text = annotations + modifiers + name. FlowPathExtractor reads this to
@@ -409,7 +412,7 @@ public final class BasicControlFlowBuilder implements ControlFlowBuilder {
     /** Creates a node and wires every incoming flow to it. Returns the new node id. */
     private String addNode(Ctx ctx, NodeType type, String src, int line, List<Flow> in) {
         String id = ctx.methodName + "_" + line + "_" + (ctx.nextIndex++);
-        ctx.nodes.put(id, new ControlFlowNode(id, type, src, line));
+        ctx.nodes.put(id, new ControlFlowNode(id, type, src, line, ctx.ranges.get(line + "|" + src.trim())));
         connect(ctx, in, id);
         return id;
     }

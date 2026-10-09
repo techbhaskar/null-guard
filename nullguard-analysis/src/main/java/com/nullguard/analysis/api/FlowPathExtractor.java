@@ -162,8 +162,7 @@ public class FlowPathExtractor {
             for (PackageModel pkg : mod.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
                     for (MethodModel mth : cls.getMethods().values()) {
-                        String id = pkg.getPackageName() + "." + cls.getClassName()
-                                    + "#" + mth.getSignature();
+                        String id = com.nullguard.core.model.MethodIds.of(pkg, cls, mth);
                         index.put(id, mth);
                     }
                 }
@@ -345,7 +344,7 @@ public class FlowPathExtractor {
     /** Pattern to capture the string value inside a mapping annotation. */
     private static final java.util.regex.Pattern ANNOTATION_PATH_PATTERN =
         java.util.regex.Pattern.compile(
-            "@(?:Get|Post|Put|Delete|Patch|Request)Mapping\\s*\\(\\s*(?:value\\s*=\\s*)?\"([^\"]+)\"");
+            "@(?:(?:Get|Post|Put|Delete|Patch|Request)Mapping|Path)\\s*\\(\\s*(?:(?:value|path)\\s*=\\s*)?\"([^\"]+)\"");
 
     /** Returns the entry node's source text (annotations + modifiers), or empty string. */
     private static String getEntrySource(MethodModel method) {

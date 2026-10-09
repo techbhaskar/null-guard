@@ -105,7 +105,7 @@ public final class NullGuardConfig {
         private int    propagationDepthLimit   = 10;
         private double propagationDecayExponent = 2.0;
         private double apiRiskWeights          = 0.3;
-        private double hotspotRiskThreshold    = 0.7;
+        private double hotspotRiskThreshold    = 70.0;
         private int    hotspotReachThreshold   = 5;
 
         // Scoring defaults
@@ -153,6 +153,11 @@ public final class NullGuardConfig {
         }
 
         public NullGuardConfig build() {
+            if (!Double.isFinite(hotspotRiskThreshold) || hotspotRiskThreshold < 0 || hotspotRiskThreshold > 100)
+                throw new IllegalArgumentException("hotspotRiskThreshold must be within [0, 100]");
+            if (hotspotReachThreshold < 1) throw new IllegalArgumentException("hotspotReachThreshold must be >= 1");
+            if (!List.of("LOW", "MODERATE", "HIGH", "CRITICAL").contains(failThreshold))
+                throw new IllegalArgumentException("Unknown failThreshold: " + failThreshold);
             NullGuardConfig config = new NullGuardConfig(this);
             // Fail fast. ScoringConfig.build() validates, but it is only invoked lazily from
             // inside AnalysisPipeline, so an invalid --decay-factor=1.0 surfaced as an analysis
