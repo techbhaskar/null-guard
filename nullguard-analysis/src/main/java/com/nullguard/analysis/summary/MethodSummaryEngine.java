@@ -79,7 +79,13 @@ public class MethodSummaryEngine {
             java.util.Map<String, NullState> parameters = new java.util.LinkedHashMap<>();
             method.getParameters().forEach(p -> parameters.put(p.name(), p.primitive() || p.nonNull() ? NullState.NON_NULL : NullState.UNKNOWN));
             java.util.Map<String, NullState> returns = callReturns(method, methods);
-            NullAnalysisModel nullModel = new ForwardDataFlowAnalyzer(new BasicInstructionExtractor(), parameters, returns, method.isPrimitiveReturn()).analyze(cfg);
+            java.util.Map<String, NullState> initial = new java.util.LinkedHashMap<>();
+            method.getNonNullFields().forEach(field -> {
+                initial.put(field, NullState.NON_NULL);
+                initial.put("this." + field, NullState.NON_NULL);
+            });
+            initial.putAll(parameters); // Parameters shadow unqualified fields.
+            NullAnalysisModel nullModel = new ForwardDataFlowAnalyzer(new BasicInstructionExtractor(), initial, returns, method.isPrimitiveReturn()).analyze(cfg);
             method.setNullAnalysisModel(nullModel);
 
             // Compute intrinsic risk from null model
@@ -113,8 +119,14 @@ public class MethodSummaryEngine {
         for (var call : method.getSemanticCallSites()) {
             var target = call.getResolvedTarget().map(t -> methods.get(t.qualifiedSignature())).orElse(null);
             NullState value = NullState.UNKNOWN;
+            // Narrow, symbol-resolved framework contracts; never infer from a method name alone.
+            if (target == null && call.getResolvedTarget().filter(t ->
+                    t.declaringType().equals("org.springframework.aot.hint.RuntimeHints")
+                    && t.parameterCount() == 0
+                    && java.util.Set.of("resources", "reflection", "serialization", "proxies", "jni").contains(t.methodName())).isPresent())
+                value = NullState.NON_NULL;
             if (target != null) value = target.isPrimitiveReturn() ? NullState.NON_NULL : target.isNullableReturn() ? NullState.UNKNOWN
-                    : target.getMethodSummary().filter(MethodSummary.class::isInstance).map(MethodSummary.class::cast)
+                    : target.isNonNullReturn() ? NullState.NON_NULL : target.getMethodSummary().filter(MethodSummary.class::isInstance).map(MethodSummary.class::cast)
                     .map(MethodSummary::getReturnNullability).orElse(NullState.UNKNOWN);
             returns.merge(call.getWrittenName() + "/" + call.getArgumentCount(), value, NullState::merge);
         }

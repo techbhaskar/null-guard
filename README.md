@@ -12,7 +12,7 @@ It is intended to answer questions that are difficult to answer with a method-le
 
 NullGuard performs static analysis only. It does not instrument or run the analyzed application.
 
-> **Project status:** release `1.0.0` is prepared and is built from source. The artifacts are not yet published to Maven Central. See [publishing setup](docs/publishing.md).
+> **Project status:** `1.0.0` is published to Maven Central and verified with an empty local cache. Development changes are in `1.0.1-SNAPSHOT` and are not published. See [evaluation results](docs/developer-onboarding-evaluation.md).
 
 ## Why use NullGuard in microservices?
 
@@ -94,8 +94,8 @@ mvn -version
 
 ## First run
 
-Until the Central release is available, build and install NullGuard from source
-using the commands below. Then, from your Java service directory, run:
+From your Java service directory, run the published release directly. No NullGuard
+clone or local installation is required:
 
 ```bash
 mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.0:analyze -Dnullguard.failBuild=false
@@ -125,10 +125,12 @@ mvn clean verify
 The build runs all module tests and creates the standalone CLI at:
 
 ```text
-nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar
+nullguard-cli/target/nullguard-cli-1.0.1-SNAPSHOT-jar-with-dependencies.jar
 ```
 
-Install the release into your local Maven repository before using the Maven plugin from another project:
+For development, install `1.0.1-SNAPSHOT` into your local Maven repository. Use
+`com.arinits.nullguard:nullguard-maven-plugin:1.0.1-SNAPSHOT:analyze` to try the
+unreleased changes from another project:
 
 ```bash
 mvn clean install
@@ -140,7 +142,7 @@ The Maven plugin is the simplest and most accurate way to analyze a Maven-based 
 
 ### Run once from the command line
 
-After installing NullGuard locally, run this command from the Java service you want to analyze:
+Run this command from the Java service you want to analyze:
 
 ```bash
 mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.0:analyze
@@ -220,13 +222,13 @@ Use the CLI for local exploration, scripts, or source trees that are not being i
 From the NullGuard repository:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar path/to/service/src/main/java
+java -jar nullguard-cli/target/nullguard-cli-1.0.1-SNAPSHOT-jar-with-dependencies.jar path/to/service/src/main/java
 ```
 
 Choose a report directory and enable a CI-style failure policy:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-1.0.1-SNAPSHOT-jar-with-dependencies.jar \
   path/to/service/src/main/java \
   --output=build/nullguard \
   --fail-build \
@@ -236,7 +238,7 @@ java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar \
 PowerShell uses a backtick for line continuation:
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-1.0.1-SNAPSHOT-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   --output=C:\work\orders-service\target\nullguard `
   --fail-build `
@@ -248,13 +250,13 @@ java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar `
 For best results, supply the service's compiled classes and dependency JARs with `--classpath`. Entries use the operating system's path separator: `;` on Windows and `:` on Linux/macOS.
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-1.0.1-SNAPSHOT-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   "--classpath=C:\work\orders-service\target\classes;C:\libs\shared-contracts.jar"
 ```
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-1.0.1-SNAPSHOT-jar-with-dependencies.jar \
   /work/orders-service/src/main/java \
   --classpath=/work/orders-service/target/classes:/work/libs/shared-contracts.jar
 ```
@@ -400,6 +402,20 @@ NullGuard recognizes common Spring MVC and JAX-RS mappings, including:
 ```
 
 Entry points require a mapping annotation; class names alone do not qualify. Private and protected methods are excluded. The current traversal produces a deterministic reachability list with cycle protection, rather than a separate ordered path for every branch. Complex mappings, class-level path composition, and runtime proxy routing remain limitations.
+
+## Analysis improvements in development
+
+`1.0.1-SNAPSHOT` tracks final fields initialized directly with non-null literals,
+objects or arrays when analyzing getters. Mutable fields and unknown factory
+returns stay conservative. Source-level Spring `@NonNullApi` and JSpecify
+`@NullMarked` defaults are recognized, with `@Nullable` and `@NullUnmarked`
+exceptions. Only root parameter/return types are modeled; generic element
+nullness, module defaults and arbitrary inherited dependency annotations are not.
+Resolved Spring `RuntimeHints` accessors have narrowly defined non-null contracts.
+These changes are covered by regression tests and are not part of published 1.0.0.
+
+See [real-project comparison and labels](docs/evaluation/real-project-review.md)
+and the [volunteer usability study](docs/usability/README.md).
 
 ## Current scope and limitations
 

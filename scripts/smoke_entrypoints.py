@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "nullguard-cli/target/ci-reports"
 SOURCE = ROOT / "examples/orders-service/src/main/java"
-JAR = ROOT / "nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar"
+JAR = ROOT / "nullguard-cli/target/nullguard-cli-1.0.1-SNAPSHOT-jar-with-dependencies.jar"
 
 
 def run(command, expected, name):
@@ -29,7 +29,7 @@ assert (OUTPUT / "nullguard-results.sarif").exists()
 maven = shutil.which("mvn")
 if not maven:
     raise RuntimeError("Maven is required; run mvn install first")
-goal = [maven, "--batch-mode", "-f", "examples/orders-service/pom.xml", "com.arinits.nullguard:nullguard-maven-plugin:1.0.0:analyze"]
+goal = [maven, "--batch-mode", "-f", "examples/orders-service/pom.xml", "com.arinits.nullguard:nullguard-maven-plugin:1.0.1-SNAPSHOT:analyze"]
 run(goal + ["-Dnullguard.failBuild=false"], 0, "maven-report-only")
 run(goal + ["-Dnullguard.failBuild=true", "-Dnullguard.failThreshold=HIGH"], 1, "maven-gate")
 dashboard = ROOT / "examples/orders-service/target/nullguard/nullguard-dashboard-latest.html"

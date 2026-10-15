@@ -100,3 +100,13 @@ The hotspot gate does not block every individual null-dereference warning.
 3. Review labeled findings across several real applications before recommending
    CI enforcement; the Petclinic findings have not all been triaged.
 4. Observe a real developer following the README unaided and collecting feedback.
+
+## Follow-up — 2026-10-16
+
+The Central installation blocker is now resolved: published 1.0.0 was installed
+and executed using an initially empty local Maven cache. Improvements under
+1.0.1-SNAPSHOT and the expanded three-project labeled comparison are documented
+in [the real-project review](evaluation/real-project-review.md).
+Human observation remains pending; [recruitment and feedback materials](usability/README.md)
+are prepared for LinkedIn volunteers. The original walkthrough above remains
+historical evidence, not a current statement that publication is blocked.

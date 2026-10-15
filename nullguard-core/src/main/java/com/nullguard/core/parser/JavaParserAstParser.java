@@ -75,6 +75,16 @@ public final class JavaParserAstParser implements AstParser {
                     .sorted(Comparator.comparing(Path::toString))
                     .collect(Collectors.toList());
 
+            java.util.Map<String, Boolean> packageDefaults = new java.util.HashMap<>();
+            for (Path info : javaFiles) {
+                if (!info.getFileName().toString().equals("package-info.java")) continue;
+                environment.parser().parse(info).getResult().ifPresent(cu -> cu.getPackageDeclaration().ifPresent(pkg -> {
+                    boolean marked = qualifiedAnnotation(pkg, "org.jspecify.annotations.NullMarked")
+                            || qualifiedAnnotation(pkg, "org.springframework.lang.NonNullApi");
+                    if (qualifiedAnnotation(pkg, "org.jspecify.annotations.NullUnmarked")) marked = false;
+                    packageDefaults.put(pkg.getNameAsString(), marked);
+                }));
+            }
             for (Path path : javaFiles) {
                 var result = environment.parser().parse(path);
                 if (result.getResult().isEmpty()) {
@@ -96,7 +106,7 @@ public final class JavaParserAstParser implements AstParser {
                                             (ClassOrInterfaceDeclaration type) -> sourcePosition(type))
                                     .thenComparing(ClassOrInterfaceDeclaration::getNameAsString))
                             .forEach(type -> packageBuilder.addClass(
-                                    buildClass(type, packageName, cfgBuilder, normalizedRoot.relativize(path))));
+                                    buildClass(type, packageName, cfgBuilder, normalizedRoot.relativize(path), packageDefaults.getOrDefault(packageName, false))));
                 });
             }
         } catch (IOException e) {
@@ -110,7 +120,7 @@ public final class JavaParserAstParser implements AstParser {
 
     private ClassModel buildClass(ClassOrInterfaceDeclaration declaration,
                                   String packageName,
-                                  BasicControlFlowBuilder cfgBuilder, Path sourcePath) {
+                                  BasicControlFlowBuilder cfgBuilder, Path sourcePath, boolean packageDefault) {
         String fallbackQualifiedName = packageName + "." + declaration.getNameAsString();
         ClassModel.Builder classBuilder = ClassModel.builder()
                 .className(declaration.getNameAsString())
@@ -138,11 +148,12 @@ public final class JavaParserAstParser implements AstParser {
         // also includes methods of nested classes and duplicated them in their enclosing class.
         declaration.getMethods().stream()
                 .sorted(Comparator.comparing(method -> method.getSignature().asString()))
-                .forEach(method -> classBuilder.addMethod(buildMethod(method, cfgBuilder, sourcePath)));
+                .forEach(method -> classBuilder.addMethod(buildMethod(method, cfgBuilder, sourcePath, nonNullFields(declaration), packageDefault)));
         return classBuilder.build();
     }
 
-    private MethodModel buildMethod(MethodDeclaration method, BasicControlFlowBuilder cfgBuilder, Path sourcePath) {
+    private MethodModel buildMethod(MethodDeclaration method, BasicControlFlowBuilder cfgBuilder, Path sourcePath, Set<String> fields, boolean packageDefault) {
+        boolean defaultNonNull = defaultNonNull(method, packageDefault);
         ControlFlowModel cfg = null;
         try {
             if (method.getBody().isPresent()) cfg = cfgBuilder.build(method);
@@ -159,10 +170,11 @@ public final class JavaParserAstParser implements AstParser {
         return MethodModel.builder()
                 .sourceLocation(method.getRange().map(r -> new com.nullguard.core.model.SourceLocation(
                         sourcePath.toString().replace('\\', '/'), r.begin.line, r.begin.column, r.end.line, r.end.column)).orElse(null))
+                .nonNullFields(fields)
                 .parameters(method.getParameters().stream().map(p -> new com.nullguard.core.model.ParameterModel(
-                        p.getNameAsString(), p.getType().isPrimitiveType(), hasAnnotation(p, "NonNull", "NotNull", "Nonnull"),
+                        p.getNameAsString(), p.getType().isPrimitiveType(), !hasAnnotation(p, "Nullable", "CheckForNull") && (hasAnnotation(p, "NonNull", "NotNull", "Nonnull") || (defaultNonNull && defaultApplies(p.getType(), method))),
                         hasAnnotation(p, "Nullable", "CheckForNull"))).toList())
-                .nonNullReturn(hasAnnotation(method, "NonNull", "NotNull", "Nonnull"))
+                .nonNullReturn(!hasAnnotation(method, "Nullable", "CheckForNull") && (hasAnnotation(method, "NonNull", "NotNull", "Nonnull") || (defaultNonNull && defaultApplies(method.getType(), method))))
                 .primitiveReturn(method.getType().isPrimitiveType())
                 .nullableReturn(hasAnnotation(method, "Nullable", "CheckForNull"))
                 .methodName(method.getNameAsString())
@@ -200,8 +212,56 @@ public final class JavaParserAstParser implements AstParser {
         return List.copyOf(semanticCalls);
     }
 
+    /** Only stable fields with syntactically definite initializers are seeded. */
+    private static Set<String> nonNullFields(ClassOrInterfaceDeclaration owner) {
+        Set<String> names = new LinkedHashSet<>();
+        owner.getFields().stream().filter(f -> f.isFinal()).forEach(f -> f.getVariables().forEach(v ->
+                v.getInitializer().filter(e -> e.isObjectCreationExpr() || e.isArrayCreationExpr()
+                        || (e.isLiteralExpr() && !e.isNullLiteralExpr())).ifPresent(e -> names.add(v.getNameAsString()))));
+        return names;
+    }
+
+    private static boolean defaultNonNull(MethodDeclaration method, boolean packageDefault) {
+        com.github.javaparser.ast.Node scope = method;
+        while (scope != null) {
+            if (scope instanceof com.github.javaparser.ast.nodeTypes.NodeWithAnnotations<?> annotated) {
+                if (qualifiedAnnotation(annotated, "org.jspecify.annotations.NullUnmarked")) return false;
+                if (qualifiedAnnotation(annotated, "org.jspecify.annotations.NullMarked")) return true;
+            }
+            scope = scope.getParentNode().orElse(null);
+        }
+        return packageDefault;
+    }
+
+    private static boolean qualifiedAnnotation(com.github.javaparser.ast.nodeTypes.NodeWithAnnotations<?> node, String qualified) {
+        return node.getAnnotations().stream().anyMatch(a -> {
+            String written = a.getNameAsString();
+            if (written.equals(qualified)) return true;
+            if (written.contains(".")) return false;
+            return a.findCompilationUnit().map(cu -> cu.getImports().stream().anyMatch(i -> !i.isStatic()
+                    && ((!i.isAsterisk() && i.getNameAsString().equals(qualified))
+                    || (i.isAsterisk() && (i.getNameAsString() + "." + written).equals(qualified))))) .orElse(false);
+        });
+    }
+
+    private static boolean defaultApplies(com.github.javaparser.ast.type.Type type, MethodDeclaration method) {
+        if (!type.isClassOrInterfaceType()) return true;
+        String name = type.asClassOrInterfaceType().getNameAsString();
+        com.github.javaparser.ast.Node scope = method;
+        while (scope != null) {
+            if (scope instanceof com.github.javaparser.ast.nodeTypes.NodeWithTypeParameters<?> generic
+                    && generic.getTypeParameters().stream().anyMatch(p -> p.getNameAsString().equals(name))) return false;
+            scope = scope.getParentNode().orElse(null);
+        }
+        return true;
+    }
+
     private static boolean hasAnnotation(com.github.javaparser.ast.nodeTypes.NodeWithAnnotations<?> node, String... names) {
-        return node.getAnnotations().stream().anyMatch(a -> java.util.Arrays.asList(names).contains(a.getName().getIdentifier()));
+        var annotations = new java.util.ArrayList<>(node.getAnnotations());
+        // Read only the root type's annotations, not annotations on generic elements.
+        if (node instanceof MethodDeclaration method) annotations.addAll(method.getType().getAnnotations());
+        if (node instanceof com.github.javaparser.ast.body.Parameter parameter) annotations.addAll(parameter.getType().getAnnotations());
+        return annotations.stream().anyMatch(a -> java.util.Arrays.asList(names).contains(a.getName().getIdentifier()));
     }
 
     private ParserEnvironment createParser(Path projectRoot) throws IOException {

@@ -19,6 +19,8 @@ public final class ExpressionNullability {
     public static NullState evaluate(Expression expression, Map<String, NullState> state, Map<String, NullState> returns) {
         if (expression instanceof NullLiteralExpr) return NullState.NULL;
         if (expression instanceof NameExpr name) return state.getOrDefault(name.getNameAsString(), NullState.UNKNOWN);
+        if (expression instanceof FieldAccessExpr field && field.getScope().isThisExpr())
+            return state.getOrDefault(field.toString(), NullState.UNKNOWN);
         if (expression instanceof EnclosedExpr enclosed) return evaluate(enclosed.getInner(), state, returns);
         if (expression instanceof CastExpr cast) return evaluate(cast.getExpression(), state, returns);
         if (expression instanceof ConditionalExpr conditional)

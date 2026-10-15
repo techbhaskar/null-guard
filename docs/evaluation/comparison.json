@@ -1,0 +1,26 @@
+[
+  {
+    "project": "petclinic",
+    "repository": "https://github.com/spring-projects/spring-petclinic",
+    "commit": "500158f732419217507c7656904b8e6aa1bcc0d6",
+    "baseline": 177,
+    "development": 161,
+    "new_findings": 0
+  },
+  {
+    "project": "rest-service",
+    "repository": "https://github.com/spring-guides/gs-rest-service",
+    "commit": "3f4cef01152596c19bc4d37939409358812b1421",
+    "baseline": 2,
+    "development": 0,
+    "new_findings": 0
+  },
+  {
+    "project": "data-jpa",
+    "repository": "https://github.com/spring-guides/gs-accessing-data-jpa",
+    "commit": "ef48947528dba9021776282e12299e5298e66bca",
+    "baseline": 9,
+    "development": 9,
+    "new_findings": 0
+  }
+]

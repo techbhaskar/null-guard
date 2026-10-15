@@ -35,6 +35,7 @@ public final class MethodModel {
     private Object nullAnalysisModel;
     private final SourceLocation sourceLocation;
     private final List<ParameterModel> parameters;
+    private final java.util.Set<String> nonNullFields;
     private final boolean nonNullReturn;
     private final boolean nullableReturn;
     private final boolean primitiveReturn;
@@ -67,6 +68,7 @@ public final class MethodModel {
         this.nullAnalysisModel = builder.nullAnalysisModel;
         this.sourceLocation = builder.sourceLocation;
         this.parameters = List.copyOf(builder.parameters);
+        this.nonNullFields = java.util.Set.copyOf(builder.nonNullFields);
         this.nonNullReturn = builder.nonNullReturn;
         this.nullableReturn = builder.nullableReturn;
         this.primitiveReturn = builder.primitiveReturn;
@@ -83,6 +85,7 @@ public final class MethodModel {
     public String getSignature()  { return signature; }
     public Optional<SourceLocation> getSourceLocation() { return Optional.ofNullable(sourceLocation); }
     public List<ParameterModel> getParameters() { return parameters; }
+    public java.util.Set<String> getNonNullFields() { return nonNullFields; }
     public boolean isNonNullReturn() { return nonNullReturn; }
     public boolean isNullableReturn() { return nullableReturn; }
     public boolean isPrimitiveReturn() { return primitiveReturn; }
@@ -125,6 +128,7 @@ public final class MethodModel {
         private Object nullAnalysisModel;
         private SourceLocation sourceLocation;
         private List<ParameterModel> parameters = List.of();
+        private java.util.Set<String> nonNullFields = java.util.Set.of();
         private boolean nonNullReturn;
         private boolean nullableReturn;
         private boolean primitiveReturn;
@@ -144,6 +148,7 @@ public final class MethodModel {
         public Builder nullAnalysisModel(Object m)             { this.nullAnalysisModel = m; return this; }
         public Builder sourceLocation(SourceLocation location) { this.sourceLocation = location; return this; }
         public Builder parameters(List<ParameterModel> values) { this.parameters = List.copyOf(values); return this; }
+        public Builder nonNullFields(java.util.Set<String> values) { this.nonNullFields = java.util.Set.copyOf(values); return this; }
         public Builder nonNullReturn(boolean value) { this.nonNullReturn = value; return this; }
         public Builder nullableReturn(boolean value) { this.nullableReturn = value; return this; }
         public Builder primitiveReturn(boolean value) { this.primitiveReturn = value; return this; }

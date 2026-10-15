@@ -1,6 +1,7 @@
 # Publishing to Maven Central
 
-Publication is not yet complete. The `central-release` Maven profile attaches
+Version `1.0.0` is published and its plugin was installed from Central using an
+empty Maven cache on 2026-10-16. Current development is `1.0.1-SNAPSHOT`. The `central-release` Maven profile attaches
 sources and Javadoc, signs artifacts, uploads the reactor bundle, and waits for
 Central to confirm publication.
 
@@ -18,11 +19,11 @@ Central to confirm publication.
 
 ## Release
 
-The reactor is prepared as `com.arinits.nullguard:…:1.0.0`. For a future release,
+The reactor is currently `com.arinits.nullguard:…:1.0.1-SNAPSHOT`. For a future release,
 update all reactor parent references:
 
 ```sh
-mvn org.codehaus.mojo:versions-maven-plugin:2.19.1:set -DnewVersion=1.0.0 -DgenerateBackupPoms=false
+mvn org.codehaus.mojo:versions-maven-plugin:2.19.1:set -DnewVersion=1.0.1 -DgenerateBackupPoms=false
 ```
 
 Update README commands and scripts containing the old version, run the normal
@@ -93,5 +94,5 @@ The namespace `com.arinits.nullguard` was not allowed while the owning
 `com.arinits` namespace was pending verification. Central also reported missing
 module names and public-key lookup failures. Explicit module names have been
 added and the public signing key was re-uploaded to Ubuntu's keyserver.
-No release has been published. Retry only after `com.arinits` shows Verified
+At the time of this failed attempt, no release had been published. Retries required that `com.arinits` shows Verified
 in the account that owns the publishing token.
