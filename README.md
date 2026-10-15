@@ -12,7 +12,7 @@ It is intended to answer questions that are difficult to answer with a method-le
 
 NullGuard performs static analysis only. It does not instrument or run the analyzed application.
 
-> **Project status:** the current version is `1.0-SNAPSHOT` and is built from source. The artifacts are not yet published to Maven Central.
+> **Project status:** release `1.0.0` is prepared and is built from source. The artifacts are not yet published to Maven Central. See [publishing setup](docs/publishing.md).
 
 ## Why use NullGuard in microservices?
 
@@ -92,6 +92,26 @@ java -version
 mvn -version
 ```
 
+## First run
+
+Until the Central release is available, build and install NullGuard from source
+using the commands below. Then, from your Java service directory, run:
+
+```bash
+mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.0:analyze -Dnullguard.failBuild=false
+```
+
+Open `target/nullguard/nullguard-dashboard-latest.html`. For individual warnings
+and file/line locations, inspect `target/nullguard/nullguard-results.sarif` or the
+`findings` array in `target/nullguard/nullguard-report-latest.json`.
+Review those findings even when the project grade is A or there are no hotspots:
+the build gate uses architectural hotspot severity, not every null warning.
+Framework contracts and initialized-field getters can still produce false
+positives. Start in report-only mode before enabling a build gate.
+
+See [the first-time developer evaluation](docs/developer-onboarding-evaluation.md)
+for tested behavior and current blockers.
+
 ## Build and test NullGuard
 
 Clone and verify the complete multi-module project:
@@ -105,10 +125,10 @@ mvn clean verify
 The build runs all module tests and creates the standalone CLI at:
 
 ```text
-nullguard-cli/target/nullguard-cli-1.0-SNAPSHOT-jar-with-dependencies.jar
+nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar
 ```
 
-Install the snapshot into your local Maven repository before using the Maven plugin from another project:
+Install the release into your local Maven repository before using the Maven plugin from another project:
 
 ```bash
 mvn clean install
@@ -123,13 +143,13 @@ The Maven plugin is the simplest and most accurate way to analyze a Maven-based 
 After installing NullGuard locally, run this command from the Java service you want to analyze:
 
 ```bash
-mvn com.nullguard:nullguard-maven-plugin:1.0-SNAPSHOT:analyze
+mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.0:analyze
 ```
 
 To analyze one NullGuard module as a smoke test:
 
 ```bash
-mvn -f nullguard-core/pom.xml com.nullguard:nullguard-maven-plugin:1.0-SNAPSHOT:analyze -Dnullguard.failBuild=false
+mvn -f nullguard-core/pom.xml com.arinits.nullguard:nullguard-maven-plugin:1.0.0:analyze -Dnullguard.failBuild=false
 ```
 
 ### Add it to a service build
@@ -140,9 +160,9 @@ Add the plugin to the target service's `pom.xml`:
 <build>
     <plugins>
         <plugin>
-            <groupId>com.nullguard</groupId>
+            <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-maven-plugin</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0.0</version>
             <executions>
                 <execution>
                     <id>nullguard-analysis</id>
@@ -200,13 +220,13 @@ Use the CLI for local exploration, scripts, or source trees that are not being i
 From the NullGuard repository:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.0-SNAPSHOT-jar-with-dependencies.jar path/to/service/src/main/java
+java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar path/to/service/src/main/java
 ```
 
 Choose a report directory and enable a CI-style failure policy:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.0-SNAPSHOT-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar \
   path/to/service/src/main/java \
   --output=build/nullguard \
   --fail-build \
@@ -216,7 +236,7 @@ java -jar nullguard-cli/target/nullguard-cli-1.0-SNAPSHOT-jar-with-dependencies.
 PowerShell uses a backtick for line continuation:
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.0-SNAPSHOT-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   --output=C:\work\orders-service\target\nullguard `
   --fail-build `
@@ -228,13 +248,13 @@ java -jar nullguard-cli/target/nullguard-cli-1.0-SNAPSHOT-jar-with-dependencies.
 For best results, supply the service's compiled classes and dependency JARs with `--classpath`. Entries use the operating system's path separator: `;` on Windows and `:` on Linux/macOS.
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.0-SNAPSHOT-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   "--classpath=C:\work\orders-service\target\classes;C:\libs\shared-contracts.jar"
 ```
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.0-SNAPSHOT-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-1.0.0-jar-with-dependencies.jar \
   /work/orders-service/src/main/java \
   --classpath=/work/orders-service/target/classes:/work/libs/shared-contracts.jar
 ```
@@ -427,7 +447,7 @@ python scripts/validate_sarif.py nullguard-cli/target/ci-reports/nullguard-resul
 Run the checked-in sample service after installing NullGuard:
 
 ```bash
-mvn -f examples/orders-service/pom.xml com.nullguard:nullguard-maven-plugin:1.0-SNAPSHOT:analyze -Dnullguard.failBuild=true -Dnullguard.failThreshold=HIGH
+mvn -f examples/orders-service/pom.xml com.arinits.nullguard:nullguard-maven-plugin:1.0.0:analyze -Dnullguard.failBuild=true -Dnullguard.failThreshold=HIGH
 ```
 
 This intentionally risky fixture should fail the gate while writing reports. It uses minimal annotation stand-ins for testing source analysis, rather than running an HTTP server.
@@ -505,7 +525,7 @@ mvn clean install
 Then use the fully qualified goal from the target project:
 
 ```bash
-mvn com.nullguard:nullguard-maven-plugin:1.0-SNAPSHOT:analyze
+mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.0:analyze
 ```
 
 ### The build fails after enabling NullGuard

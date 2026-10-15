@@ -2,33 +2,34 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.nullguard</groupId>
+        <groupId>com.arinits.nullguard</groupId>
         <artifactId>nullguard-parent</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
     <artifactId>nullguard-suggestions</artifactId>
+    <name>nullguard-suggestions</name>
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
     </properties>
     <dependencies>
         <dependency>
-            <groupId>com.nullguard</groupId>
+            <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.nullguard</groupId>
+            <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-analysis</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.nullguard</groupId>
+            <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-callgraph</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.nullguard</groupId>
+            <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-scoring</artifactId>
             <version>${project.version}</version>
         </dependency>

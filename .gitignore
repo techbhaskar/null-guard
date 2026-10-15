@@ -20,3 +20,6 @@ nullguard-visualization/target/*
 nullguard-visualization/target/*
 */target/*
 .idea/**
+
+# Root reactor publishing bundles and signatures
+/target/
