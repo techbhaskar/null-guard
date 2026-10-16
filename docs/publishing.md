@@ -1,10 +1,10 @@
-> Release 1.1.0 passed Central validation and is PUBLISHING in deployment
+> Release 1.1.0 is PUBLISHED in deployment
 > `2b11f55c-b7ad-4cd0-a3c2-40bd247760c8`. See [release details](releases/1.1.0.md).
 
 # Publishing to Maven Central
 
 Version `1.0.0` is published and its plugin was installed from Central using an
-empty Maven cache on 2026-10-16. Versions 1.0.0 and 1.0.1 are published. The current reactor release is `1.1.0`. The `central-release` Maven profile attaches
+empty Maven cache on 2026-10-16. Versions 1.0.0, 1.0.1 and 1.1.0 are published. The current reactor release is `1.1.0`. The `central-release` Maven profile attaches
 sources and Javadoc, signs artifacts, uploads the reactor bundle, and waits for
 Central to confirm publication.
 
@@ -109,3 +109,9 @@ use the local GPG agent. Combine the versioned artifact files from both staging
 directories, excluding Maven metadata, verify signatures, generate checksums and
 upload a single bundle through the Central Publisher API with automatic publishing.
 The 1.0.1 release followed this combined process; no artifact was uploaded twice.
+
+## GitHub distribution
+
+The [GitHub release page](https://github.com/techbhaskar/null-guard/releases/tag/v1.1.0)
+contains the signed CLI download. GitHub Packages is a separate Maven registry
+mirror; see [setup and authentication](github-packages.md).

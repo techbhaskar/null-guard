@@ -1,8 +1,8 @@
 # NullGuard for Gradle
 
-Release `1.1.0` passed Central validation and is publishing. Version 1.0.1
-is already published. The setup below uses the new version once Central confirms
-it. The integration resolves the CLI and its runtime dependencies separately.
+Release `1.1.0` is published on Maven Central. The integration resolves the CLI
+and its runtime dependencies separately. An authenticated GitHub Packages mirror
+is also available; see [registry setup](../docs/github-packages.md).
 
 ## Install from Maven Central
 
