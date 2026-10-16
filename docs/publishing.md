@@ -1,3 +1,6 @@
+> Release 1.1.0 passed Central validation and is PUBLISHING in deployment
+> `2b11f55c-b7ad-4cd0-a3c2-40bd247760c8`. See [release details](releases/1.1.0.md).
+
 # Publishing to Maven Central
 
 Version `1.0.0` is published and its plugin was installed from Central using an

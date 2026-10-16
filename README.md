@@ -12,7 +12,7 @@ It is intended to answer questions that are difficult to answer with a method-le
 
 NullGuard performs static analysis only. It does not instrument or run the analyzed application.
 
-> **Release status:** `1.0.1` is published on Maven Central. `1.1.0` is being prepared with null-analysis corrections, OpenAPI generation, static-analysis rules and CVE reporting.
+> **Release status:** `1.0.1` is published on Maven Central. `1.1.0` passed Central validation and is publishing with null-analysis corrections, OpenAPI generation, static-analysis rules and CVE reporting.
 
 ## Developer guide
 
@@ -25,7 +25,7 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 - [CI adoption](#suggested-ci-adoption)
 - [Troubleshooting](#troubleshooting)
 
-Examples below target **1.1.0**, currently being prepared for publication. Use
+Examples below target **1.1.0**, currently publishing after Central validation. Use
 published 1.0.1 until Central confirms the new release. Local/composite setup is
 available in [the integration guide](nullguard-gradle-plugin/README.md).
 
