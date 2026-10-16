@@ -70,7 +70,7 @@ progress::-webkit-progress-value { background: var(--primary); border-radius: 3p
     <a onclick="show('raw')" class='nav-item' id='nav-raw'>JSON Telemetry</a>
   </nav>
   <div style='margin-top:auto; font-size:0.75rem; color:var(--text-muted);'>
-    Analysis: 20261009_060525<br>Project: orders-service-fixture
+    Analysis: 20261016_061802<br>Project: orders-service-fixture
   </div>
 </aside>
 
@@ -114,6 +114,277 @@ progress::-webkit-progress-value { background: var(--primary); border-radius: 3p
   },
   "graph" : {
     "nodes" : {
+      "sample.OrderController#getTwo()" : {
+        "methodId" : "sample.OrderController#getTwo()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#goodConsumption()" : {
+        "methodId" : "sample.ContractExamples#goodConsumption()",
+        "intrinsicRisk" : 25.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 29.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#requireNonNullGuard(String)" : {
+        "methodId" : "sample.ContractExamples#requireNonNullGuard(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#nullable()" : {
+        "methodId" : "sample.ContractExamples#nullable()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#aliasBadArgument()" : {
+        "methodId" : "sample.ContractExamples#aliasBadArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 5.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#guardedArgument(String)" : {
+        "methodId" : "sample.ContractExamples#guardedArgument(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getFive()" : {
+        "methodId" : "sample.OrderController#getFive()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#guardedParameter(String)" : {
+        "methodId" : "sample.ContractExamples#guardedParameter(String)",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#constant()" : {
+        "methodId" : "sample.ContractExamples#constant()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#primitive(int)" : {
+        "methodId" : "sample.ContractExamples#primitive(int)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getThree()" : {
+        "methodId" : "sample.OrderController#getThree()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ShadowServices.Risky#load()" : {
+        "methodId" : "sample.ShadowServices.Risky#load()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getFour()" : {
+        "methodId" : "sample.OrderController#getFour()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#goodArgument()" : {
+        "methodId" : "sample.ContractExamples#goodArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "ext#java.util.Objects#requireNonNull(T)" : {
+        "methodId" : "ext#java.util.Objects#requireNonNull(T)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ ]
+      },
+      "ext#java.lang.Integer#parseInt(java.lang.String)" : {
+        "methodId" : "ext#java.lang.Integer#parseInt(java.lang.String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#required(String)" : {
+        "methodId" : "sample.ContractExamples#required(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#chainedBadConsumption()" : {
+        "methodId" : "sample.ContractExamples#chainedBadConsumption()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 34.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#unsafeParameter(String)" : {
+        "methodId" : "sample.ContractExamples#unsafeParameter(String)",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 35.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getOne()" : {
+        "methodId" : "sample.OrderController#getOne()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.Services.Risky#load()" : {
+        "methodId" : "sample.Services.Risky#load()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 76.5,
+        "apiExposureWeight" : 100.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL"
+        } ]
+      },
       "sample.ContractExamples#chainedGoodConsumption()" : {
         "methodId" : "sample.ContractExamples#chainedGoodConsumption()",
         "intrinsicRisk" : 10.0,
@@ -230,277 +501,6 @@ progress::-webkit-progress-value { background: var(--primary); border-radius: 3p
         "riskLevel" : "LOW",
         "external" : false,
         "impactMap" : [ ]
-      },
-      "sample.OrderController#getTwo()" : {
-        "methodId" : "sample.OrderController#getTwo()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getTwo()" ],
-          "entryPoint" : "sample.OrderController#getTwo()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.ContractExamples#goodConsumption()" : {
-        "methodId" : "sample.ContractExamples#goodConsumption()",
-        "intrinsicRisk" : 25.0,
-        "propagatedRisk" : 4.25,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 29.25,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#requireNonNullGuard(String)" : {
-        "methodId" : "sample.ContractExamples#requireNonNullGuard(String)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#nullable()" : {
-        "methodId" : "sample.ContractExamples#nullable()",
-        "intrinsicRisk" : 10.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 10.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#aliasBadArgument()" : {
-        "methodId" : "sample.ContractExamples#aliasBadArgument()",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 5.0,
-        "adjustedRisk" : 5.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#guardedArgument(String)" : {
-        "methodId" : "sample.ContractExamples#guardedArgument(String)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.OrderController#getFive()" : {
-        "methodId" : "sample.OrderController#getFive()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getFive()" ],
-          "entryPoint" : "sample.OrderController#getFive()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.ContractExamples#guardedParameter(String)" : {
-        "methodId" : "sample.ContractExamples#guardedParameter(String)",
-        "intrinsicRisk" : 10.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 10.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#constant()" : {
-        "methodId" : "sample.ContractExamples#constant()",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#primitive(int)" : {
-        "methodId" : "sample.ContractExamples#primitive(int)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.OrderController#getThree()" : {
-        "methodId" : "sample.OrderController#getThree()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getThree()" ],
-          "entryPoint" : "sample.OrderController#getThree()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.ShadowServices.Risky#load()" : {
-        "methodId" : "sample.ShadowServices.Risky#load()",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.OrderController#getFour()" : {
-        "methodId" : "sample.OrderController#getFour()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getFour()" ],
-          "entryPoint" : "sample.OrderController#getFour()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.ContractExamples#goodArgument()" : {
-        "methodId" : "sample.ContractExamples#goodArgument()",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "ext#java.util.Objects#requireNonNull(T)" : {
-        "methodId" : "ext#java.util.Objects#requireNonNull(T)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : true,
-        "impactMap" : [ ]
-      },
-      "ext#java.lang.Integer#parseInt(java.lang.String)" : {
-        "methodId" : "ext#java.lang.Integer#parseInt(java.lang.String)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : true,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#required(String)" : {
-        "methodId" : "sample.ContractExamples#required(String)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#chainedBadConsumption()" : {
-        "methodId" : "sample.ContractExamples#chainedBadConsumption()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 4.25,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 34.25,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#unsafeParameter(String)" : {
-        "methodId" : "sample.ContractExamples#unsafeParameter(String)",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 5.0,
-        "adjustedRisk" : 35.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.OrderController#getOne()" : {
-        "methodId" : "sample.OrderController#getOne()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getOne()" ],
-          "entryPoint" : "sample.OrderController#getOne()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.Services.Risky#load()" : {
-        "methodId" : "sample.Services.Risky#load()",
-        "intrinsicRisk" : 10.0,
-        "propagatedRisk" : 76.5,
-        "apiExposureWeight" : 100.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
-          "entryPoint" : "sample.OrderController#getFive()",
-          "severity" : "CRITICAL"
-        }, {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
-          "entryPoint" : "sample.OrderController#getFour()",
-          "severity" : "CRITICAL"
-        }, {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
-          "entryPoint" : "sample.OrderController#getOne()",
-          "severity" : "CRITICAL"
-        }, {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
-          "entryPoint" : "sample.OrderController#getThree()",
-          "severity" : "CRITICAL"
-        }, {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
-          "entryPoint" : "sample.OrderController#getTwo()",
-          "severity" : "CRITICAL"
-        } ]
       }
     },
     "edges" : [ {
@@ -669,18 +669,6 @@ progress::-webkit-progress-value { background: var(--primary); border-radius: 3p
       "endColumn" : 63
     }
   }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getFive()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 14,
-      "startColumn" : 59,
-      "endLine" : 14,
-      "endColumn" : 80
-    }
-  }, {
     "ruleId" : "NG101",
     "severity" : "note",
     "methodId" : "sample.OrderController#getFive()",
@@ -703,18 +691,6 @@ progress::-webkit-progress-value { background: var(--primary); border-radius: 3p
       "startColumn" : 5,
       "endLine" : 14,
       "endColumn" : 82
-    }
-  }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getFour()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 13,
-      "startColumn" : 59,
-      "endLine" : 13,
-      "endColumn" : 80
     }
   }, {
     "ruleId" : "NG101",
@@ -741,18 +717,6 @@ progress::-webkit-progress-value { background: var(--primary); border-radius: 3p
       "endColumn" : 82
     }
   }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getOne()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 10,
-      "startColumn" : 57,
-      "endLine" : 10,
-      "endColumn" : 78
-    }
-  }, {
     "ruleId" : "NG101",
     "severity" : "note",
     "methodId" : "sample.OrderController#getOne()",
@@ -775,18 +739,6 @@ progress::-webkit-progress-value { background: var(--primary); border-radius: 3p
       "startColumn" : 5,
       "endLine" : 10,
       "endColumn" : 80
-    }
-  }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getThree()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 12,
-      "startColumn" : 61,
-      "endLine" : 12,
-      "endColumn" : 82
     }
   }, {
     "ruleId" : "NG101",
@@ -811,18 +763,6 @@ progress::-webkit-progress-value { background: var(--primary); border-radius: 3p
       "startColumn" : 5,
       "endLine" : 12,
       "endColumn" : 84
-    }
-  }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getTwo()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 11,
-      "startColumn" : 57,
-      "endLine" : 11,
-      "endColumn" : 78
     }
   }, {
     "ruleId" : "NG101",
@@ -1132,6 +1072,277 @@ const data = Object.assign({}, {
   },
   "graph" : {
     "nodes" : {
+      "sample.OrderController#getTwo()" : {
+        "methodId" : "sample.OrderController#getTwo()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#goodConsumption()" : {
+        "methodId" : "sample.ContractExamples#goodConsumption()",
+        "intrinsicRisk" : 25.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 29.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#requireNonNullGuard(String)" : {
+        "methodId" : "sample.ContractExamples#requireNonNullGuard(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#nullable()" : {
+        "methodId" : "sample.ContractExamples#nullable()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#aliasBadArgument()" : {
+        "methodId" : "sample.ContractExamples#aliasBadArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 5.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#guardedArgument(String)" : {
+        "methodId" : "sample.ContractExamples#guardedArgument(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getFive()" : {
+        "methodId" : "sample.OrderController#getFive()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#guardedParameter(String)" : {
+        "methodId" : "sample.ContractExamples#guardedParameter(String)",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 10.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#constant()" : {
+        "methodId" : "sample.ContractExamples#constant()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#primitive(int)" : {
+        "methodId" : "sample.ContractExamples#primitive(int)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getThree()" : {
+        "methodId" : "sample.OrderController#getThree()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ShadowServices.Risky#load()" : {
+        "methodId" : "sample.ShadowServices.Risky#load()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getFour()" : {
+        "methodId" : "sample.OrderController#getFour()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.ContractExamples#goodArgument()" : {
+        "methodId" : "sample.ContractExamples#goodArgument()",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "ext#java.util.Objects#requireNonNull(T)" : {
+        "methodId" : "ext#java.util.Objects#requireNonNull(T)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ ]
+      },
+      "ext#java.lang.Integer#parseInt(java.lang.String)" : {
+        "methodId" : "ext#java.lang.Integer#parseInt(java.lang.String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : true,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#required(String)" : {
+        "methodId" : "sample.ContractExamples#required(String)",
+        "intrinsicRisk" : 0.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 0.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#chainedBadConsumption()" : {
+        "methodId" : "sample.ContractExamples#chainedBadConsumption()",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 4.25,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 34.25,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.ContractExamples#unsafeParameter(String)" : {
+        "methodId" : "sample.ContractExamples#unsafeParameter(String)",
+        "intrinsicRisk" : 30.0,
+        "propagatedRisk" : 0.0,
+        "apiExposureWeight" : 0.0,
+        "contractPenalty" : 5.0,
+        "adjustedRisk" : 35.0,
+        "riskLevel" : "LOW",
+        "external" : false,
+        "impactMap" : [ ]
+      },
+      "sample.OrderController#getOne()" : {
+        "methodId" : "sample.OrderController#getOne()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 73.52499999999999,
+        "apiExposureWeight" : 57.89511825626943,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL (Entry Point)"
+        } ]
+      },
+      "sample.Services.Risky#load()" : {
+        "methodId" : "sample.Services.Risky#load()",
+        "intrinsicRisk" : 10.0,
+        "propagatedRisk" : 76.5,
+        "apiExposureWeight" : 100.0,
+        "contractPenalty" : 0.0,
+        "adjustedRisk" : 100.0,
+        "riskLevel" : "CRITICAL",
+        "external" : false,
+        "impactMap" : [ {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
+          "entryPoint" : "sample.OrderController#getFive()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
+          "entryPoint" : "sample.OrderController#getFour()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
+          "entryPoint" : "sample.OrderController#getOne()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
+          "entryPoint" : "sample.OrderController#getThree()",
+          "severity" : "CRITICAL"
+        }, {
+          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
+          "entryPoint" : "sample.OrderController#getTwo()",
+          "severity" : "CRITICAL"
+        } ]
+      },
       "sample.ContractExamples#chainedGoodConsumption()" : {
         "methodId" : "sample.ContractExamples#chainedGoodConsumption()",
         "intrinsicRisk" : 10.0,
@@ -1248,277 +1459,6 @@ const data = Object.assign({}, {
         "riskLevel" : "LOW",
         "external" : false,
         "impactMap" : [ ]
-      },
-      "sample.OrderController#getTwo()" : {
-        "methodId" : "sample.OrderController#getTwo()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getTwo()" ],
-          "entryPoint" : "sample.OrderController#getTwo()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.ContractExamples#goodConsumption()" : {
-        "methodId" : "sample.ContractExamples#goodConsumption()",
-        "intrinsicRisk" : 25.0,
-        "propagatedRisk" : 4.25,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 29.25,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#requireNonNullGuard(String)" : {
-        "methodId" : "sample.ContractExamples#requireNonNullGuard(String)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#nullable()" : {
-        "methodId" : "sample.ContractExamples#nullable()",
-        "intrinsicRisk" : 10.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 10.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#aliasBadArgument()" : {
-        "methodId" : "sample.ContractExamples#aliasBadArgument()",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 5.0,
-        "adjustedRisk" : 5.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#guardedArgument(String)" : {
-        "methodId" : "sample.ContractExamples#guardedArgument(String)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.OrderController#getFive()" : {
-        "methodId" : "sample.OrderController#getFive()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getFive()" ],
-          "entryPoint" : "sample.OrderController#getFive()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.ContractExamples#guardedParameter(String)" : {
-        "methodId" : "sample.ContractExamples#guardedParameter(String)",
-        "intrinsicRisk" : 10.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 10.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#constant()" : {
-        "methodId" : "sample.ContractExamples#constant()",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#primitive(int)" : {
-        "methodId" : "sample.ContractExamples#primitive(int)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.OrderController#getThree()" : {
-        "methodId" : "sample.OrderController#getThree()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getThree()" ],
-          "entryPoint" : "sample.OrderController#getThree()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.ShadowServices.Risky#load()" : {
-        "methodId" : "sample.ShadowServices.Risky#load()",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.OrderController#getFour()" : {
-        "methodId" : "sample.OrderController#getFour()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getFour()" ],
-          "entryPoint" : "sample.OrderController#getFour()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.ContractExamples#goodArgument()" : {
-        "methodId" : "sample.ContractExamples#goodArgument()",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "ext#java.util.Objects#requireNonNull(T)" : {
-        "methodId" : "ext#java.util.Objects#requireNonNull(T)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : true,
-        "impactMap" : [ ]
-      },
-      "ext#java.lang.Integer#parseInt(java.lang.String)" : {
-        "methodId" : "ext#java.lang.Integer#parseInt(java.lang.String)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : true,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#required(String)" : {
-        "methodId" : "sample.ContractExamples#required(String)",
-        "intrinsicRisk" : 0.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 0.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#chainedBadConsumption()" : {
-        "methodId" : "sample.ContractExamples#chainedBadConsumption()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 4.25,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 34.25,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.ContractExamples#unsafeParameter(String)" : {
-        "methodId" : "sample.ContractExamples#unsafeParameter(String)",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 0.0,
-        "apiExposureWeight" : 0.0,
-        "contractPenalty" : 5.0,
-        "adjustedRisk" : 35.0,
-        "riskLevel" : "LOW",
-        "external" : false,
-        "impactMap" : [ ]
-      },
-      "sample.OrderController#getOne()" : {
-        "methodId" : "sample.OrderController#getOne()",
-        "intrinsicRisk" : 30.0,
-        "propagatedRisk" : 73.52499999999999,
-        "apiExposureWeight" : 69.31471805599453,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.OrderController#getOne()" ],
-          "entryPoint" : "sample.OrderController#getOne()",
-          "severity" : "CRITICAL (Entry Point)"
-        } ]
-      },
-      "sample.Services.Risky#load()" : {
-        "methodId" : "sample.Services.Risky#load()",
-        "intrinsicRisk" : 10.0,
-        "propagatedRisk" : 76.5,
-        "apiExposureWeight" : 100.0,
-        "contractPenalty" : 0.0,
-        "adjustedRisk" : 100.0,
-        "riskLevel" : "CRITICAL",
-        "external" : false,
-        "impactMap" : [ {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFive()" ],
-          "entryPoint" : "sample.OrderController#getFive()",
-          "severity" : "CRITICAL"
-        }, {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getFour()" ],
-          "entryPoint" : "sample.OrderController#getFour()",
-          "severity" : "CRITICAL"
-        }, {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getOne()" ],
-          "entryPoint" : "sample.OrderController#getOne()",
-          "severity" : "CRITICAL"
-        }, {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getThree()" ],
-          "entryPoint" : "sample.OrderController#getThree()",
-          "severity" : "CRITICAL"
-        }, {
-          "path" : [ "sample.Services.Risky#load()", "sample.OrderController#getTwo()" ],
-          "entryPoint" : "sample.OrderController#getTwo()",
-          "severity" : "CRITICAL"
-        } ]
       }
     },
     "edges" : [ {
@@ -1687,18 +1627,6 @@ const data = Object.assign({}, {
       "endColumn" : 63
     }
   }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getFive()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 14,
-      "startColumn" : 59,
-      "endLine" : 14,
-      "endColumn" : 80
-    }
-  }, {
     "ruleId" : "NG101",
     "severity" : "note",
     "methodId" : "sample.OrderController#getFive()",
@@ -1721,18 +1649,6 @@ const data = Object.assign({}, {
       "startColumn" : 5,
       "endLine" : 14,
       "endColumn" : 82
-    }
-  }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getFour()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 13,
-      "startColumn" : 59,
-      "endLine" : 13,
-      "endColumn" : 80
     }
   }, {
     "ruleId" : "NG101",
@@ -1759,18 +1675,6 @@ const data = Object.assign({}, {
       "endColumn" : 82
     }
   }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getOne()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 10,
-      "startColumn" : 57,
-      "endLine" : 10,
-      "endColumn" : 78
-    }
-  }, {
     "ruleId" : "NG101",
     "severity" : "note",
     "methodId" : "sample.OrderController#getOne()",
@@ -1793,18 +1697,6 @@ const data = Object.assign({}, {
       "startColumn" : 5,
       "endLine" : 10,
       "endColumn" : 80
-    }
-  }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getThree()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 12,
-      "startColumn" : 61,
-      "endLine" : 12,
-      "endColumn" : 82
     }
   }, {
     "ruleId" : "NG101",
@@ -1829,18 +1721,6 @@ const data = Object.assign({}, {
       "startColumn" : 5,
       "endLine" : 12,
       "endColumn" : 84
-    }
-  }, {
-    "ruleId" : "NG001",
-    "severity" : "warning",
-    "methodId" : "sample.OrderController#getTwo()",
-    "message" : "Receiver 'service' may be null",
-    "location" : {
-      "path" : "sample/OrderController.java",
-      "startLine" : 11,
-      "startColumn" : 57,
-      "endLine" : 11,
-      "endColumn" : 78
     }
   }, {
     "ruleId" : "NG101",
@@ -2288,34 +2168,34 @@ const data = Object.assign({}, {
 } ]
 });
 const reasons = {
-  "sample.ContractExamples#chainedGoodConsumption()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
-  "sample.ContractExamples#brokenReturn()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
-  "sample.ContractExamples#badConsumption()": ["Own null-risk: +45.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."],
-  "ext#java.lang.String#trim()": [],
-  "sample.OrderRepository#find()": ["Own null-risk: +90.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
-  "sample.ContractExamples#primitiveExternal()": [],
-  "sample.ContractExamples#badArgument()": ["<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."],
-  "sample.OrderController#getTwo()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.OrderController#getTwo()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
   "sample.ContractExamples#goodConsumption()": ["Own null-risk: +25.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."],
   "sample.ContractExamples#requireNonNullGuard(String)": [],
   "sample.ContractExamples#nullable()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
   "sample.ContractExamples#aliasBadArgument()": [],
   "sample.ContractExamples#guardedArgument(String)": [],
-  "sample.OrderController#getFive()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.OrderController#getFive()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
   "sample.ContractExamples#guardedParameter(String)": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
   "sample.ContractExamples#constant()": [],
   "sample.ContractExamples#primitive(int)": [],
-  "sample.OrderController#getThree()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.OrderController#getThree()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
   "sample.ShadowServices.Risky#load()": [],
-  "sample.OrderController#getFour()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.OrderController#getFour()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
   "sample.ContractExamples#goodArgument()": [],
   "ext#java.util.Objects#requireNonNull(T)": [],
   "ext#java.lang.Integer#parseInt(java.lang.String)": [],
   "sample.ContractExamples#required(String)": [],
   "sample.ContractExamples#chainedBadConsumption()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."],
   "sample.ContractExamples#unsafeParameter(String)": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
-  "sample.OrderController#getOne()": ["Own null-risk: +30.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
-  "sample.Services.Risky#load()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls OrderRepository#find() (+76.50, own null-risk: 90.00)", "💡 Fix: OrderRepository#find() is a known null-risk source (intrinsic: 90.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor OrderRepository#find() to return Optional<T>."]
+  "sample.OrderController#getOne()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls Risky#load() (+73.52, own null-risk: 10.00)", "💡 Fix: Risky#load() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor Risky#load() to return Optional<T>."],
+  "sample.Services.Risky#load()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls OrderRepository#find() (+76.50, own null-risk: 90.00)", "💡 Fix: OrderRepository#find() is a known null-risk source (intrinsic: 90.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor OrderRepository#find() to return Optional<T>."],
+  "sample.ContractExamples#chainedGoodConsumption()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
+  "sample.ContractExamples#brokenReturn()": ["Own null-risk: +10.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
+  "sample.ContractExamples#badConsumption()": ["Own null-risk: +45.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing.", "<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."],
+  "ext#java.lang.String#trim()": [],
+  "sample.OrderRepository#find()": ["Own null-risk: +90.00", "💡 Fix: Return Optional<T> instead of null, annotate parameters with @NonNull, add null-checks on all return paths, and guard any field or parameter that may be null before dereferencing."],
+  "sample.ContractExamples#primitiveExternal()": [],
+  "sample.ContractExamples#badArgument()": ["<- calls ContractExamples#nullable() (+8.50, own null-risk: 10.00)", "💡 Fix: ContractExamples#nullable() is a known null-risk source (intrinsic: 10.00pt). Null-guard its return value before use (e.g. if (result == null) throw / return early), or refactor ContractExamples#nullable() to return Optional<T>."]
 };
 const s = data.summary || {}; const nodes = (data.graph && data.graph.nodes) || {}; const edges = (data.graph && data.graph.edges) || [];
 const inDegree = {}; edges.forEach(e => inDegree[e.to] = (inDegree[e.to]||0)+1);

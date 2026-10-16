@@ -2,6 +2,7 @@ package com.nullguard.cli;
 
 import com.nullguard.bootstrap.EngineBootstrap;
 import com.nullguard.bootstrap.FinalAnalysisResult;
+import com.nullguard.bootstrap.HtmlDashboardRenderer;
 import com.nullguard.bootstrap.NullGuardConfig;
 import com.nullguard.analysis.model.ArchitecturalHotspot;
 import com.nullguard.suggestions.model.Suggestion;
@@ -27,7 +28,7 @@ import java.util.List;
  *     --ext-penalty=&lt;float&gt;         External call penalty multiplier   (default: 1.2)
  *     --convergence=&lt;float&gt;         Fixpoint convergence threshold     (default: 0.001)
  *     --max-iterations=&lt;int&gt;        Maximum fixpoint iterations        (default: 100)
- *     --high-risk-threshold=&lt;int&gt;   High-risk score threshold 0-100   (default: 70)
+ *     --high-risk-threshold=&lt;int&gt;   High-risk score threshold 0-100   (default: 60)
  *     --output=&lt;dir&gt;                Output directory for reports       (default: ./nullguard-out)
  *     --classpath=&lt;paths&gt;           Dependency classpath, separated by the platform path separator
  * </pre>
@@ -172,8 +173,8 @@ public final class NullGuardCliApplication {
 
             printSummary(result);
 
-            // ── Write JSON report ─────────────────────────────────────────────
-            writeReports(result, outputDir);
+            // ── Write JSON, SARIF, DOT, and HTML reports ──────────────────────
+            writeReports(result, outputDir, sourcePath);
 
             // ── Apply fail policy ─────────────────────────────────────────────
             return applyFailPolicy(result, failBuild, failThreshold);
@@ -231,16 +232,23 @@ public final class NullGuardCliApplication {
         System.out.println();
     }
 
-    private void writeReports(FinalAnalysisResult result, Path outputDir) {
+    private void writeReports(FinalAnalysisResult result, Path outputDir, Path sourcePath) {
         try {
             if (!Files.exists(outputDir)) {
                 Files.createDirectories(outputDir);
             }
+            String jsonContent = result.getVisualizations().getJsonGraph();
             Path jsonFile = outputDir.resolve("nullguard-report-latest.json");
-            Files.writeString(jsonFile, result.getVisualizations().getJsonGraph());
+            Files.writeString(jsonFile, jsonContent);
             Path dotFile  = outputDir.resolve("nullguard-graph-latest.dot");
             Files.writeString(dotFile, result.getVisualizations().getDotGraph());
             Files.writeString(outputDir.resolve("nullguard-results.sarif"), result.getVisualizations().getSarif());
+            String timestamp = java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            Path name = sourcePath == null ? null : sourcePath.toAbsolutePath().normalize().getFileName();
+            Path htmlFile = outputDir.resolve("nullguard-dashboard-latest.html");
+            Files.writeString(htmlFile, HtmlDashboardRenderer.render(
+                    result, timestamp, jsonContent, name == null ? "project" : name.toString()));
             System.out.println("Reports written to: " + outputDir.toAbsolutePath());
         } catch (Exception e) {
             System.err.println("[NullGuard] WARNING: Failed to write reports – " + e.getMessage());

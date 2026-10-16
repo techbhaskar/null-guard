@@ -12,6 +12,7 @@ class CliIntegrationTest {
         assertEquals(1, cli.run(new String[] {"../examples/orders-service/src/main/java", "--fail-build", "--fail-threshold=HIGH", "--output=" + output}));
         assertTrue(Files.exists(output.resolve("nullguard-report-latest.json")));
         assertTrue(Files.exists(output.resolve("nullguard-results.sarif")));
+        assertTrue(Files.exists(output.resolve("nullguard-dashboard-latest.html")));
     }
     @Test void reportOnlyModePassesTheSameRiskyService() {
         assertEquals(0, new NullGuardCliApplication().run(new String[] {"../examples/orders-service/src/main/java", "--output=" + output}));

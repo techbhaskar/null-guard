@@ -23,9 +23,9 @@ nullguard-visualization/target/*
 
 # Root reactor publishing bundles and signatures
 **/target/**
-nullguard-suggestions/target/**
-nullguard-visualization/target/**
+/nullguard-suggestions/target/**
+/nullguard-visualization/target/**
 
 # Gradle integration build outputs
 **/.gradle/
-/nullguard-gradle-plugin/build/
+/nullguard-gradle-plugin/build/**

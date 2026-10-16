@@ -460,7 +460,7 @@ If a call cannot be resolved semantically, NullGuard keeps the analysis running 
 
 | Option | Default | Meaning |
 | --- | ---: | --- |
-| `--output=<dir>` | `./nullguard-out` | Directory for generated JSON, SARIF and DOT reports. |
+| `--output=<dir>` | `./nullguard-out` | Directory for generated HTML, JSON, SARIF and DOT reports. |
 | `--classpath=<paths>` | empty | Dependency JARs and class directories separated by the platform path separator. |
 | `--fail-build` | disabled | Return exit code `1` when the severity threshold is breached. |
 | `--fail-threshold=<level>` | `CRITICAL` | Minimum failing hotspot severity: `LOW`, `MODERATE`, `HIGH`, or `CRITICAL`. |
@@ -483,7 +483,7 @@ CLI exit codes:
 
 ### Generate and open an HTML report
 
-HTML generation is automatic for the Maven and Gradle integrations:
+HTML generation is automatic across Maven, Gradle, and the standalone CLI:
 
 | Integration | Generate reports | HTML file to open |
 | --- | --- | --- |
@@ -491,12 +491,9 @@ HTML generation is automatic for the Maven and Gradle integrations:
 | Maven, configured in `verify` | `mvn verify` | `target/nullguard/nullguard-dashboard-latest.html` |
 | Gradle, plugin configured | `./gradlew nullguard` | `build/reports/nullguard/nullguard-dashboard-latest.html` |
 | Gradle, `runOnCheck=true` | `./gradlew check` | `build/reports/nullguard/nullguard-dashboard-latest.html` |
-| Standalone CLI | `java -jar … --output=nullguard-out` | No HTML; CLI writes JSON, SARIF and DOT |
+| Standalone CLI | `java -jar … --output=nullguard-out` | `nullguard-out/nullguard-dashboard-latest.html` |
 
-The raw CLI has no HTML option. Use Maven or the Gradle integration if you want
-a browser report. Maven's dashboard offers overview, API flows, architectural
-hotspots, a method explorer and JSON telemetry. Gradle's offline report offers
-a summary and searchable source-linked finding details; it is not the same UI.
+Maven and the standalone CLI share the interactive dashboard (`HtmlDashboardRenderer`), offering overview, API flows, architectural hotspots, a method explorer and JSON telemetry. Gradle's offline report offers a summary and searchable source-linked finding details.
 
 From the service directory, open the Gradle report with the command for your OS:
 
@@ -554,8 +551,7 @@ build/reports/nullguard/
 dot -Tsvg build/reports/nullguard/nullguard-graph-latest.dot   -o build/reports/nullguard/nullguard-graph-latest.svg
 ```
 
-The standalone CLI writes the JSON, SARIF and DOT files to `--output`, defaulting
-to `nullguard-out/`. It does not generate HTML.
+The standalone CLI writes the HTML, JSON, SARIF and DOT files (`nullguard-dashboard-latest.html`, `nullguard-report-latest.json`, `nullguard-results.sarif`, `nullguard-graph-latest.dot`) to `--output`, defaulting to `nullguard-out/`.
 
 ### Reading the results
 
@@ -704,10 +700,10 @@ NullGuard is a Maven multi-module project with one-way pipeline dependencies and
 | `nullguard-scoring` | Risk models, fixpoint propagation, stability index, grade, and blast-radius metrics. |
 | `nullguard-suggestions` | Remediation rules and deterministic suggestion ranking. |
 | `nullguard-visualization` | Propagation graph construction plus JSON and Graphviz DOT export. |
-| `nullguard-engine` | Shared pipeline assembly, result export and integrity validation, without Maven runtime dependencies. |
-| `nullguard-maven-plugin` | Maven integration, hotspot fail policy and HTML dashboard generation. |
+| `nullguard-engine` | Shared pipeline assembly, result export, HTML dashboard rendering, and integrity validation, without Maven runtime dependencies. |
+| `nullguard-maven-plugin` | Maven integration, hotspot fail policy and report export. |
 | `nullguard-gradle-plugin` | Independent Gradle build: source/classpath wiring, CLI execution and offline HTML generation. |
-| `nullguard-cli` | Standalone command-line entry point and exit-code policy. |
+| `nullguard-cli` | Standalone command-line entry point, report export, and exit-code policy. |
 | `nullguard-coverage` | Combines coverage from module tests and integration tests into one reactor report. |
 
 The runtime pipeline is:
@@ -762,7 +758,7 @@ The current release focuses on source-based Java service analysis.
 - Dependency JARs and class directories improve symbol resolution, but only project source methods receive full source-level analysis.
 - Reflection, dynamic proxies, runtime dependency injection choices, and generated methods may create call paths that static analysis cannot resolve.
 - API discovery currently targets common Spring MVC/JAX-RS conventions and controller/resource naming.
-- The CLI emits JSON, SARIF and DOT. Maven and Gradle integrations generate HTML, with different report UIs.
+- Maven, Gradle, and the CLI all generate HTML, JSON, SARIF and DOT reports (Maven and the CLI share the interactive dashboard UI; Gradle generates a lightweight offline findings view).
 - SARIF and source-linked findings are available. Dedicated IDE integration, incremental analysis, and automatic source rewriting are not implemented yet.
 - NullGuard is not a CVE scanner, dependency vulnerability scanner, SBOM generator, or replacement for tests and runtime observability.
 
@@ -901,7 +897,7 @@ Adding an artificial POM just to invoke the Maven goal would miss Gradle's class
 
 - Maven: `target/nullguard/nullguard-dashboard-latest.html`.
 - Gradle: `build/reports/nullguard/nullguard-dashboard-latest.html`, unless customized.
-- CLI: HTML is not generated; use Maven/Gradle or consume JSON/SARIF directly.
+- CLI: `<output-dir>/nullguard-dashboard-latest.html` (defaults to `nullguard-out/nullguard-dashboard-latest.html`).
 - Review the console for analysis failure. A skipped or failed analysis is not
   a fresh clean report. Gradle's task logs its actual report directory.
 

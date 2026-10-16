@@ -31,6 +31,7 @@ report = json.loads((OUTPUT / "nullguard-report-latest.json").read_text(encoding
 assert len(report["apiEndpoints"]) == 5
 assert any(h["methodRef"] == "sample.Services.Risky#load()" for h in report["hotspots"])
 assert (OUTPUT / "nullguard-results.sarif").exists()
+assert (OUTPUT / "nullguard-dashboard-latest.html").exists()
 
 maven = shutil.which("mvn")
 if not maven:
