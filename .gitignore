@@ -25,3 +25,7 @@ nullguard-visualization/target/*
 **/target/**
 nullguard-suggestions/target/**
 nullguard-visualization/target/**
+
+# Gradle integration build outputs
+**/.gradle/
+/nullguard-gradle-plugin/build/

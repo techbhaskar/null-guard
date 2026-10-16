@@ -136,6 +136,15 @@ unreleased changes from another project:
 mvn clean install
 ```
 
+## Gradle projects
+
+Use the [reusable Gradle integration](nullguard-gradle-plugin/README.md) to run
+`./gradlew nullguard` with automatic Java source roots and the compile classpath.
+It writes reports to `build/reports/nullguard`, defaults to report-only mode, and
+supports optional `check` wiring, exclusions, custom roots and subprojects.
+The integration is currently used through a local composite build; its default
+analyzer is the published 1.0.0 CLI. A Gradle plugin release is not yet published.
+
 ## Recommended usage: Maven plugin
 
 The Maven plugin is the simplest and most accurate way to analyze a Maven-based service. It automatically receives the project's compile source roots and compile classpath, which improves symbol resolution for dependency calls and overloaded methods.
