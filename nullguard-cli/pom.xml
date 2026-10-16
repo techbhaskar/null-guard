@@ -24,18 +24,13 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.10.0</version><scope>test</scope>
         </dependency>
-        <!--
-             The bootstrap orchestration layer lives in nullguard-maven-plugin.
-             We declare it with type=maven-plugin so Maven resolves its JAR artifact.
-        -->
         <dependency>
             <groupId>com.arinits.nullguard</groupId>
-            <artifactId>nullguard-maven-plugin</artifactId>
+            <artifactId>nullguard-engine</artifactId>
             <version>${project.version}</version>
-            <type>maven-plugin</type>
         </dependency>
 
-        <!-- All module JARs (transitive via maven-plugin, but listed explicitly for clarity) -->
+        <!-- All module JARs (transitive via engine, but listed explicitly for clarity) -->
         <dependency>
             <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-core</artifactId>
@@ -67,17 +62,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Maven plugin API jars (needed since maven-plugin declares them provided) -->
-        <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-plugin-api</artifactId>
-            <version>3.9.6</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-core</artifactId>
-            <version>3.9.6</version>
-        </dependency>
     </dependencies>
 
     <build>

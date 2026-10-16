@@ -10,7 +10,7 @@ Measured during the 2026-10-09 hardening pass on Windows 10, Java 21.0.9, with 4
 
 The original workload contains guarded reference parameters and return values in a single class, one warmup per size, and three full pipeline measurements. It includes parsing, summaries, graph/scoring, suggestions, and exports. JaCoCo instrumentation is present when run through the normal verification build. It does not simulate framework proxies, dependency-heavy services, or deep recursive call graphs.
 
-Run `mvn verify -Dnullguard.benchmark=true` (quote the `-D` argument in PowerShell). Raw measurements and environment details are generated at `nullguard-maven-plugin/target/benchmark.json`. Sampled heap usage is recorded without forcing garbage collection and is not peak retained memory.
+Run `mvn verify -Dnullguard.benchmark=true` (quote the `-D` argument in PowerShell). Raw measurements and environment details are generated at `nullguard-engine/target/benchmark.json`. Sampled heap usage is recorded without forcing garbage collection and is not peak retained memory.
 
 Future comparisons should use the same machine, JVM, instrumentation settings, and workload. Add larger representative corpora before adopting runtime or memory budgets.
 

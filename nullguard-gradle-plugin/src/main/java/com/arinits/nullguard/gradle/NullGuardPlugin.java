@@ -24,11 +24,11 @@ public final class NullGuardPlugin implements Plugin<Project> {
         Configuration tool = project.getConfigurations().create("nullguardTool", c -> {
             c.setCanBeConsumed(false);
             c.setCanBeResolved(true);
-            c.setTransitive(false);
-            c.setDescription("Standalone NullGuard analyzer, isolated from application dependencies");
+            c.setTransitive(true);
+            c.setDescription("NullGuard CLI runtime, isolated from application dependencies");
         });
         project.getDependencies().addProvider(tool.getName(), extension.getToolVersion().map(version ->
-                "com.arinits.nullguard:nullguard-cli:" + version + ":jar-with-dependencies@jar"));
+                "com.arinits.nullguard:nullguard-cli:" + version));
         project.getPluginManager().withPlugin("java", ignored -> {
             JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
             SourceSet main = java.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);

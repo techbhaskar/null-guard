@@ -49,6 +49,11 @@
             <version>${jackson.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.arinits.nullguard</groupId>
+            <artifactId>nullguard-engine</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- NullGuard Dependencies -->
         <dependency>
             <groupId>com.arinits.nullguard</groupId>

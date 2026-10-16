@@ -4,6 +4,7 @@
   <artifactId>nullguard-coverage</artifactId>
     <name>nullguard-coverage</name><packaging>pom</packaging>
   <dependencies>
+    <dependency><groupId>com.arinits.nullguard</groupId><artifactId>nullguard-engine</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>com.arinits.nullguard</groupId><artifactId>nullguard-core</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>com.arinits.nullguard</groupId><artifactId>nullguard-analysis</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>com.arinits.nullguard</groupId><artifactId>nullguard-callgraph</artifactId><version>${project.version}</version></dependency>

@@ -112,6 +112,15 @@ positives. Start in report-only mode before enabling a build gate.
 See [the first-time developer evaluation](docs/developer-onboarding-evaluation.md)
 for tested behavior and current blockers.
 
+## Distribution size
+
+The development CLI separates the shared engine from Maven integration. Its
+standalone JAR is approximately 8.52 MB (34.1% smaller than the previous local
+build). Gradle resolves the normal CLI dependency graph so libraries can be
+cached separately. The standalone download still supports `java -jar`.
+See [packaging measurements and verification](docs/packaging.md). Published
+1.0.0 retains its original packaging until a new release is published.
+
 ## Build and test NullGuard
 
 Clone and verify the complete multi-module project:
@@ -497,7 +506,7 @@ try {
 }
 ```
 
-Use a machine with enough free memory for the 6 GiB test heap plus Maven and the OS. Sizes are configurable from 1 to 50,000; `nullguard.benchmark.samples` defaults to 3 and `nullguard.benchmark.warmups` to 1. Sources are split into classes with at most 100 methods. Each warmup and measured sample asserts the complete method count. `nullguard-maven-plugin/target/benchmark.json` records requested sizes, completion status, chronological samples, median, heap limit, and sampled used heap; completed sizes are checkpointed so a later failure does not erase them. Heap usage is not peak memory. An interrupted report marked `running` does not establish completion.
+Use a machine with enough free memory for the 6 GiB test heap plus Maven and the OS. Sizes are configurable from 1 to 50,000; `nullguard.benchmark.samples` defaults to 3 and `nullguard.benchmark.warmups` to 1. Sources are split into classes with at most 100 methods. Each warmup and measured sample asserts the complete method count. `nullguard-engine/target/benchmark.json` records requested sizes, completion status, chronological samples, median, heap limit, and sampled used heap; completed sizes are checkpointed so a later failure does not erase them. Heap usage is not peak memory. An interrupted report marked `running` does not establish completion.
 
 Automatic CI retains the small smoke benchmark. Manually dispatch **Verify NullGuard** with `large_benchmark` enabled for the full 50k run. This synthetic independent-method workload does not establish scalability for dependency-heavy real services or dense call graphs.
 

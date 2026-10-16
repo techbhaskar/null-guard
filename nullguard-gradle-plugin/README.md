@@ -117,7 +117,9 @@ Report-only mode suppresses hotspot policy failures, not analysis errors. The
 hotspot gate does not fail on every individual null warning. An A grade or an
 empty hotspot list does not establish that every method is null-safe.
 
-`nullguardTool` resolves the fat CLI JAR non-transitively. Application compile
+`nullguardTool` resolves the normal CLI JAR and its runtime dependencies.
+Gradle caches each dependency separately, allowing reuse between versions and
+projects. The development analyzer no longer includes Maven runtime libraries. Application compile
 dependencies are passed separately through `--classpath`. No Maven installation
 or global CLI JAR is needed in consuming projects.
 

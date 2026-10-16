@@ -76,6 +76,30 @@ class JavaParserSymbolResolutionTest {
         assertEquals("assertNotNull(java.lang.Object)", target.signature());
     }
 
+    @Test
+    void resolvesCompiledDependencyDirectoriesWithoutMavenRuntime() throws Exception {
+        Path dependencySource = sourceRoot.resolve("dependency/Library.java");
+        Path classes = sourceRoot.resolve("dependency-classes");
+        Files.createDirectories(dependencySource.getParent());
+        Files.createDirectories(classes);
+        Files.writeString(dependencySource, "package isolated; public class Library { public String value() { return \"value\"; } }");
+        assertEquals(0, javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null,
+                "-d", classes.toString(), dependencySource.toString()));
+        write("Consumer.java", """
+                package com.acme;
+                import isolated.Library;
+                class Consumer {
+                    String read(Library library) { return library.value(); }
+                }
+                """);
+        Path applicationRoot = sourceRoot.resolve("com");
+        ProjectModel project = new JavaParserAstParser(List.of(sourceRoot), List.of(classes)).parse(applicationRoot);
+        ResolvedCallTarget target = method(project, "Consumer", "read(Library)")
+                .getSemanticCallSites().get(0).getResolvedTarget().orElseThrow();
+        assertEquals("isolated.Library", target.declaringType());
+        assertEquals("value()", target.signature());
+    }
+
     private void write(String fileName, String source) throws Exception {
         Path packageDirectory = sourceRoot.resolve(Path.of("com", "acme"));
         Files.createDirectories(packageDirectory);

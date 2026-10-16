@@ -1,6 +1,7 @@
 """Exercise packaged CLI exit codes and the Maven-injected goal after mvn install."""
 import json
 import shutil
+import zipfile
 import subprocess
 from pathlib import Path
 
@@ -8,6 +9,11 @@ ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "nullguard-cli/target/ci-reports"
 SOURCE = ROOT / "examples/orders-service/src/main/java"
 JAR = ROOT / "nullguard-cli/target/nullguard-cli-1.0.1-SNAPSHOT-jar-with-dependencies.jar"
+
+
+# The standalone distribution must not reintroduce the Maven runtime.
+with zipfile.ZipFile(JAR) as archive:
+    assert not any(name.startswith("org/apache/maven/") for name in archive.namelist()), "CLI unexpectedly packages Maven runtime classes"
 
 
 def run(command, expected, name):

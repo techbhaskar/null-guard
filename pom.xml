@@ -37,6 +37,7 @@
         <module>nullguard-scoring</module>
         <module>nullguard-suggestions</module>
         <module>nullguard-visualization</module>
+        <module>nullguard-engine</module>
         <module>nullguard-cli</module>
         <module>nullguard-maven-plugin</module>
         <module>nullguard-coverage</module>
