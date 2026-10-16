@@ -758,7 +758,7 @@ The current release focuses on source-based Java service analysis.
 - Dependency JARs and class directories improve symbol resolution, but only project source methods receive full source-level analysis.
 - Reflection, dynamic proxies, runtime dependency injection choices, and generated methods may create call paths that static analysis cannot resolve.
 - API discovery currently targets common Spring MVC/JAX-RS conventions and controller/resource naming.
-- Maven, Gradle, and the CLI all generate HTML, JSON, SARIF and DOT reports (Maven and the CLI share the interactive dashboard UI; Gradle generates a lightweight offline findings view).
+- The CLI emits JSON, SARIF and DOT. Maven and Gradle integrations also generate HTML: Maven provides the interactive dashboard, and Gradle provides a lightweight offline findings view.
 - SARIF and source-linked findings are available. Dedicated IDE integration, incremental analysis, and automatic source rewriting are not implemented yet.
 - NullGuard is not a CVE scanner, dependency vulnerability scanner, SBOM generator, or replacement for tests and runtime observability.
 
