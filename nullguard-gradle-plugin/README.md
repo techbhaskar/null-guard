@@ -1,13 +1,16 @@
+> Release 1.0.1 is being published to Maven Central. Public installation will
+> use the Gradle plugin marker from mavenCentral(), not the Gradle Plugin Portal.
+
 # NullGuard for Gradle
 
 A reusable binary plugin for Java Gradle projects. It runs the standalone CLI
 from Maven Central with the project's compile classpath, without adding
 NullGuard to application dependencies or starting the application.
 
-Plugin version: `1.0.1-SNAPSHOT` (local/composite build, not published).
-Default analyzer version: published `1.0.0`. The plugin and analyzer versions
+Plugin version: `1.0.1` (local/composite build, not published).
+Default analyzer version: `1.0.1`. The plugin and analyzer versions
 are independent. The new analyzer fixes require a locally installed
-`1.0.1-SNAPSHOT` until a new analyzer release is published.
+`1.0.1` until a new analyzer release is published.
 
 ## Use now: locally installed plugin
 
@@ -21,7 +24,7 @@ pluginManagement {
 }
 ```
 
-Then use `id("com.arinits.nullguard") version "1.0.1-SNAPSHOT"` alongside your
+Then use `id("com.arinits.nullguard") version "1.0.1"` alongside your
 existing Java/Java-library plugins in `build.gradle.kts`. Keep `mavenCentral()`
 available for normal dependency resolution, then run `./gradlew nullguard`.
 This plugin version exists locally, not in public repositories. Teammates can
@@ -55,7 +58,7 @@ plugins {
 }
 repositories { mavenCentral() }
 nullguard {
-    toolVersion.set("1.0.0")
+    toolVersion.set("1.0.1")
     failBuild.set(false)
     failThreshold.set("HIGH")
 }
@@ -70,7 +73,7 @@ plugins {
 }
 repositories { mavenCentral() }
 nullguard {
-    toolVersion.set('1.0.0')
+    toolVersion.set('1.0.1')
     failBuild.set(false)
     failThreshold.set('HIGH')
 }
@@ -163,7 +166,7 @@ this version does not produce a combined cross-module graph or dashboard.
 ## Try the development analyzer
 
 From the NullGuard repository, run `mvn clean install`, then add `mavenLocal()`
-to the consuming build's repositories and set `toolVersion` to `1.0.1-SNAPSHOT`.
+to the consuming build's repositories and set `toolVersion` to `1.0.1`.
 For other developers/CI, prefer a published immutable version once available.
 
 ## Build and release the integration

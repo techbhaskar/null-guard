@@ -1,9 +1,10 @@
 plugins {
     `java-gradle-plugin`
     `maven-publish`
+    signing
 }
 group = "com.arinits.nullguard"
-version = "1.0.1-SNAPSHOT"
+version = "1.0.1"
 repositories { mavenCentral() }
 java {
     toolchain { languageVersion.set(JavaLanguageVersion.of(17)) }
@@ -41,5 +42,19 @@ publishing {
             developers { developer { id.set("techbhaskar"); name.set("Arinits"); url.set("https://arinits.com") } }
             scm { url.set("https://github.com/techbhaskar/null-guard"); connection.set("scm:git:https://github.com/techbhaskar/null-guard.git") }
         }
+    }
+}
+
+// Stage signed Maven publications for the Central Portal bundle uploader.
+if (providers.gradleProperty("centralRelease").isPresent) {
+    publishing.repositories {
+        maven {
+            name = "centralStaging"
+            url = uri(layout.buildDirectory.dir("central-staging"))
+        }
+    }
+    signing {
+        useGpgCmd()
+        sign(publishing.publications)
     }
 }

@@ -130,6 +130,7 @@ class NullGuardPluginTest {
         Files.writeString(project.resolve("build.gradle"), """
                 plugins { id 'java'; id 'com.arinits.nullguard' }
                 repositories { mavenCentral() }
+                nullguard { toolVersion.set("1.0.0") }
                 """);
         var result = runner("nullguard", "--configuration-cache").build();
         assertEquals(TaskOutcome.SUCCESS, result.task(":nullguard").getOutcome());
