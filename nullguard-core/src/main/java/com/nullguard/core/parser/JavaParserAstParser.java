@@ -127,6 +127,11 @@ public final class JavaParserAstParser implements AstParser {
                 .className(declaration.getNameAsString())
                 .qualifiedName(fallbackQualifiedName)
                 .interfaceType(declaration.isInterface())
+                .basePath(AstMetadataExtractor.extractBasePath(declaration))
+                .annotations(AstMetadataExtractor.extractAnnotations(declaration))
+                .fields(AstMetadataExtractor.extractFields(declaration))
+                .sourceLocation(declaration.getRange().map(r -> new com.nullguard.core.model.SourceLocation(
+                        sourcePath.toString().replace('\\', '/'), r.begin.line, r.begin.column, r.end.line, r.end.column)).orElse(null))
                 .addAssignableType(fallbackQualifiedName);
 
         try {
@@ -168,16 +173,26 @@ public final class JavaParserAstParser implements AstParser {
             }
         }
 
+        String httpMethod = AstMetadataExtractor.extractHttpMethod(method);
+        String httpPath = AstMetadataExtractor.extractHttpPath(method);
+
         return MethodModel.builder()
                 .sourceLocation(method.getRange().map(r -> new com.nullguard.core.model.SourceLocation(
                         sourcePath.toString().replace('\\', '/'), r.begin.line, r.begin.column, r.end.line, r.end.column)).orElse(null))
                 .nonNullFields(fields)
-                .parameters(method.getParameters().stream().map(p -> new com.nullguard.core.model.ParameterModel(
-                        p.getNameAsString(), p.getType().isPrimitiveType(), !hasAnnotation(p, "Nullable", "CheckForNull") && (hasAnnotation(p, "NonNull", "NotNull", "Nonnull") || frameworkParameter(method, p) || (defaultNonNull && defaultApplies(p.getType(), method))),
+                .parameters(method.getParameters().stream().map(p -> AstMetadataExtractor.buildParameterModel(
+                        method,
+                        p,
+                        !hasAnnotation(p, "Nullable", "CheckForNull") && (hasAnnotation(p, "NonNull", "NotNull", "Nonnull") || frameworkParameter(method, p) || (defaultNonNull && defaultApplies(p.getType(), method))),
                         hasAnnotation(p, "Nullable", "CheckForNull"))).toList())
                 .nonNullReturn(!hasAnnotation(method, "Nullable", "CheckForNull") && (hasAnnotation(method, "NonNull", "NotNull", "Nonnull") || (defaultNonNull && defaultApplies(method.getType(), method))))
                 .primitiveReturn(method.getType().isPrimitiveType())
                 .nullableReturn(hasAnnotation(method, "Nullable", "CheckForNull"))
+                .returnType(method.getType().asString())
+                .httpMethod(httpMethod)
+                .httpPath(httpPath)
+                .responseStatus(AstMetadataExtractor.extractResponseStatus(method, httpMethod))
+                .methodFindings(AstMetadataExtractor.extractMethodFindings(method))
                 .methodName(method.getNameAsString())
                 .signature(method.getSignature().asString())
                 .controlFlowModel(cfg)
@@ -218,7 +233,7 @@ public final class JavaParserAstParser implements AstParser {
         Set<String> names = new LinkedHashSet<>();
         owner.getFields().stream().filter(f -> f.isFinal()).forEach(f -> f.getVariables().forEach(v ->
                 v.getInitializer().filter(e -> e.isObjectCreationExpr() || e.isArrayCreationExpr()
-                        || (e.isLiteralExpr() && !e.isNullLiteralExpr())).ifPresent(e -> names.add(v.getNameAsString()))));
+                        || (e.isLiteralExpr() && !e.isNullLiteralExpr()) || nonNullLoggerFactory(e)).ifPresent(e -> names.add(v.getNameAsString()))));
         boolean springBean = java.util.stream.Stream.of("org.springframework.stereotype.Component", "org.springframework.stereotype.Service",
                 "org.springframework.stereotype.Repository", "org.springframework.stereotype.Controller", "org.springframework.web.bind.annotation.RestController",
                 "org.springframework.context.annotation.Configuration").anyMatch(a -> qualifiedAnnotation(owner, a));
@@ -240,6 +255,16 @@ public final class JavaParserAstParser implements AstParser {
             if (requiredAutowired || constructorField) names.add(v.getNameAsString());
         }));
         return names;
+    }
+
+    private static boolean nonNullLoggerFactory(com.github.javaparser.ast.expr.Expression expression) {
+        if (!expression.isMethodCallExpr()) return false;
+        var call = expression.asMethodCallExpr();
+        if (!call.getNameAsString().equals("getLogger")) return false;
+        try {
+            return java.util.Set.of("org.slf4j.LoggerFactory", "java.util.logging.Logger", "org.apache.logging.log4j.LogManager")
+                    .contains(call.resolve().declaringType().getQualifiedName());
+        } catch (RuntimeException | LinkageError unresolved) { return false; }
     }
 
     private static boolean frameworkParameter(MethodDeclaration method, com.github.javaparser.ast.body.Parameter p) {

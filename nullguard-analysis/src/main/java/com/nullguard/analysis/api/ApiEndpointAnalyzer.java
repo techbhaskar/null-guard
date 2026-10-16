@@ -42,9 +42,10 @@ public class ApiEndpointAnalyzer {
      *                  inter-class edge traversal (controller → service → repo → ext)
      */
     public void build(ProjectModel project, Map<String, Set<String>> callEdges) {
-        // Build a methodId → MethodModel index so we can resolve the MethodModel
-        // for each trace entry point and use its annotation/modifier data.
+        // Build a methodId → MethodModel and ClassModel index so we can resolve
+        // both class-level @RequestMapping/@Path and method-level mapping metadata.
         Map<String, MethodModel> methodIndex = buildMethodIndex(project);
+        Map<String, ClassModel> classIndex = buildClassIndex(project);
 
         List<APIFlowTrace> traces = flowPathExtractor.extractDistinctPaths(
                 project, callEdges, config.getPropagationDepthLimit());
@@ -59,13 +60,14 @@ public class ApiEndpointAnalyzer {
 
             String entryPoint = trace.getPath().get(0);
             MethodModel entryMethod = methodIndex.get(entryPoint);
+            ClassModel ownerClass = classIndex.get(entryPoint);
 
             // Use annotation-aware overloads if MethodModel is available
             String httpMethod = (entryMethod != null)
                     ? FlowPathExtractor.inferHttpMethod(entryPoint, entryMethod)
                     : FlowPathExtractor.inferHttpMethod(entryPoint);
             String apiPath = (entryMethod != null)
-                    ? FlowPathExtractor.inferPath(entryPoint, entryMethod)
+                    ? FlowPathExtractor.inferPath(entryPoint, ownerClass, entryMethod)
                     : inferPathFromId(entryPoint);
 
             built.add(new ApiEndpointModel(
@@ -98,6 +100,22 @@ public class ApiEndpointAnalyzer {
                     for (MethodModel m : cls.getMethods().values()) {
                         String id = com.nullguard.core.model.MethodIds.of(pkg, cls, m);
                         index.put(id, m);
+                    }
+                }
+            }
+        }
+        return index;
+    }
+
+    /** Builds a flat methodId → ClassModel index across the whole project. */
+    private static Map<String, ClassModel> buildClassIndex(ProjectModel project) {
+        Map<String, ClassModel> index = new LinkedHashMap<>();
+        for (ModuleModel mod : project.getModules().values()) {
+            for (PackageModel pkg : mod.getPackages().values()) {
+                for (ClassModel cls : pkg.getClasses().values()) {
+                    for (MethodModel m : cls.getMethods().values()) {
+                        String id = com.nullguard.core.model.MethodIds.of(pkg, cls, m);
+                        index.put(id, cls);
                     }
                 }
             }

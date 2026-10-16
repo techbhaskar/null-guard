@@ -19,8 +19,22 @@ public final class FindingExporter {
             Map.entry("NG003", "Non-null return contract violation"), Map.entry("NG004", "Caller argument contract violation"),
             Map.entry("NG005", "Architectural hotspot"), Map.entry("NG101", "Add null guard"),
             Map.entry("NG102", "Strengthen contract"), Map.entry("NG103", "Validate external return"),
-            Map.entry("NG104", "Refactor high blast radius"), Map.entry("NG105", "Break risk chain"))));
+            Map.entry("NG104", "Refactor high blast radius"), Map.entry("NG105", "Break risk chain"),
+            Map.entry("NG201", "External or database call inside loop (N+1 risk)"),
+            Map.entry("NG202", "Swallowed exception in empty catch block"),
+            Map.entry("NG203", "Stateful mutable field in singleton bean"),
+            Map.entry("NG204", "Architectural layer bypass (Controller to Repository)"),
+            Map.entry("NG205", "Cyclic call dependency"),
+            Map.entry("NG206", "Unclosed AutoCloseable resource"),
+            Map.entry("NG301", "Undocumented nullable API response (OpenAPI drift)"),
+            Map.entry("NG302", "Unvalidated request body input (OpenAPI drift)"),
+            Map.entry("NG401", "API-reachable dependency vulnerability (CVE)"),
+            Map.entry("NG402", "Code-reachable dependency vulnerability (CVE)"),
+            Map.entry("NG403", "Unreachable dependency vulnerability (CVE)"))));
     public List<Finding> collect(ProjectModel project, List<ArchitecturalHotspot> hotspots, List<Suggestion> suggestions) {
+        return collect(project, hotspots, suggestions, List.of());
+    }
+    public List<Finding> collect(ProjectModel project, List<ArchitecturalHotspot> hotspots, List<Suggestion> suggestions, List<Finding> additionalFindings) {
         List<Finding> findings = new ArrayList<>();
         Map<String, MethodModel> methods = new TreeMap<>();
         project.getModules().values().forEach(mod -> mod.getPackages().values().forEach(pkg ->
@@ -52,6 +66,9 @@ public final class FindingExporter {
             };
             findings.add(new Finding(rule, "note", s.getMethodId(), s.getMessage(), at(methods.get(s.getMethodId()), 0)));
         });
+        if (additionalFindings != null) {
+            findings.addAll(additionalFindings);
+        }
         return findings.stream().distinct().sorted(Comparator.comparing(Finding::methodId).thenComparing(Finding::ruleId)
                 .thenComparingInt(f -> f.location() == null ? 0 : f.location().startLine()).thenComparing(Finding::message)).toList();
     }
@@ -94,7 +111,7 @@ public final class FindingExporter {
         }
         String base = root.toAbsolutePath().normalize().toUri().toASCIIString();
         if (!base.endsWith("/")) base += "/";
-        var run = Map.of("tool", Map.of("driver", Map.of("name", "NullGuard", "version", "1.0.1", "rules", rules)),
+        var run = Map.of("tool", Map.of("driver", Map.of("name", "NullGuard", "version", "1.1.0", "rules", rules)),
                 "originalUriBaseIds", Map.of("SOURCE_ROOT", Map.of("uri", base)), "columnKind", "utf16CodeUnits", "results", results);
         try { return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(Map.of(
                 "$schema", "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json", "version", "2.1.0", "runs", List.of(run))); }

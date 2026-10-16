@@ -1,10 +1,7 @@
-> Release 1.0.1 passed Central validation and is publishing in deployment
-> `5fb66ffe-8098-4818-9dc4-bf631bb8ca70`. See [release details](releases/1.0.1.md).
-
 # Publishing to Maven Central
 
 Version `1.0.0` is published and its plugin was installed from Central using an
-empty Maven cache on 2026-10-16. The current reactor release is `1.0.1`. The `central-release` Maven profile attaches
+empty Maven cache on 2026-10-16. Versions 1.0.0 and 1.0.1 are published. The current reactor release is `1.1.0`. The `central-release` Maven profile attaches
 sources and Javadoc, signs artifacts, uploads the reactor bundle, and waits for
 Central to confirm publication.
 
@@ -22,11 +19,11 @@ Central to confirm publication.
 
 ## Release
 
-The reactor is currently `com.arinits.nullguard:…:1.0.1`. For a future release,
+The reactor is currently `com.arinits.nullguard:…:1.1.0`. For a future release,
 update all reactor parent references:
 
 ```sh
-mvn org.codehaus.mojo:versions-maven-plugin:2.19.1:set -DnewVersion=1.0.1 -DgenerateBackupPoms=false
+mvn org.codehaus.mojo:versions-maven-plugin:2.19.1:set -DnewVersion=1.1.0 -DgenerateBackupPoms=false
 ```
 
 Update README commands and scripts containing the old version, run the normal

@@ -12,7 +12,7 @@ It is intended to answer questions that are difficult to answer with a method-le
 
 NullGuard performs static analysis only. It does not instrument or run the analyzed application.
 
-> **Release status:** `1.0.1` is prepared for publication, including lean CLI packaging and Gradle integration. `1.0.0` remains available from Maven Central while publication completes.
+> **Release status:** `1.0.1` is published on Maven Central. `1.1.0` is being prepared with null-analysis corrections, OpenAPI generation, static-analysis rules and CVE reporting.
 
 ## Developer guide
 
@@ -25,10 +25,9 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 - [CI adoption](#suggested-ci-adoption)
 - [Troubleshooting](#troubleshooting)
 
-Examples below target **1.0.1**. This version has passed Central validation but
-is still publishing; public installation requires publication to finish. Maven
-users can continue using 1.0.0 meanwhile. For Gradle, the local/composite alternative
-is documented in [the integration guide](nullguard-gradle-plugin/README.md).
+Examples below target **1.1.0**, currently being prepared for publication. Use
+published 1.0.1 until Central confirms the new release. Local/composite setup is
+available in [the integration guide](nullguard-gradle-plugin/README.md).
 
 ## Why use NullGuard in microservices?
 
@@ -122,7 +121,7 @@ need to clone or build NullGuard to use a published release.
 For Maven, run **from the directory containing the service's `pom.xml`**:
 
 ```bash
-mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze -Dnullguard.failBuild=false
+mvn com.arinits.nullguard:nullguard-maven-plugin:1.1.0:analyze -Dnullguard.failBuild=false
 ```
 
 For Gradle, follow [the setup below](#gradle-projects), then run from the Gradle project:
@@ -157,11 +156,11 @@ mvn clean verify
 The build runs all module tests and creates the standalone CLI at:
 
 ```text
-nullguard-cli/target/nullguard-cli-1.0.1-jar-with-dependencies.jar
+nullguard-cli/target/nullguard-cli-1.1.0-jar-with-dependencies.jar
 ```
 
-For development, install `1.0.1` into your local Maven repository. Use
-`com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze` to try the
+For development, install `1.1.0` into your local Maven repository. Use
+`com.arinits.nullguard:nullguard-maven-plugin:1.1.0:analyze` to try the
 unreleased changes from another project:
 
 ```bash
@@ -194,7 +193,7 @@ In `build.gradle.kts`:
 ```kotlin
 plugins {
     java
-    id("com.arinits.nullguard") version "1.0.1"
+    id("com.arinits.nullguard") version "1.1.0"
 }
 
 repositories {
@@ -230,7 +229,7 @@ In `build.gradle`:
 ```groovy
 plugins {
     id 'java'
-    id 'com.arinits.nullguard' version '1.0.1'
+    id 'com.arinits.nullguard' version '1.1.0'
 }
 
 repositories {
@@ -267,7 +266,7 @@ JSON, including when an enabled hotspot gate fails after successful analysis.
 
 | Setting | Default | What it controls |
 | --- | --- | --- |
-| `toolVersion` | `1.0.1` | Analyzer version, independent of the Gradle plugin version |
+| `toolVersion` | `1.1.0` | Analyzer version, independent of the Gradle plugin version |
 | `failBuild` | `false` | Fail on an architectural hotspot at the configured threshold |
 | `failThreshold` | `CRITICAL` | `LOW`, `MEDIUM`/`MODERATE`, `HIGH`, or `CRITICAL` |
 | `runOnCheck` | `false` | Make the existing Gradle `check` task depend on analysis |
@@ -299,7 +298,7 @@ Declare the plugin version once in the root build:
 
 ```kotlin
 plugins {
-    id("com.arinits.nullguard") version "1.0.1" apply false
+    id("com.arinits.nullguard") version "1.1.0" apply false
 }
 ```
 
@@ -338,13 +337,13 @@ The Maven plugin is the simplest and most accurate way to analyze a Maven-based 
 Run this command from the Java service you want to analyze:
 
 ```bash
-mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze
+mvn com.arinits.nullguard:nullguard-maven-plugin:1.1.0:analyze
 ```
 
 To analyze one NullGuard module as a smoke test:
 
 ```bash
-mvn -f nullguard-core/pom.xml com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze -Dnullguard.failBuild=false
+mvn -f nullguard-core/pom.xml com.arinits.nullguard:nullguard-maven-plugin:1.1.0:analyze -Dnullguard.failBuild=false
 ```
 
 ### Add it to a service build
@@ -357,7 +356,7 @@ Add the plugin to the target service's `pom.xml`:
         <plugin>
             <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-maven-plugin</artifactId>
-            <version>1.0.1</version>
+            <version>1.1.0</version>
             <executions>
                 <execution>
                     <id>nullguard-analysis</id>
@@ -415,13 +414,13 @@ Use the CLI for local exploration, scripts, or source trees that are not being i
 From the NullGuard repository:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.0.1-jar-with-dependencies.jar path/to/service/src/main/java
+java -jar nullguard-cli/target/nullguard-cli-1.1.0-jar-with-dependencies.jar path/to/service/src/main/java
 ```
 
 Choose a report directory and enable a CI-style failure policy:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.0.1-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-1.1.0-jar-with-dependencies.jar \
   path/to/service/src/main/java \
   --output=build/nullguard \
   --fail-build \
@@ -431,7 +430,7 @@ java -jar nullguard-cli/target/nullguard-cli-1.0.1-jar-with-dependencies.jar \
 PowerShell uses a backtick for line continuation:
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.0.1-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-1.1.0-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   --output=C:\work\orders-service\target\nullguard `
   --fail-build `
@@ -443,13 +442,13 @@ java -jar nullguard-cli/target/nullguard-cli-1.0.1-jar-with-dependencies.jar `
 For best results, supply the service's compiled classes and dependency JARs with `--classpath`. Entries use the operating system's path separator: `;` on Windows and `:` on Linux/macOS.
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.0.1-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-1.1.0-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   "--classpath=C:\work\orders-service\target\classes;C:\libs\shared-contracts.jar"
 ```
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.0.1-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-1.1.0-jar-with-dependencies.jar \
   /work/orders-service/src/main/java \
   --classpath=/work/orders-service/target/classes:/work/libs/shared-contracts.jar
 ```
@@ -460,9 +459,11 @@ If a call cannot be resolved semantically, NullGuard keeps the analysis running 
 
 | Option | Default | Meaning |
 | --- | ---: | --- |
-| `--output=<dir>` | `./nullguard-out` | Directory for generated HTML, JSON, SARIF and DOT reports. |
+| `--output=<dir>` | `./nullguard-out` | Directory for generated HTML, JSON, OpenAPI, SARIF and DOT reports. |
 | `--classpath=<paths>` | empty | Dependency JARs and class directories separated by the platform path separator. |
-| `--fail-build` | disabled | Return exit code `1` when the severity threshold is breached. |
+| `--cve-input=<file>` | none | Optional external OSV or Trivy JSON vulnerability report for 3-tier reachability classification (`NG401`–`NG403`). |
+| `--cve-online` | disabled | Query the OSV.dev batch API (`https://api.osv.dev/v1/querybatch`) in addition to the built-in Maven CVE catalog. |
+| `--fail-build` | disabled | Return exit code `1` when the severity threshold is breached or an API-reachable CVE (`NG401`) is found. |
 | `--fail-threshold=<level>` | `CRITICAL` | Minimum failing hotspot severity: `LOW`, `MODERATE`, `HIGH`, or `CRITICAL`. |
 | `--decay-factor=<number>` | `0.85` | Risk propagation decay factor. |
 | `--ext-penalty=<number>` | `1.2` | External-call penalty multiplier. |
@@ -475,7 +476,7 @@ CLI exit codes:
 | Exit code | Meaning |
 | ---: | --- |
 | `0` | Analysis completed and no enabled policy was breached. |
-| `1` | `--fail-build` was enabled and the hotspot threshold was breached. |
+| `1` | `--fail-build` was enabled and the hotspot threshold was breached or an API-reachable CVE (`NG401`) was detected. |
 | `2` | Invalid arguments or a missing source path. |
 | `3` | Analysis failed with an exception. |
 
@@ -487,13 +488,13 @@ HTML generation is automatic across Maven, Gradle, and the standalone CLI:
 
 | Integration | Generate reports | HTML file to open |
 | --- | --- | --- |
-| Maven, one-off | `mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze` | `target/nullguard/nullguard-dashboard-latest.html` |
+| Maven, one-off | `mvn com.arinits.nullguard:nullguard-maven-plugin:1.1.0:analyze` | `target/nullguard/nullguard-dashboard-latest.html` |
 | Maven, configured in `verify` | `mvn verify` | `target/nullguard/nullguard-dashboard-latest.html` |
 | Gradle, plugin configured | `./gradlew nullguard` | `build/reports/nullguard/nullguard-dashboard-latest.html` |
 | Gradle, `runOnCheck=true` | `./gradlew check` | `build/reports/nullguard/nullguard-dashboard-latest.html` |
 | Standalone CLI | `java -jar … --output=nullguard-out` | `nullguard-out/nullguard-dashboard-latest.html` |
 
-Maven and the standalone CLI share the interactive dashboard (`HtmlDashboardRenderer`), offering overview, API flows, architectural hotspots, a method explorer and JSON telemetry. Gradle's offline report offers a summary and searchable source-linked finding details.
+Maven, Gradle, and the standalone CLI all generate the unified 8-tab interactive dashboard (`HtmlDashboardRenderer`), offering **Overview**, **API Flows**, **Swagger / OpenAPI**, **Code Quality & Arch**, **Reachable CVEs**, **Arch Hotspots**, **Method Explorer**, and **Raw JSON**.
 
 From the service directory, open the Gradle report with the command for your OS:
 
@@ -524,34 +525,35 @@ target/nullguard/
 ├── nullguard-dashboard-YYYYMMDD_HHMMSS.html
 ├── nullguard-report-latest.json
 ├── nullguard-report-YYYYMMDD_HHMMSS.json
+├── nullguard-openapi.json
+├── nullguard-openapi-YYYYMMDD_HHMMSS.json
 ├── nullguard-graph-latest.dot
 ├── nullguard-graph-YYYYMMDD_HHMMSS.dot
 └── nullguard-results.sarif
 ```
 
-Gradle writes these stable files, without timestamped history:
+Gradle and the standalone CLI write these stable files:
 
 ```text
 build/reports/nullguard/
 ├── nullguard-dashboard-latest.html
 ├── nullguard-report-latest.json
+├── nullguard-openapi.json
 ├── nullguard-graph-latest.dot
 └── nullguard-results.sarif
 ```
 
-- **HTML:** browse and filter analysis results.
-- **JSON:** schema version `1.0`; summary, call graph, findings, API endpoints,
-  hotspots and suggestions, suitable for custom automation.
-- **SARIF:** version `2.1.0`; stable rule IDs and file/line locations for compatible
-  editor/CI consumers. Producing SARIF does not upload it to a code-scanning service.
-- **DOT:** visualize the call/risk graph. External methods are boxes; node colors
-  correspond to modeled risk. Rendering to SVG requires Graphviz:
+- **HTML:** 8-tab offline interactive dashboard (`Overview`, `API Flows`, `Swagger / OpenAPI`, `Code Quality & Arch`, `Reachable CVEs`, `Arch Hotspots`, `Method Explorer`, `Raw JSON`).
+- **OpenAPI (`nullguard-openapi.json`):** OpenAPI `3.0.3` specification extracted statically from Spring MVC and JAX-RS annotations (`@RequestMapping`, `@GetMapping`, `@PostMapping`, `@PathVariable`, `@RequestParam`, `@RequestHeader`, `@RequestBody`, DTO schemas) enriched with `x-nullguard-*` risk and blast-radius extensions.
+- **JSON (`nullguard-report-latest.json`):** schema version `1.0`; summary, call graph, findings, API endpoints, hotspots, suggestions, `openApiSpec`, `architectureSummary`, and `cveSummary`, suitable for custom automation.
+- **SARIF (`nullguard-results.sarif`):** version `2.1.0`; stable rule IDs (`NG001`–`NG403`) and file/line locations for compatible editor/CI consumers. Producing SARIF does not upload it to a code-scanning service.
+- **DOT (`nullguard-graph-latest.dot`):** visualize the call/risk graph. External methods are boxes; node colors correspond to modeled risk. Rendering to SVG requires Graphviz:
 
 ```bash
 dot -Tsvg build/reports/nullguard/nullguard-graph-latest.dot   -o build/reports/nullguard/nullguard-graph-latest.svg
 ```
 
-The standalone CLI writes the HTML, JSON, SARIF and DOT files (`nullguard-dashboard-latest.html`, `nullguard-report-latest.json`, `nullguard-results.sarif`, `nullguard-graph-latest.dot`) to `--output`, defaulting to `nullguard-out/`.
+The standalone CLI writes the HTML, JSON, OpenAPI, SARIF and DOT files (`nullguard-dashboard-latest.html`, `nullguard-report-latest.json`, `nullguard-openapi.json`, `nullguard-results.sarif`, `nullguard-graph-latest.dot`) to `--output`, defaulting to `nullguard-out/`.
 
 ### Reading the results
 
@@ -562,25 +564,33 @@ Use this review sequence on the first run:
    modeled external methods; they are not a source-method coverage percentage.
 2. **Read individual findings.** Start with rule, file/line, receiver and method.
    Open the actual source and check guards, return contracts and caller behavior.
-3. **Use project scores to prioritize.** Stability index, method risk and hotspot
-   severity are heuristics, not proof that a method is safe or broken.
-4. **Review impact.** In Maven's API-flow/hotspot views or JSON, inspect reachable
-   entry points and shared callers. A high-impact method may deserve attention
-   before an isolated warning, but each warning still needs source evidence.
+3. **Use project scores to prioritize.** Stability index (`0–100`), Architecture Health (`0–100`), and CVE Exposure Score (`0–100`) are kept separate so teams can track null-safety, architectural reliability, and reachable dependency vulnerabilities independently.
+4. **Review impact.** In the `API Flows`, `Swagger / OpenAPI`, `Reachable CVEs`, and `Arch Hotspots` tabs, inspect reachable entry points and shared callers. A high-impact method or API-reachable CVE (`NG401`) deserves attention before an isolated warning.
 5. **Make a focused fix and rerun the same command.** Check whether the specific
    finding disappeared and whether endpoint/graph information still makes sense.
    A falling finding count alone is not evidence of improved precision.
 
 #### Understand rule IDs
 
-| Rule | Meaning | What to review |
-| --- | --- | --- |
-| `NG001` | Possible null dereference | Receiver state, preceding guards and callee return behavior |
-| `NG002` | Unchecked nullable parameter | Callers, explicit contracts and framework-provided arguments |
-| `NG003` | Non-null return contract violation | Return paths that may produce null despite the declaration |
-| `NG004` | Caller argument contract violation | Potentially nullable argument passed to a required parameter |
-| `NG005` | Architectural hotspot | Risk, reachability and exposed API paths |
-| `NG101`–`NG105` | Remediation recommendations | Suggested guard, contract, external validation, refactoring or risk-chain change |
+| Rule | Category | Meaning | What to review |
+| --- | --- | --- | --- |
+| `NG001` | Null-Safety | Possible null dereference | Receiver state, preceding guards and callee return behavior |
+| `NG002` | Null-Safety | Unchecked nullable parameter | Callers, explicit contracts and framework-provided arguments |
+| `NG003` | Null-Safety | Non-null return contract violation | Return paths that may produce null despite the declaration |
+| `NG004` | Null-Safety | Caller argument contract violation | Potentially nullable argument passed to a required parameter |
+| `NG005` | Null-Safety | Architectural hotspot | Risk, reachability and exposed API paths |
+| `NG101`–`NG105` | Remediation | Remediation recommendations | Suggested guard, contract, external validation, refactoring or risk-chain change |
+| `NG201` | Reliability & Arch | External or DB call inside loop (`N+1` / latency amplification) | Batch queries or hoist external/repository calls outside `for`/`while`/`do` loops |
+| `NG202` | Reliability & Arch | Swallowed or empty `catch` block | Log, wrap, or rethrow caught exceptions instead of silently discarding failures |
+| `NG203` | Reliability & Arch | Stateful mutable field in singleton bean | Move mutable per-request state out of `@RestController`/`@Service`/`@Repository`/`@Component` singletons |
+| `NG204` | Reliability & Arch | Architectural layer bypass (`Controller -> Repository`) | Route persistence access through a `@Service` boundary |
+| `NG205` | Reliability & Arch | Cyclic call dependency | Break mutual recursion or cyclic call edges in the internal call graph |
+| `NG206` | Reliability & Arch | Unclosed `AutoCloseable` resource | Wrap streams, connections, and readers in `try-with-resources` |
+| `NG301` | OpenAPI Contract Drift | Undocumented nullable API response | Add `@Nullable`, `ResponseEntity<T>`, or ensure non-null return paths on controller endpoints |
+| `NG302` | OpenAPI Contract Drift | Unvalidated `@RequestBody` parameter | Add `@Valid` or `@Validated` to enforce Bean Validation constraints at the HTTP boundary |
+| `NG401` | Reachable CVE | **API-Reachable CVE** (`CRITICAL` / `error`) | Potentially vulnerable dependency has a statically observed API call chain; verify affected versions and exploit conditions |
+| `NG402` | Reachable CVE | **Code-Reachable CVE** (`HIGH` / `warning`) | Vulnerable dependency is called by internal project methods not exposed via HTTP |
+| `NG403` | Reachable CVE | **Unreachable CVE** (`LOW` / `note`) | Dependency is declared but no matching static call path was observed; runtime use may still exist |
 
 Recommendations are not additional independently confirmed bugs. A framework
 contract, initialized value or runtime guarantee can explain a false positive;
@@ -750,14 +760,15 @@ These changes are covered by regression tests and are not part of published 1.0.
 See [real-project comparison and labels](docs/evaluation/real-project-review.md)
 and the [volunteer usability study](docs/usability/README.md).
 
-## Unreleased analysis corrections
+## Analysis corrections in 1.1.0
 
-The working tree adds branch-sensitive checks inside ternary and short-circuit
+Version 1.1.0 adds branch-sensitive checks inside ternary and short-circuit
 expressions, Java 17 pattern-variable refinements, and non-null catch parameters.
 The source parser, type solver and CFG expression parser now use Java 17 syntax.
 
 Framework assumptions cover required Spring constructor/field injection in
-recognized beans, Lombok `@Slf4j` loggers, required MVC request bodies and servlet
+recognized beans, Lombok `@Slf4j` loggers and final fields initialized through resolved
+SLF4J/JUL/Log4j logger factories, required MVC request bodies and servlet
 arguments, and `@Around` advice-bound values. Explicit nullable declarations and
 optional request bodies/injection remain conservative. These assumptions describe
 normal framework-managed execution; constructing a managed bean manually with null
@@ -774,7 +785,13 @@ same-name methods. Caller contract checks require resolved project targets.
 Consequently unresolved dispatch can hide real internal paths; supply the complete
 compile classpath and treat scores as estimates, not coverage or correctness proofs.
 Scores, hotspots and reports are recalculated by the normal pipeline after analysis.
-These changes require a new release; installing published 1.0.1 does not include them.
+These corrections are included in 1.1.0; published 1.0.1 does not include them.
+
+CVE reachability and the new static-analysis rules are preview heuristics.
+The built-in advisory catalog is limited, and unresolved calls, reflection and
+framework dispatch can hide real paths. An `UNREACHABLE` classification is not a
+safety guarantee. Confirm affected version ranges and runtime conditions with an
+authoritative advisory or dedicated dependency scanner before enforcing results.
 
 ## Current scope and limitations
 
@@ -783,10 +800,10 @@ The current release focuses on source-based Java service analysis.
 - Java source is analyzed; Kotlin and bytecode-only application analysis are not supported.
 - Dependency JARs and class directories improve symbol resolution, but only project source methods receive full source-level analysis.
 - Reflection, dynamic proxies, runtime dependency injection choices, and generated methods may create call paths that static analysis cannot resolve.
-- API discovery currently targets common Spring MVC/JAX-RS conventions and controller/resource naming.
-- The CLI emits JSON, SARIF and DOT. Maven and Gradle integrations also generate HTML: Maven provides the interactive dashboard, and Gradle provides a lightweight offline findings view.
+- API discovery and static OpenAPI 3.0 generation target common Spring MVC and JAX-RS conventions (`@RequestMapping`, `@GetMapping`, `@PostMapping`, `@Path`, etc.) with class + method path composition.
+- Maven, Gradle, and the standalone CLI all emit the 8-tab interactive HTML dashboard (`nullguard-dashboard-latest.html`), `nullguard-openapi.json`, `nullguard-report-latest.json`, `nullguard-results.sarif`, and `nullguard-graph-latest.dot`.
 - SARIF and source-linked findings are available. Dedicated IDE integration, incremental analysis, and automatic source rewriting are not implemented yet.
-- NullGuard is not a CVE scanner, dependency vulnerability scanner, SBOM generator, or replacement for tests and runtime observability.
+- Reachable CVE classification (`NG401`–`NG403`) combines dependency discovery (`pom.xml`, `build.gradle`, `gradle.lockfile`, classpath JARs), built-in Maven CVE signatures, external OSV/Trivy imports (`--cve-input`), and optional OSV.dev queries (`--cve-online`) with call-graph reachability. It complements — rather than replaces — full SBOM/container scanners, tests, and runtime observability.
 
 ## Using this repository with Google Code Wiki
 
@@ -822,7 +839,7 @@ python scripts/validate_sarif.py nullguard-cli/target/ci-reports/nullguard-resul
 Run the checked-in sample service after installing NullGuard:
 
 ```bash
-mvn -f examples/orders-service/pom.xml com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze -Dnullguard.failBuild=true -Dnullguard.failThreshold=HIGH
+mvn -f examples/orders-service/pom.xml com.arinits.nullguard:nullguard-maven-plugin:1.1.0:analyze -Dnullguard.failBuild=true -Dnullguard.failThreshold=HIGH
 ```
 
 This intentionally risky fixture should fail the gate while writing reports. It uses minimal annotation stand-ins for testing source analysis, rather than running an HTTP server.
@@ -894,7 +911,7 @@ The Maven goal requires a Maven project. Run it in the directory containing
 `pom.xml`, or point Maven at it:
 
 ```bash
-mvn -f path/to/pom.xml com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze
+mvn -f path/to/pom.xml com.arinits.nullguard:nullguard-maven-plugin:1.1.0:analyze
 ```
 
 If the project has `build.gradle` or `build.gradle.kts`, use the Gradle integration.

@@ -39,6 +39,11 @@ public final class MethodModel {
     private final boolean nonNullReturn;
     private final boolean nullableReturn;
     private final boolean primitiveReturn;
+    private final String returnType;
+    private final String httpMethod;
+    private final String httpPath;
+    private final int responseStatus;
+    private final List<MethodFinding> methodFindings;
 
     // ── Analysis artifacts ────────────────────────────────────────────────────
     // These were plain `Object` and were read back by consuming modules through
@@ -72,6 +77,11 @@ public final class MethodModel {
         this.nonNullReturn = builder.nonNullReturn;
         this.nullableReturn = builder.nullableReturn;
         this.primitiveReturn = builder.primitiveReturn;
+        this.returnType = builder.returnType == null ? "void" : builder.returnType;
+        this.httpMethod = builder.httpMethod == null ? "" : builder.httpMethod;
+        this.httpPath = builder.httpPath == null ? "" : builder.httpPath;
+        this.responseStatus = builder.responseStatus <= 0 ? 200 : builder.responseStatus;
+        this.methodFindings = List.copyOf(builder.methodFindings);
         this.methodSummary     = builder.methodSummary;
         this.riskModel         = builder.riskModel;
         this.contractModel     = builder.contractModel;
@@ -89,6 +99,11 @@ public final class MethodModel {
     public boolean isNonNullReturn() { return nonNullReturn; }
     public boolean isNullableReturn() { return nullableReturn; }
     public boolean isPrimitiveReturn() { return primitiveReturn; }
+    public String getReturnType() { return returnType; }
+    public String getHttpMethod() { return httpMethod; }
+    public String getHttpPath() { return httpPath; }
+    public int getResponseStatus() { return responseStatus; }
+    public List<MethodFinding> getMethodFindings() { return methodFindings; }
     public void setNullAnalysisModel(Object model) { this.nullAnalysisModel = model; }
 
     public Optional<ControlFlowModel> getControlFlowModel()  { return Optional.ofNullable(controlFlowModel); }
@@ -132,6 +147,11 @@ public final class MethodModel {
         private boolean nonNullReturn;
         private boolean nullableReturn;
         private boolean primitiveReturn;
+        private String returnType = "void";
+        private String httpMethod = "";
+        private String httpPath = "";
+        private int responseStatus = 200;
+        private List<MethodFinding> methodFindings = List.of();
         private IntrinsicRiskSource methodSummary;
         private Object riskModel;
         private ContractPenaltySource contractModel;
@@ -152,6 +172,14 @@ public final class MethodModel {
         public Builder nonNullReturn(boolean value) { this.nonNullReturn = value; return this; }
         public Builder nullableReturn(boolean value) { this.nullableReturn = value; return this; }
         public Builder primitiveReturn(boolean value) { this.primitiveReturn = value; return this; }
+        public Builder returnType(String value) { this.returnType = value == null ? "void" : value; return this; }
+        public Builder httpMethod(String value) { this.httpMethod = value == null ? "" : value; return this; }
+        public Builder httpPath(String value) { this.httpPath = value == null ? "" : value; return this; }
+        public Builder responseStatus(int value) { this.responseStatus = value; return this; }
+        public Builder methodFindings(List<MethodFinding> values) {
+            this.methodFindings = values == null ? List.of() : List.copyOf(values);
+            return this;
+        }
         public Builder methodSummary(IntrinsicRiskSource s)    { this.methodSummary = s; return this; }
         public Builder riskModel(Object r)                     { this.riskModel = r; return this; }
         public Builder contractModel(ContractPenaltySource c)  { this.contractModel = c; return this; }

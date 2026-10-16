@@ -56,13 +56,15 @@ public abstract class NullGuardTask extends JavaExec {
         // Remove only known analyzer outputs so a failed run cannot appear to be a fresh clean report.
         getFileSystemOperations().delete(spec -> spec.delete(
                 new File(reports, "nullguard-report-latest.json"), new File(reports, "nullguard-results.sarif"),
-                new File(reports, "nullguard-graph-latest.dot"), new File(reports, "nullguard-dashboard-latest.html")));
+                new File(reports, "nullguard-graph-latest.dot"), new File(reports, "nullguard-dashboard-latest.html"),
+                new File(reports, "nullguard-openapi.json")));
         setIgnoreExitValue(true);
         super.exec();
         int exit = getExecutionResult().get().getExitValue();
         try {
-            if (new File(reports, "nullguard-report-latest.json").isFile()) HtmlReport.write(reports.toPath());
-            else if (exit == 0) throw new GradleException("NullGuard completed without producing its JSON report");
+            if (new File(reports, "nullguard-report-latest.json").isFile()) {
+                if (!new File(reports, "nullguard-dashboard-latest.html").isFile()) HtmlReport.write(reports.toPath());
+            } else if (exit == 0) throw new GradleException("NullGuard completed without producing its JSON report");
         } catch (java.io.IOException failure) {
             throw new GradleException("Could not write the NullGuard HTML report", failure);
         }

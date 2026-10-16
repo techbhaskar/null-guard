@@ -1,8 +1,8 @@
 # NullGuard for Gradle
 
-Release `1.0.1` has passed Maven Central validation and is publishing. The public
-setup below works once Central finishes publication. The integration resolves
-the lean `1.0.1` CLI and its runtime dependencies separately.
+Release `1.1.0` is being prepared for Maven Central publication. Version 1.0.1
+is already published. The setup below uses the new version once Central confirms
+it. The integration resolves the CLI and its runtime dependencies separately.
 
 ## Install from Maven Central
 
@@ -19,7 +19,7 @@ Then in `build.gradle.kts`:
 ```kotlin
 plugins {
     java
-    id("com.arinits.nullguard") version "1.0.1"
+    id("com.arinits.nullguard") version "1.1.0"
 }
 repositories { mavenCentral() }
 nullguard {
@@ -39,7 +39,7 @@ pluginManagement {
 ```groovy
 plugins {
     id 'java'
-    id 'com.arinits.nullguard' version '1.0.1'
+    id 'com.arinits.nullguard' version '1.1.0'
 }
 repositories { mavenCentral() }
 nullguard {
@@ -70,7 +70,7 @@ in the integration directory and configure `mavenLocal()` for plugin resolution.
 
 | Option | Default | Purpose |
 | --- | --- | --- |
-| `toolVersion` | `1.0.1` | CLI artifact version to resolve |
+| `toolVersion` | `1.1.0` | CLI artifact version to resolve |
 | `failBuild` | `false` | Enable the hotspot build gate |
 | `failThreshold` | `CRITICAL` | LOW, MEDIUM/MODERATE, HIGH, CRITICAL |
 | `runOnCheck` | `false` | Include analysis in `check` |

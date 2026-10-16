@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "nullguard-cli/target/ci-reports"
 SOURCE = ROOT / "examples/orders-service/src/main/java"
-JAR = ROOT / "nullguard-cli/target/nullguard-cli-1.0.1-jar-with-dependencies.jar"
+JAR = ROOT / "nullguard-cli/target/nullguard-cli-1.1.0-jar-with-dependencies.jar"
 
 
 # The standalone distribution must not reintroduce the Maven runtime.
@@ -30,15 +30,21 @@ run(["java", "-jar", str(JAR), str(SOURCE), f"--output={OUTPUT}", "--fail-build"
 report = json.loads((OUTPUT / "nullguard-report-latest.json").read_text(encoding="utf-8"))
 assert len(report["apiEndpoints"]) == 5
 assert any(h["methodRef"] == "sample.Services.Risky#load()" for h in report["hotspots"])
+assert "openApiSpec" in report
+assert "architectureSummary" in report
+assert "cveSummary" in report
+assert (OUTPUT / "nullguard-openapi.json").exists()
 assert (OUTPUT / "nullguard-results.sarif").exists()
 assert (OUTPUT / "nullguard-dashboard-latest.html").exists()
 
 maven = shutil.which("mvn")
 if not maven:
     raise RuntimeError("Maven is required; run mvn install first")
-goal = [maven, "--batch-mode", "-f", "examples/orders-service/pom.xml", "com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze"]
+goal = [maven, "--batch-mode", "-f", "examples/orders-service/pom.xml", "com.arinits.nullguard:nullguard-maven-plugin:1.1.0:analyze"]
 run(goal + ["-Dnullguard.failBuild=false"], 0, "maven-report-only")
 run(goal + ["-Dnullguard.failBuild=true", "-Dnullguard.failThreshold=HIGH"], 1, "maven-gate")
 dashboard = ROOT / "examples/orders-service/target/nullguard/nullguard-dashboard-latest.html"
+openapi_spec = ROOT / "examples/orders-service/target/nullguard/nullguard-openapi.json"
 assert dashboard.exists()
+assert openapi_spec.exists()
 assert "hotspot" in (OUTPUT / "maven-gate.log").read_text(encoding="utf-8").lower()

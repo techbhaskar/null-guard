@@ -170,11 +170,21 @@ public final class AnalysisPipeline {
                 () -> propagationGraphBuilder.build(projectModel, callGraph, riskMap));
         ctx.setPropagationGraph(propGraph);
 
-        // ── Step 8: Export Visualization Artifacts ────────────────────────────
+        // ── Step 8: Export Visualization, OpenAPI, Static Analysis & CVE Artifacts ──
         VisualizationBundle vizBundle = timed(ctx, "visualization-export", () -> {
             String dot  = dotGraphExporter.export(propGraph);
+            Map<String, Object> openApiSpec = OpenApiSpecGenerator.generate(projectModel, apiEndpoints, riskMap);
+            List<Finding> staticFindings = StaticCodeAnalyzer.analyze(projectModel, callGraph, apiEndpoints);
+            Map<String, Object> archSummary = StaticCodeAnalyzer.buildSummary(staticFindings);
+            ReachableCveScanner.ScanOutcome cveOutcome = ReachableCveScanner.scan(
+                    projectRoot, config, projectModel, callGraph, apiEndpoints);
+
+            List<Finding> additionalFindings = new ArrayList<>(staticFindings.size() + cveOutcome.findings().size());
+            additionalFindings.addAll(staticFindings);
+            additionalFindings.addAll(cveOutcome.findings());
+
             FindingExporter exporter = new FindingExporter();
-            List<Finding> findings = exporter.collect(projectModel, hotspots, suggestions);
+            List<Finding> findings = exporter.collect(projectModel, hotspots, suggestions, additionalFindings);
             // Keep the report as an object model and stream it at write time. Rendering it to
             // an indented String, re-parsing it and rendering again held ~4 copies of the report
             // in memory and caused OutOfMemoryError on real services.
@@ -184,6 +194,9 @@ public final class AnalysisPipeline {
             report.put("apiEndpoints", List.copyOf(apiEndpoints));
             report.put("hotspots", List.copyOf(hotspots));
             report.put("suggestions", List.copyOf(suggestions));
+            report.put("openApiSpec", openApiSpec);
+            report.put("architectureSummary", archSummary);
+            report.put("cveSummary", cveOutcome.cveSummary());
             return new VisualizationBundle(report, jsonGraphExporter, dot, exporter.sarif(findings, projectRoot), findings);
         });
         ctx.setVisualizationBundle(vizBundle);

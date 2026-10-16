@@ -63,6 +63,15 @@ public final class VisualizationBundle {
         }
     }
 
+    /** Streams the OpenAPI 3.0 specification to {@code file} if present in the report. */
+    public void writeOpenApiJson(Path file) throws IOException {
+        if (report instanceof java.util.Map<?, ?> map && map.get("openApiSpec") != null && exporter != null) {
+            try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(file))) {
+                exporter.write(map.get("openApiSpec"), out);
+            }
+        }
+    }
+
     /** Streams the report as JSON that is safe inside an HTML script element. */
     public void writeJsonForScript(Writer out) throws IOException {
         if (report != null) { exporter.writeForScript(report, out); return; }

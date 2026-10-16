@@ -97,6 +97,8 @@ public final class NullGuardCliApplication {
         int     highRiskThresh  = com.nullguard.core.risk.RiskLevel.HIGH.getMin();
         Path    outputDir       = Paths.get("nullguard-out");
         List<Path> classpathEntries = new ArrayList<>();
+        Path    cveInputFile    = null;
+        boolean osvOnline       = false;
 
         for (String arg : args) {
             if (arg.startsWith("--")) {
@@ -116,6 +118,10 @@ public final class NullGuardCliApplication {
                     highRiskThresh = Integer.parseInt(arg.substring("--high-risk-threshold=".length()));
                 } else if (arg.startsWith("--output=")) {
                     outputDir = Paths.get(arg.substring("--output=".length()));
+                } else if (arg.startsWith("--cve-input=")) {
+                    cveInputFile = Paths.get(arg.substring("--cve-input=".length()));
+                } else if (arg.equals("--cve-online")) {
+                    osvOnline = true;
                 } else if (arg.startsWith("--classpath=")) {
                     String rawClasspath = arg.substring("--classpath=".length());
                     for (String entry : rawClasspath.split(
@@ -157,12 +163,14 @@ public final class NullGuardCliApplication {
                 .outputDirectory(outputDir)
                 .sourceRoots(List.of(sourcePath))
                 .classpathEntries(classpathEntries)
+                .cveInputFile(cveInputFile)
+                .osvOnlineLookup(osvOnline)
                 .build();
 
         // ── Execute via bootstrap ─────────────────────────────────────────────
         try {
             System.out.println("-------------------------------------------------------");
-            System.out.println(" NullGuard: Stability Intelligence Engine (v1.0)");
+            System.out.println(" NullGuard: Stability Intelligence Engine (v1.1)");
             System.out.println("-------------------------------------------------------");
             System.out.println("Source path : " + sourcePath.toAbsolutePath());
             System.out.println("Output dir  : " + outputDir.toAbsolutePath());
@@ -173,7 +181,7 @@ public final class NullGuardCliApplication {
 
             printSummary(result);
 
-            // ── Write JSON, SARIF, DOT, and HTML reports ──────────────────────
+            // ── Write JSON, OpenAPI, SARIF, DOT, and HTML reports ─────────────
             writeReports(result, outputDir, sourcePath);
 
             // ── Apply fail policy ─────────────────────────────────────────────
@@ -208,6 +216,7 @@ public final class NullGuardCliApplication {
         System.out.printf ("│  High Risk Meth. : %-20d │%n", s.getHighRiskMethods());
         System.out.printf ("│  Max Risk        : %-20.2f │%n", s.getMaxRisk());
         System.out.printf ("│  Blast Radius    : %-20.2f │%n", s.getBlastRadiusScore());
+        System.out.printf ("│  API Endpoints   : %-20d │%n", result.getApiEndpoints().size());
         System.out.printf ("│  Hotspots        : %-20d │%n", result.getHotspots().size());
         System.out.printf ("│  Suggestions     : %-20d │%n", result.getSuggestions().size());
         System.out.printf ("│  Pipeline time   : %-18dms │%n", result.getTiming().getTotalPipelineDurationMs());
@@ -239,6 +248,8 @@ public final class NullGuardCliApplication {
             }
             Path jsonFile = outputDir.resolve("nullguard-report-latest.json");
             result.getVisualizations().writeJson(jsonFile);
+            Path openApiFile = outputDir.resolve("nullguard-openapi.json");
+            result.getVisualizations().writeOpenApiJson(openApiFile);
             Path dotFile  = outputDir.resolve("nullguard-graph-latest.dot");
             Files.writeString(dotFile, result.getVisualizations().getDotGraph());
             Files.writeString(outputDir.resolve("nullguard-results.sarif"), result.getVisualizations().getSarif());
@@ -258,10 +269,13 @@ public final class NullGuardCliApplication {
      * Returns exit code 1 if fail policy is triggered, 0 otherwise.
      */
     private int applyFailPolicy(FinalAnalysisResult result, boolean failBuild, String failThreshold) {
-        if (failBuild && result.hasHotspotsAtOrAboveSeverity(failThreshold)) {
-            System.err.println("[NullGuard] BUILD FAILED – hotspot severity ≥ " + failThreshold +
-                               " detected (" + result.getHotspots().size() + " hotspots).");
-            return EXIT_FAIL_POLICY;
+        if (failBuild) {
+            boolean apiCveBreach = result.getFindings().stream().anyMatch(f -> "NG401".equals(f.ruleId()));
+            if (result.hasHotspotsAtOrAboveSeverity(failThreshold) || apiCveBreach) {
+                System.err.println("[NullGuard] BUILD FAILED – hotspot severity ≥ " + failThreshold +
+                                   " or API-reachable CVE (NG401) detected.");
+                return EXIT_FAIL_POLICY;
+            }
         }
         System.out.println("[NullGuard] Analysis passed.");
         return EXIT_OK;
@@ -279,5 +293,7 @@ public final class NullGuardCliApplication {
         System.out.println("  --high-risk-threshold=<int>   High-risk score (0-100)      (default: 60)");
         System.out.println("  --output=<dir>                Output directory             (default: ./nullguard-out)");
         System.out.println("  --classpath=<paths>           Dependency classpath (" + File.pathSeparator + " separated)");
+        System.out.println("  --cve-input=<file>            External OSV/Trivy CVE JSON report to enrich with reachability");
+        System.out.println("  --cve-online                  Query OSV.dev REST API for project dependencies");
     }
 }

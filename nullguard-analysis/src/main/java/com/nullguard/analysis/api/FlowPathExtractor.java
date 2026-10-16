@@ -292,10 +292,13 @@ public class FlowPathExtractor {
     }
 
     /**
-     * Infers the HTTP verb from the entry node source text (annotation-first),
+     * Infers the HTTP verb from MethodModel metadata or the entry node source text (annotation-first),
      * falling back to method-name prefix heuristics.
      */
     public static String inferHttpMethod(String methodId, MethodModel method) {
+        if (method != null && !method.getHttpMethod().isEmpty()) {
+            return method.getHttpMethod();
+        }
         String entrySource = getEntrySource(method);
         // Annotation-based detection (most reliable)
         if (entrySource.contains("@GetMapping")    || entrySource.contains("@GET"))    return "GET";
@@ -322,11 +325,42 @@ public class FlowPathExtractor {
     }
 
     /**
+     * Composes class-level basePath and method-level path into a normalized URL path.
+     */
+    public static String inferPath(String methodId, ClassModel ownerClass, MethodModel method) {
+        String basePath = ownerClass != null && ownerClass.getBasePath() != null ? ownerClass.getBasePath().trim() : "";
+        String methodPath = inferMethodSubPath(methodId, method, !basePath.isEmpty());
+        if (basePath.isEmpty()) {
+            return methodPath;
+        }
+        String cleanBase = basePath.startsWith("/") ? basePath : "/" + basePath;
+        if (cleanBase.length() > 1 && cleanBase.endsWith("/")) {
+            cleanBase = cleanBase.substring(0, cleanBase.length() - 1);
+        }
+        if (methodPath.isEmpty() || methodPath.equals("/")) {
+            return cleanBase;
+        }
+        String cleanSub = methodPath.startsWith("/") ? methodPath : "/" + methodPath;
+        if (cleanSub.startsWith(cleanBase + "/") || cleanSub.equals(cleanBase)) {
+            return cleanSub;
+        }
+        return cleanBase + cleanSub;
+    }
+
+    /**
      * Extracts the actual URL path from a mapping annotation value, e.g.
      * {@code @PostMapping("/{id}/reject")} → {@code "/{id}/reject"}.
      * Falls back to {@code "/" + methodName} if no annotation value is found.
      */
     public static String inferPath(String methodId, MethodModel method) {
+        return inferMethodSubPath(methodId, method, false);
+    }
+
+    private static String inferMethodSubPath(String methodId, MethodModel method, boolean hasClassBasePath) {
+        if (method != null && !method.getHttpPath().isEmpty()) {
+            String p = method.getHttpPath();
+            return p.startsWith("/") ? p : "/" + p;
+        }
         String entrySource = getEntrySource(method);
         // Try to find annotation value string: @XxxMapping("...value...")
         java.util.regex.Matcher m = ANNOTATION_PATH_PATTERN.matcher(entrySource);
@@ -335,6 +369,9 @@ public class FlowPathExtractor {
             // Strip quotes if present
             rawPath = rawPath.replaceAll("^\"|\"$", "");
             return rawPath.startsWith("/") ? rawPath : "/" + rawPath;
+        }
+        if (hasClassBasePath) {
+            return "";
         }
         // No annotation path found — derive from method name
         String name = shortName(methodId);

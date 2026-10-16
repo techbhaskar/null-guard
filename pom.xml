@@ -4,7 +4,7 @@
 
     <groupId>com.arinits.nullguard</groupId>
     <artifactId>nullguard-parent</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -46,6 +46,7 @@
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javaparser.version>3.25.8</javaparser.version>
         <!--
@@ -76,6 +77,14 @@
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.12</version>
+                <configuration>
+                    <includes>
+                        <include>com/nullguard/**</include>
+                        <include>com/arinits/**</include>
+                        <include>com.nullguard.*</include>
+                        <include>com.arinits.*</include>
+                    </includes>
+                </configuration>
                 <executions>
                     <execution><id>coverage-agent</id><goals><goal>prepare-agent</goal></goals></execution>
                     <execution><id>coverage-report</id><phase>verify</phase><goals><goal>report</goal></goals></execution>

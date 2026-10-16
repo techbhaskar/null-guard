@@ -31,10 +31,12 @@ public final class NullGuardConfig {
     private final boolean failBuild;
     private final String failThreshold;    // e.g. "CRITICAL", "HIGH", "MODERATE"
 
-    // Output parameters
+    // Output & CVE parameters
     private final Path outputDirectory;
     private final List<Path> sourceRoots;
     private final List<Path> classpathEntries;
+    private final Path cveInputFile;
+    private final boolean osvOnlineLookup;
 
     private NullGuardConfig(Builder builder) {
         this.propagationDepthLimit   = builder.propagationDepthLimit;
@@ -52,6 +54,8 @@ public final class NullGuardConfig {
         this.outputDirectory         = builder.outputDirectory;
         this.sourceRoots             = List.copyOf(builder.sourceRoots);
         this.classpathEntries        = List.copyOf(builder.classpathEntries);
+        this.cveInputFile            = builder.cveInputFile;
+        this.osvOnlineLookup         = builder.osvOnlineLookup;
     }
 
     // ── Analysis config projection ──────────────────────────────────────────
@@ -93,6 +97,8 @@ public final class NullGuardConfig {
     public Path getOutputDirectory()   { return outputDirectory; }
     public List<Path> getSourceRoots() { return sourceRoots; }
     public List<Path> getClasspathEntries() { return classpathEntries; }
+    public Path getCveInputFile()      { return cveInputFile; }
+    public boolean isOsvOnlineLookup() { return osvOnlineLookup; }
 
     // ── Builder ─────────────────────────────────────────────────────────────
 
@@ -125,10 +131,12 @@ public final class NullGuardConfig {
         private boolean failBuild      = false;
         private String  failThreshold  = "CRITICAL";
 
-        // Output
+        // Output & CVE
         private Path outputDirectory = null;
         private List<Path> sourceRoots = List.of();
         private List<Path> classpathEntries = List.of();
+        private Path cveInputFile = null;
+        private boolean osvOnlineLookup = false;
 
         public Builder propagationDepthLimit(int v)    { this.propagationDepthLimit   = v; return this; }
         public Builder propagationDecayExponent(double v){ this.propagationDecayExponent = v; return this; }
@@ -151,6 +159,8 @@ public final class NullGuardConfig {
             this.classpathEntries = v == null ? List.of() : List.copyOf(v);
             return this;
         }
+        public Builder cveInputFile(Path v)            { this.cveInputFile            = v; return this; }
+        public Builder osvOnlineLookup(boolean v)      { this.osvOnlineLookup         = v; return this; }
 
         public NullGuardConfig build() {
             if (!Double.isFinite(hotspotRiskThreshold) || hotspotRiskThreshold < 0 || hotspotRiskThreshold > 100)

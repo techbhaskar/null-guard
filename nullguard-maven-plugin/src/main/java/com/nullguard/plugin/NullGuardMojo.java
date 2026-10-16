@@ -161,6 +161,10 @@ public class NullGuardMojo extends AbstractMojo {
         result.getVisualizations().writeJson(jsonLatest);
         Files.copy(jsonLatest, jsonFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
+        // ── OpenAPI 3.0 Spec ──────────────────────────────────────────────────
+        Path openApiLatest = outputDir.resolve("nullguard-openapi.json");
+        result.getVisualizations().writeOpenApiJson(openApiLatest);
+
         // ── DOT ───────────────────────────────────────────────────────────────
         Path dotFile  = outputDir.resolve("nullguard-graph-" + timestamp + ".dot");
         Path dotLatest = outputDir.resolve("nullguard-graph-latest.dot");
@@ -173,7 +177,8 @@ public class NullGuardMojo extends AbstractMojo {
         HtmlDashboardRenderer.write(htmlLatest, result, timestamp, project.getName());
         Files.copy(htmlLatest, htmlFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-        getLog().info("JSON report  → " + jsonLatest.toAbsolutePath());
+        getLog().info("JSON report    → " + jsonLatest.toAbsolutePath());
+        getLog().info("OpenAPI spec   → " + openApiLatest.toAbsolutePath());
         getLog().info("HTML dashboard → " + htmlLatest.toAbsolutePath());
     }
 
@@ -195,6 +200,7 @@ public class NullGuardMojo extends AbstractMojo {
         getLog().info(String.format("│  Stability Index : %-20.2f │", summary.getStabilityIndex()));
         getLog().info(String.format("│  Total Methods   : %-20d │", summary.getTotalMethods()));
         getLog().info(String.format("│  High Risk Meth. : %-20d │", summary.getHighRiskMethods()));
+        getLog().info(String.format("│  API Endpoints   : %-20d │", result.getApiEndpoints().size()));
         getLog().info(String.format("│  Hotspots        : %-20d │", result.getHotspots().size()));
         getLog().info(String.format("│  Suggestions     : %-20d │", result.getSuggestions().size()));
         getLog().info(String.format("│  Pipeline time   : %-18dms │", result.getTiming().getTotalPipelineDurationMs()));
@@ -216,21 +222,17 @@ public class NullGuardMojo extends AbstractMojo {
 
     /**
      * Fails the Maven build if {@code failBuild=true} AND the result contains
-     * at least one hotspot at or above the configured {@code failThreshold} severity.
-     *
-     * <p>Exit rules:
-     * <ul>
-     *   <li>hotspot severity ≥ failThreshold AND failBuild=true → {@code MojoFailureException} (exit 1)</li>
-     *   <li>otherwise → normal completion (exit 0)</li>
-     * </ul>
+     * at least one hotspot at or above the configured {@code failThreshold} severity
+     * or an API-reachable CVE (NG401).
      */
     private void applyFailPolicy(FinalAnalysisResult result) throws MojoFailureException {
         if (!failBuild) {
             return;
         }
-        if (result.hasHotspotsAtOrAboveSeverity(failThreshold)) {
+        boolean apiCveBreach = result.getFindings().stream().anyMatch(f -> "NG401".equals(f.ruleId()));
+        if (result.hasHotspotsAtOrAboveSeverity(failThreshold) || apiCveBreach) {
             String msg = String.format(
-                    "NullGuard: build failed – hotspot(s) at or above severity '%s' detected. " +
+                    "NullGuard: build failed – hotspot(s) at or above severity '%s' or API-reachable CVE (NG401) detected. " +
                     "Total hotspots: %d. Set nullguard.failBuild=false to suppress.",
                     failThreshold, result.getHotspots().size());
             getLog().error(msg);

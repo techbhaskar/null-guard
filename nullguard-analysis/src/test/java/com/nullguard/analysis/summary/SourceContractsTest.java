@@ -137,6 +137,20 @@ class SourceContractsTest {
         assertEquals(0, warnings(m.get("checked")));
     }
 
+    @Test void loggerFactoriesRequireResolvedOwners() throws Exception {
+        var m = analyze("""
+                class Example {
+                    final java.util.logging.Logger logger = java.util.logging.Logger.getLogger("example");
+                    final String unknown = Other.getLogger();
+                    void logging() { logger.info("hello"); }
+                    int unsafeFactory() { return unknown.length(); }
+                }
+                class Other { static String getLogger() { return null; } }
+                """);
+        assertEquals(0, warnings(m.get("logging")));
+        assertTrue(warnings(m.get("unsafeFactory")) > 0);
+    }
+
     @Test void stableFieldGetterIsNonNullButMutableAndNullFieldsAreNot() throws Exception {
         var m = analyze("""
                 class Example {
