@@ -10,32 +10,28 @@ public final class HtmlDashboardRenderer {
 
     // ── HTML Dashboard ────────────────────────────────────────────────────────
 
-    public static String render(FinalAnalysisResult result, String timestamp, String jsonOutput, String projectName) {
-        StringBuilder reasonJson = new StringBuilder("{\n");
-        boolean firstEntry = true;
-        for (java.util.Map.Entry<String, java.util.List<String>> e : result.getRiskReasonMap().entrySet()) {
-            if (!firstEntry) reasonJson.append(",\n");
-            firstEntry = false;
-            reasonJson.append("  ").append(jsonStr(e.getKey())).append(": [");
-            boolean firstR = true;
-            for (String r : e.getValue()) {
-                if (!firstR) reasonJson.append(", ");
-                firstR = false;
-                reasonJson.append(jsonStr(r));
-            }
-            reasonJson.append("]");
+    /** Builds the dashboard in memory. Prefer {@link #write} for real projects. */
+    public static String render(FinalAnalysisResult result, String timestamp, String ignoredJson, String projectName) {
+        java.io.StringWriter out = new java.io.StringWriter();
+        try { write(out, result, timestamp, projectName); }
+        catch (java.io.IOException impossible) { throw new java.io.UncheckedIOException(impossible); }
+        return out.toString();
+    }
+
+    /** Streams the dashboard to {@code file} without materialising the report as a String. */
+    public static void write(java.nio.file.Path file, FinalAnalysisResult result, String timestamp, String projectName)
+            throws java.io.IOException {
+        try (java.io.Writer out = java.nio.file.Files.newBufferedWriter(file, java.nio.charset.StandardCharsets.UTF_8)) {
+            write(out, result, timestamp, projectName);
         }
-        reasonJson.append("\n}");
+    }
 
-        // The JSON graph export intentionally carries only {summary, graph}. The dashboard
-        // also renders suggestions, API endpoints and hotspots, so those collections are
-        // serialised separately here and merged into the client-side `data` object.
-        // Without this the browser hits `data.suggestions.map(...)` on undefined, which
-        // aborts the whole script and silently blanks every section below it.
-        String apiJson      = toJson(result.getApiEndpoints());
-        String suggestJson  = toJson(result.getSuggestions());
-        String hotspotJson  = toJson(result.getHotspots());
-
+    /**
+     * Streams the dashboard. The report (which already carries findings, API endpoints,
+     * hotspots and suggestions) is embedded exactly once, as script-safe JSON.
+     */
+    public static void write(java.io.Writer out, FinalAnalysisResult result, String timestamp, String projectName)
+            throws java.io.IOException {
         String cycleSection = "";
         if (!result.getCycleWarnings().isEmpty()) {
             StringBuilder cwHtml = new StringBuilder();
@@ -45,7 +41,7 @@ public final class HtmlDashboardRenderer {
             cycleSection = cwHtml.toString();
         }
 
-        return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><title>NullGuard Stability Intelligence</title>\n" +
+        out.write("<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><title>NullGuard Stability Intelligence</title>\n" +
             "<link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>\n" +
             "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' rel='stylesheet'>\n" +
             "<style>\n" +
@@ -146,17 +142,18 @@ public final class HtmlDashboardRenderer {
             "  </section>\n" +
             "\n" +
             "  <section id='raw' class='content'>\n" +
-            "    <div class='card'><h3>NullGuard Data Dump</h3><pre style='white-space:pre-wrap;'>" + sanitize(jsonOutput) + "</pre></div>\n" +
+            "    <div class='card'><h3>NullGuard Data Dump</h3><p>The full machine-readable report is in <a href='nullguard-report-latest.json' style='color:var(--primary)'>nullguard-report-latest.json</a> next to this page. <button onclick=\"document.getElementById('rawDump').textContent=JSON.stringify(data,null,2)\">Show here</button></p><pre id='rawDump' style='white-space:pre-wrap;'></pre></div>\n" +
             "  </section>\n" +
             "</main>\n" +
             "\n" +
             "<script>\n" +
-            "const data = Object.assign({}, " + jsonOutput + ", {\n" +
-            "  apiEndpoints: " + apiJson + ",\n" +
-            "  suggestions: " + suggestJson + ",\n" +
-            "  hotspots: " + hotspotJson + "\n" +
-            "});\n" +
-            "const reasons = " + reasonJson.toString() + ";\n" +
+            "const data = ");
+        result.getVisualizations().writeJsonForScript(out);
+        out.write(";\n" +
+            "data.apiEndpoints = data.apiEndpoints || []; data.suggestions = data.suggestions || []; data.hotspots = data.hotspots || [];\n" +
+            "const reasons = ");
+        VisualizationBundle.writeValueForScript(result.getRiskReasonMap(), out);
+        out.write(";\n" +
             "const s = data.summary || {}; const nodes = (data.graph && data.graph.nodes) || {}; const edges = (data.graph && data.graph.edges) || [];\n" +
             "const inDegree = {}; edges.forEach(e => inDegree[e.to] = (inDegree[e.to]||0)+1);\n" +
             "\n" +
@@ -180,11 +177,14 @@ public final class HtmlDashboardRenderer {
             "}\n" +
             "\n" +
             "/* Render Summary */\n" +
+            "const num = v => typeof v === 'number' ? v.toFixed(2) : 'N/A';\n" +
+            "panel('summaryGrid', () => {\n" +
             "document.getElementById('summaryGrid').innerHTML = `\n" +
-            "  <div class='stat-box'><span class='stat-label'>Stability Grade</span><span class='stat-value' style='color:${s.grade==='A'?'var(--success)':'var(--danger)'}'>${s.grade}</span><span style='font-size:0.75rem'>Index: ${s.stabilityIndex.toFixed(2)}</span></div>\n" +
-            "  <div class='stat-box'><span class='stat-label'>Blast Radius Index</span><span class='stat-value' style='color:var(--primary)'>${s.blastRadiusScore.toFixed(2)}</span><span style='font-size:0.75rem'>Max Risk Detected: ${s.maxRisk.toFixed(2)}</span></div>\n" +
+            "  <div class='stat-box'><span class='stat-label'>Stability Grade</span><span class='stat-value' style='color:${s.grade==='A'?'var(--success)':'var(--danger)'}'>${s.grade}</span><span style='font-size:0.75rem'>Index: ${num(s.stabilityIndex)}</span></div>\n" +
+            "  <div class='stat-box'><span class='stat-label'>Blast Radius Index</span><span class='stat-value' style='color:var(--primary)'>${num(s.blastRadiusScore)}</span><span style='font-size:0.75rem'>Max Risk Detected: ${num(s.maxRisk)}</span></div>\n" +
             "  <div class='stat-box'><span class='stat-label'>Risk Distribution</span><span class='stat-value' style='color:var(--warning)'>${s.highRiskMethods}</span><span style='font-size:0.75rem'>High-risk methods detected</span></div>\n" +
             "  <div class='stat-box'><span class='stat-label'>API Coverage</span><span class='stat-value'>${s.totalMethods}</span><span style='font-size:0.75rem'>Total methods analysed</span></div>`;\n" +
+            "});\n" +
             "\n" +
             "/* Render Suggestions */\n" +
             "panel('sTable', () => {\n" +
@@ -236,7 +236,7 @@ public final class HtmlDashboardRenderer {
             "document.getElementById('gSearch').addEventListener('input', e => panel('riskTable', () => renderMethods(e.target.value)));\n" +
             "panel('riskTable', () => renderMethods());\n" +
             "show('overview');\n" +
-            "</script></body></html>";
+            "</script></body></html>");
     }
 
     private static String sanitize(String s) {
@@ -244,32 +244,4 @@ public final class HtmlDashboardRenderer {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
-    private static String jsonStr(String s) {
-        if (s == null) return "null";
-        return "\"" + s.replace("\\", "\\\\")
-                       .replace("\"", "\\\"")
-                       .replace("\n", "\\n")
-                       .replace("\r", "")
-                       .replace("←", "<-")    // safe ASCII for JSON
-               + "\"";
-    }
-
-    /**
-     * Serialises a collection to a JSON array for embedding in the dashboard script.
-     *
-     * <p>Returns {@code []} rather than propagating on failure: a serialisation problem in
-     * one collection must not take down report generation for the whole build. The failure
-     * is logged so it is still visible.
-     */
-    private static String toJson(Object value) {
-        if (value == null) return "[]";
-        try {
-            return new com.fasterxml.jackson.databind.ObjectMapper()
-                    .writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(value);
-        } catch (Exception e) {
-            System.err.println("[NullGuard] WARNING: could not serialise dashboard section to JSON: " + e.getMessage());
-            return "[]";
-        }
-    }
 }

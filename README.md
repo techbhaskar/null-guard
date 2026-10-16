@@ -273,7 +273,7 @@ JSON, including when an enabled hotspot gate fails after successful analysis.
 | `runOnCheck` | `false` | Make the existing Gradle `check` task depend on analysis |
 | `reportDirectory` | `build/reports/nullguard` | Output directory |
 | `excludes` | empty | Ant-style patterns relative to Java source roots |
-| `maxHeapSize` | `1g` | Analyzer JVM heap limit |
+| `maxHeapSize` | `2g` | Analyzer JVM heap limit |
 
 For a larger service or generated packages, Kotlin DSL configuration can be:
 
@@ -749,6 +749,32 @@ These changes are covered by regression tests and are not part of published 1.0.
 
 See [real-project comparison and labels](docs/evaluation/real-project-review.md)
 and the [volunteer usability study](docs/usability/README.md).
+
+## Unreleased analysis corrections
+
+The working tree adds branch-sensitive checks inside ternary and short-circuit
+expressions, Java 17 pattern-variable refinements, and non-null catch parameters.
+The source parser, type solver and CFG expression parser now use Java 17 syntax.
+
+Framework assumptions cover required Spring constructor/field injection in
+recognized beans, Lombok `@Slf4j` loggers, required MVC request bodies and servlet
+arguments, and `@Around` advice-bound values. Explicit nullable declarations and
+optional request bodies/injection remain conservative. These assumptions describe
+normal framework-managed execution; constructing a managed bean manually with null
+arguments is outside that assumption. Custom Lombok logger field names and custom
+Spring composed annotations are not modeled.
+
+A narrow catalog uses resolved owners for common Optional, String, collection,
+stream, Spring Data CRUD and HTTP input-body return contracts. It does not infer
+contracts merely from a familiar method name. Repeated map lookups remain
+conservative because a map can change between calls.
+
+Unresolved calls remain external graph nodes rather than connecting to unrelated
+same-name methods. Caller contract checks require resolved project targets.
+Consequently unresolved dispatch can hide real internal paths; supply the complete
+compile classpath and treat scores as estimates, not coverage or correctness proofs.
+Scores, hotspots and reports are recalculated by the normal pipeline after analysis.
+These changes require a new release; installing published 1.0.1 does not include them.
 
 ## Current scope and limitations
 

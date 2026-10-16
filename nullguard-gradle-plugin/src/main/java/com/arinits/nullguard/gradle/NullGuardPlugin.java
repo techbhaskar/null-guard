@@ -20,7 +20,7 @@ public final class NullGuardPlugin implements Plugin<Project> {
         extension.getRunOnCheck().convention(false);
         extension.getReportDirectory().convention(project.getLayout().getBuildDirectory().dir("reports/nullguard"));
         extension.getExcludes().convention(List.of());
-        extension.getMaxHeapSize().convention("1g");
+        extension.getMaxHeapSize().convention("2g");
         Configuration tool = project.getConfigurations().create("nullguardTool", c -> {
             c.setCanBeConsumed(false);
             c.setCanBeResolved(true);

@@ -7,6 +7,29 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PipelineIntegrationTest {
     static final Path SOURCES = Path.of("..", "examples", "orders-service", "src", "main", "java");
+    @Test void branchFactsReachReportsAndContractsWithoutLeaking(@org.junit.jupiter.api.io.TempDir Path root) throws Exception {
+        java.nio.file.Files.writeString(root.resolve("Example.java"), """
+                class Example {
+                    int required(String value) { return value.length(); }
+                    int guarded(String value) { return value != null ? required(value) : 0; }
+                    int unsafe(String value) { return value == null ? required(value) : 0; }
+                    int pattern(Object value) { return value instanceof String text ? text.length() : 0; }
+                    int later(String value) { int length = value != null ? value.length() : 0; return required(value); }
+                    int nullValue(java.util.Map<String,Object> value) {
+                        if (value == null) return 0;
+                        if (value.containsKey("id")) return value.get("id").toString().length();
+                        return 0;
+                    }
+                }
+                """);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().build()).run(root);
+        assertFalse(result.getFindings().stream().anyMatch(f -> (f.ruleId().equals("NG001") || f.ruleId().equals("NG002") || f.ruleId().equals("NG004"))
+                && (f.methodId().contains("#guarded(") || f.methodId().contains("#pattern("))));
+        for (String method : java.util.List.of("unsafe", "later"))
+            assertTrue(result.getFindings().stream().anyMatch(f -> f.ruleId().equals("NG004") && f.methodId().contains("#" + method + "(")), method);
+        assertTrue(result.getFindings().stream().anyMatch(f -> f.ruleId().equals("NG001") && f.methodId().contains("#nullValue(")));
+    }
+
     @Test void endpointsRiskHotspotsContractsAndSarifAgree() throws Exception {
         var result = new EngineBootstrap(NullGuardConfig.defaults().build()).run(SOURCES);
         assertEquals(5, result.getApiEndpoints().size());

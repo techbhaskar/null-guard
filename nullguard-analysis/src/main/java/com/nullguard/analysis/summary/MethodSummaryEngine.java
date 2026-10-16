@@ -114,16 +114,29 @@ public class MethodSummaryEngine {
         }
     }
 
+    private static boolean nonNullFrameworkReturn(com.nullguard.core.model.ResolvedCallTarget t) {
+        String owner = t.declaringType(), name = t.methodName();
+        if (owner.equals("org.springframework.aot.hint.RuntimeHints"))
+            return t.parameterCount() == 0 && java.util.Set.of("resources", "reflection", "serialization", "proxies", "jni").contains(name);
+        if (owner.equals("java.util.Optional"))
+            return java.util.Set.of("empty", "of", "ofNullable", "get", "orElseThrow", "filter", "map", "flatMap", "or", "stream").contains(name);
+        if (owner.equals("java.lang.Object")) return name.equals("getClass");
+        if (owner.equals("java.lang.String")) return java.util.Set.of("trim", "strip", "toLowerCase", "toUpperCase", "substring", "toString", "valueOf", "concat", "replace").contains(name);
+        if (owner.equals("java.util.stream.Stream")) return java.util.Set.of("filter", "map", "flatMap", "distinct", "sorted", "limit", "skip", "findFirst", "findAny", "toList", "of", "empty").contains(name);
+        if (java.util.Set.of("java.util.Collection", "java.util.List", "java.util.Set").contains(owner))
+            return java.util.Set.of("stream", "parallelStream", "iterator", "of", "copyOf").contains(name);
+        if (owner.equals("org.springframework.data.repository.CrudRepository"))
+            return java.util.Set.of("findById", "findAll", "findAllById", "save", "saveAll").contains(name);
+        if (owner.equals("org.springframework.http.HttpInputMessage") && name.equals("getBody")) return true;
+        return false;
+    }
+
     public static java.util.Map<String, NullState> callReturns(MethodModel method, java.util.Map<String, MethodModel> methods) {
         java.util.Map<String, NullState> returns = new java.util.HashMap<>();
         for (var call : method.getSemanticCallSites()) {
             var target = call.getResolvedTarget().map(t -> methods.get(t.qualifiedSignature())).orElse(null);
             NullState value = NullState.UNKNOWN;
-            // Narrow, symbol-resolved framework contracts; never infer from a method name alone.
-            if (target == null && call.getResolvedTarget().filter(t ->
-                    t.declaringType().equals("org.springframework.aot.hint.RuntimeHints")
-                    && t.parameterCount() == 0
-                    && java.util.Set.of("resources", "reflection", "serialization", "proxies", "jni").contains(t.methodName())).isPresent())
+            if (target == null && call.getResolvedTarget().filter(MethodSummaryEngine::nonNullFrameworkReturn).isPresent())
                 value = NullState.NON_NULL;
             if (target != null) value = target.isPrimitiveReturn() ? NullState.NON_NULL : target.isNullableReturn() ? NullState.UNKNOWN
                     : target.isNonNullReturn() ? NullState.NON_NULL : target.getMethodSummary().filter(MethodSummary.class::isInstance).map(MethodSummary.class::cast)

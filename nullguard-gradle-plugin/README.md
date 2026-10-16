@@ -76,7 +76,7 @@ in the integration directory and configure `mavenLocal()` for plugin resolution.
 | `runOnCheck` | `false` | Include analysis in `check` |
 | `reportDirectory` | `build/reports/nullguard` | Per-project report location |
 | `excludes` | empty | Ant patterns relative to Java source roots |
-| `maxHeapSize` | `1g` | Analyzer JVM heap limit |
+| `maxHeapSize` | `2g` | Analyzer JVM heap limit |
 
 Kotlin DSL example:
 

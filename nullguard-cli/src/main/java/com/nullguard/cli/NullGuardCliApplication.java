@@ -237,9 +237,8 @@ public final class NullGuardCliApplication {
             if (!Files.exists(outputDir)) {
                 Files.createDirectories(outputDir);
             }
-            String jsonContent = result.getVisualizations().getJsonGraph();
             Path jsonFile = outputDir.resolve("nullguard-report-latest.json");
-            Files.writeString(jsonFile, jsonContent);
+            result.getVisualizations().writeJson(jsonFile);
             Path dotFile  = outputDir.resolve("nullguard-graph-latest.dot");
             Files.writeString(dotFile, result.getVisualizations().getDotGraph());
             Files.writeString(outputDir.resolve("nullguard-results.sarif"), result.getVisualizations().getSarif());
@@ -247,8 +246,7 @@ public final class NullGuardCliApplication {
                     .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             Path name = sourcePath == null ? null : sourcePath.toAbsolutePath().normalize().getFileName();
             Path htmlFile = outputDir.resolve("nullguard-dashboard-latest.html");
-            Files.writeString(htmlFile, HtmlDashboardRenderer.render(
-                    result, timestamp, jsonContent, name == null ? "project" : name.toString()));
+            HtmlDashboardRenderer.write(htmlFile, result, timestamp, name == null ? "project" : name.toString());
             System.out.println("Reports written to: " + outputDir.toAbsolutePath());
         } catch (Exception e) {
             System.err.println("[NullGuard] WARNING: Failed to write reports – " + e.getMessage());

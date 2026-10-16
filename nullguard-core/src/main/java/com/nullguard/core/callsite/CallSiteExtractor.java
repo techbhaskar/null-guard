@@ -1,7 +1,6 @@
 package com.nullguard.core.callsite;
 
 import com.github.javaparser.ParseProblemException;
-import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
@@ -90,12 +89,12 @@ public final class CallSiteExtractor {
      */
     private static Node parseNode(String source) {
         try {
-            Statement statement = StaticJavaParser.parseStatement(source);
+            Statement statement = com.nullguard.core.parser.SourceExpressions.parseStatement(source);
             return statement;
         } catch (ParseProblemException statementFailure) {
             String expressionSource = stripTrailingSemicolon(source);
             try {
-                Expression expression = StaticJavaParser.parseExpression(expressionSource);
+                Expression expression = com.nullguard.core.parser.SourceExpressions.parseExpression(expressionSource);
                 return expression;
             } catch (ParseProblemException expressionFailure) {
                 return null;

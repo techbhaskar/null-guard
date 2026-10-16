@@ -32,6 +32,111 @@ class SourceContractsTest {
         return ((NullAnalysisModel)method.getNullAnalysisModel().orElseThrow()).getUnguardedDereferences();
     }
 
+    @Test void expressionBranchesAndCatchParametersAreScoped() throws Exception {
+        var m = analyze("""
+                class Example {
+                    int ternary(String value) { return value != null ? value.length() : 0; }
+                    int reverse(String value) { return value == null ? 0 : value.length(); }
+                    int unsafe(String value) { return value == null ? value.length() : 0; }
+                    int after(String value) { int n = value != null ? value.length() : 0; return value.length(); }
+                    int pattern(Object value) { return value instanceof String text ? text.length() : 0; }
+                    int negative(Object value) { if (!(value instanceof String text)) return 0; return text.length(); }
+                    int conjunction(String a, String b) { if (a != null && b != null) return a.length() + b.length(); return 0; }
+                    int disjunction(String a, String b) { if (a != null && b != null) return 0; return a.length(); }
+                    int caught() { try { throw new RuntimeException(); } catch (RuntimeException ex) { return ex.hashCode(); } }
+                }
+                """);
+        for (String name : java.util.List.of("ternary", "reverse", "pattern", "negative", "conjunction", "caught"))
+            assertEquals(0, warnings(m.get(name)), name);
+        for (String name : java.util.List.of("unsafe", "after", "disjunction")) assertTrue(warnings(m.get(name)) > 0, name);
+    }
+
+    @Test void springInjectionAndLombokAreExplicitAssumptions() throws Exception {
+        var m = analyze("""
+                import org.springframework.stereotype.Service;
+                import lombok.extern.slf4j.Slf4j;
+                @Service @Slf4j class Example {
+                    final String service;
+                    Example(String service) { this.service = service; }
+                    int injected() { log.info("ok"); return service.length(); }
+                }
+                class Plain {
+                    final String service;
+                    Plain(String service) { this.service = service; }
+                    int ordinary() { return service.length(); }
+                }
+                @Service class FieldBean {
+                    @org.springframework.beans.factory.annotation.Autowired String required;
+                    @org.springframework.beans.factory.annotation.Autowired(required=false) String optional;
+                    @org.springframework.beans.factory.annotation.Autowired String resettable;
+                    int requiredField() { return required.length(); }
+                    int optionalField() { return optional.length(); }
+                    int resetField() { resettable = null; return resettable.length(); }
+                }
+                @Service class NullableBean {
+                    final String service;
+                    NullableBean(@org.springframework.lang.Nullable String service) { this.service = service; }
+                    int optional() { return service.length(); }
+                }
+                """);
+        assertEquals(0, warnings(m.get("injected")));
+        assertTrue(warnings(m.get("ordinary")) > 0);
+        assertTrue(warnings(m.get("optional")) > 0);
+        assertEquals(0, warnings(m.get("requiredField")));
+        assertTrue(warnings(m.get("optionalField")) > 0);
+        assertTrue(warnings(m.get("resetField")) > 0);
+    }
+
+    @Test void optionalAndStringContractsKeepNullableValuesNullable() throws Exception {
+        var m = analyze("""
+                class Example {
+                    int optional(java.util.Optional<String> value) {
+                        if (value == null) return 0;
+                        return value.orElseThrow().trim().length();
+                    }
+                    int nullable(java.util.Optional<String> value) {
+                        if (value == null) return 0;
+                        return value.orElse(null).length();
+                    }
+                    int unrelated(Fake value) { if (value == null) return 0; return value.orElseThrow().length(); }
+                }
+                class Fake { String orElseThrow() { return null; } }
+                """);
+        assertEquals(0, warnings(m.get("optional")));
+        assertTrue(warnings(m.get("nullable")) > 0);
+        assertTrue(warnings(m.get("unrelated")) > 0);
+    }
+
+    @Test void frameworkParametersRespectOptionalBodies() throws Exception {
+        var m = analyze("""
+                import org.springframework.web.bind.annotation.*;
+                import org.aspectj.lang.annotation.Around;
+                import org.aspectj.lang.ProceedingJoinPoint;
+                class Example {
+                    @PostMapping("/x") int body(@RequestBody String value) { return value.length(); }
+                    @PostMapping("/y") int optionalBody(@RequestBody(required=false) String value) { return value.length(); }
+                    @Around("@annotation(annotation)") int advice(ProceedingJoinPoint point, Deprecated annotation) { return annotation.hashCode() + point.hashCode(); }
+                }
+                """);
+        assertEquals(0, warnings(m.get("body")));
+        assertEquals(0, warnings(m.get("advice")));
+        assertTrue(warnings(m.get("optionalBody")) > 0);
+    }
+
+    @Test void skippedChecksDoNotRefineFollowingStatements() throws Exception {
+        var m = analyze("""
+                class Example {
+                    int skipped(String value, boolean flag) {
+                        Object ignored = flag ? java.util.Objects.requireNonNull(value) : null;
+                        return value.length();
+                    }
+                    int checked(String value) { java.util.Objects.requireNonNull(value); return value.length(); }
+                }
+                """);
+        assertTrue(warnings(m.get("skipped")) > 0);
+        assertEquals(0, warnings(m.get("checked")));
+    }
+
     @Test void stableFieldGetterIsNonNullButMutableAndNullFieldsAreNot() throws Exception {
         var m = analyze("""
                 class Example {
@@ -119,5 +224,24 @@ class SourceContractsTest {
                 }
                 """);
         assertFalse(m.get("identity").getParameters().get(0).nonNull());
+    }
+
+    @Test void survivingReceiversRefineDeclarationsAndComparisonsButNotReassignments() throws Exception {
+        var m = analyze("""
+                class Example {
+                    int declared(String value) { int n = value.length(); return n + value.hashCode(); }
+                    int compared(String value) { if (value.length() == 0) return 0; return value.hashCode(); }
+                    int guardedRight(String value, boolean flag) { boolean b = flag && value.isEmpty(); return value.hashCode(); }
+                    int reassigned(Node node) { node = node.next(); return node.hashCode(); }
+                }
+                class Node { Node next() { return null; } }
+                """);
+        // Only the first dereference is unguarded; surviving it proves the receiver non-null.
+        assertEquals(1, warnings(m.get("declared")), "declared");
+        assertEquals(1, warnings(m.get("compared")), "compared");
+        // `value.isEmpty()` is skipped when flag is false, so it proves nothing afterwards.
+        assertEquals(2, warnings(m.get("guardedRight")), "guardedRight");
+        // The receiver is overwritten by a nullable result; the old fact must not survive.
+        assertEquals(2, warnings(m.get("reassigned")), "reassigned");
     }
 }

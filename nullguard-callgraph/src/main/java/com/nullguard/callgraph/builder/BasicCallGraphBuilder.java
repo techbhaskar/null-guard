@@ -62,8 +62,7 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                                 ResolvedCallTarget resolvedTarget =
                                         site.getResolvedTarget().orElse(null);
                                 List<String> targets = resolvedTarget == null
-                                        ? resolver.resolveAll(
-                                                project, calledName, site.getArgumentCount())
+                                        ? List.of()
                                         : resolver.resolveAll(project, resolvedTarget);
                                 String externalName = resolvedTarget == null
                                         ? calledName
@@ -76,13 +75,12 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
                             }
                         } else if (mth.getControlFlowModel().isPresent()) {
                             // Models built by clients or older parsers have no semantic metadata.
-                            // Preserve the name/arity fallback for backward compatibility.
+                            // Without symbol metadata a method name is not evidence of its owner.
                             for (CallSite site : callSiteExtractor.extract(
                                     mth.getControlFlowModel().get())) {
                                 String calledName = site.calleeName();
                                 if (isGetterOrSetter(calledName)) continue;
-                                List<String> targets = resolver.resolveAll(
-                                        project, calledName, site.argCount());
+                                List<String> targets = List.of();
                                 connect(callerId, targets, calledName,
                                         resolver.classifyExternal(calledName),
                                         outgoing, incoming, externalNodes, externalReasons);

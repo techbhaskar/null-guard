@@ -1,6 +1,5 @@
 package com.nullguard.analysis.contract;
 
-import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.nullguard.analysis.config.AnalysisConfig;
@@ -30,8 +29,9 @@ public class ContractAnalyzer {
             method.getParameters().stream().filter(p -> p.nonNull() || p.primitive()).forEach(p -> names.add(p.name()));
             model(method).ifPresent(model -> method.getControlFlowModel().ifPresent(cfg -> {
                 for (var inst : new BasicInstructionExtractor().extract(cfg))
-                    if (inst instanceof DereferenceInstruction d && model.getInStates().getOrDefault(d.id(), Map.of())
-                            .getOrDefault(d.variableName(), NullState.UNKNOWN) != NullState.NON_NULL
+                    if (inst instanceof DereferenceInstruction d && ExpressionNullability.evaluate(d.variableName(),
+                            ExpressionNullability.atReceiver(cfg.getNodes().get(d.cfgNodeId()).getSourceCode(), d.variableName(), model.getInStates().getOrDefault(d.id(), Map.of())),
+                            MethodSummaryEngine.callReturns(method, methods)) != NullState.NON_NULL
                             && method.getParameters().stream().anyMatch(p -> p.name().equals(d.variableName()))) names.add(d.variableName());
             }));
             required.put(id, names);
@@ -54,9 +54,9 @@ public class ContractAnalyzer {
             for (var node : cfg.getNodes().values()) {
                 if (node.getLineNumber() < 1 || node.getType() == com.nullguard.core.cfg.NodeType.ENTRY) continue;
                 Node ast;
-                try { ast = StaticJavaParser.parseStatement(node.getSourceCode()); }
+                try { ast = com.nullguard.core.parser.SourceExpressions.parseStatement(node.getSourceCode()); }
                 catch (RuntimeException statement) {
-                    try { ast = StaticJavaParser.parseExpression(node.getSourceCode()); }
+                    try { ast = com.nullguard.core.parser.SourceExpressions.parseExpression(node.getSourceCode()); }
                     catch (RuntimeException expression) { continue; }
                 }
                 Map<String, NullState> state = instructions.stream().filter(i -> i.cfgNodeId().equals(node.getId()))
@@ -67,14 +67,11 @@ public class ContractAnalyzer {
                     method.getSemanticCallSites().stream().filter(c -> (c.getWrittenName() + "/" + c.getArgumentCount()).equals(key))
                             .flatMap(c -> c.getResolvedTarget().stream()).map(ResolvedCallTarget::qualifiedSignature)
                             .filter(methods::containsKey).forEach(candidates::add);
-                    if (candidates.isEmpty()) edges.getOrDefault(id, Set.of()).stream().filter(methods::containsKey)
-                            .filter(c -> methods.get(c).getMethodName().equals(call.getNameAsString())
-                                    && methods.get(c).getParameters().size() == call.getArguments().size()).forEach(candidates::add);
                     for (String calleeId : candidates) {
                         var callee = methods.get(calleeId);
                         for (int n = 0; n < Math.min(call.getArguments().size(), callee.getParameters().size()); n++) {
                             var parameter = callee.getParameters().get(n);
-                            if (required.get(calleeId).contains(parameter.name()) && ExpressionNullability.evaluate(call.getArgument(n), state, returns) != NullState.NON_NULL)
+                            if (required.get(calleeId).contains(parameter.name()) && ExpressionNullability.evaluate(call.getArgument(n), ExpressionNullability.atExpression(call, state), returns) != NullState.NON_NULL)
                                 issues.add(new ContractModel.ContractIssue("NG004", "Nullable argument passed to '" + parameter.name() + "' of " + calleeId, node.getLineNumber()));
                         }
                     }

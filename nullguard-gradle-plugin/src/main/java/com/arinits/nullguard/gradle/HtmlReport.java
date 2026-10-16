@@ -1,6 +1,7 @@
 package com.arinits.nullguard.gradle;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -8,9 +9,6 @@ import java.nio.file.Path;
 final class HtmlReport {
     private HtmlReport() {}
     static void write(Path directory) throws IOException {
-        String json = Files.readString(directory.resolve("nullguard-report-latest.json"))
-                .replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
-                .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029");
         String page = """
                 <!doctype html><html lang="en"><meta charset="utf-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -30,7 +28,7 @@ final class HtmlReport {
                 <input id="filter" type="search"><p id="shown" aria-live="polite"></p>
                 <div class="scroll"><table><thead><tr><th>Rule</th><th>Severity</th><th>Location</th><th>Message</th></tr></thead>
                 <tbody id="rows"></tbody></table></div></section>
-                <script type="application/json" id="report-data">""" + json + """
+                <script type="application/json" id="report-data">\u0000""" + """
                 </script><script>
                 const data=JSON.parse(document.getElementById('report-data').textContent);
                 const summary=data.summary||{};const findings=data.findings||[];
@@ -46,6 +44,27 @@ final class HtmlReport {
                 document.getElementById('filter').addEventListener('input',render);render();
                 </script></main></html>
                 """;
-        Files.writeString(directory.resolve("nullguard-dashboard-latest.html"), page);
+        int split = page.indexOf('\u0000');
+        // Stream the report into the page: reading it into one String (plus escaped copies)
+        // exhausts the Gradle daemon heap on large services.
+        try (var out = Files.newBufferedWriter(directory.resolve("nullguard-dashboard-latest.html"), StandardCharsets.UTF_8);
+             var in = Files.newBufferedReader(directory.resolve("nullguard-report-latest.json"), StandardCharsets.UTF_8)) {
+            out.write(page, 0, split);
+            char[] buffer = new char[8192];
+            for (int n; (n = in.read(buffer)) != -1; ) {
+                for (int i = 0; i < n; i++) {
+                    char c = buffer[i];
+                    switch (c) {
+                        case '&' -> out.write("\\u0026");
+                        case '<' -> out.write("\\u003c");
+                        case '>' -> out.write("\\u003e");
+                        case '\u2028' -> out.write("\\u2028");
+                        case '\u2029' -> out.write("\\u2029");
+                        default -> out.write(c);
+                    }
+                }
+            }
+            out.write(page, split + 1, page.length() - split - 1);
+        }
     }
 }

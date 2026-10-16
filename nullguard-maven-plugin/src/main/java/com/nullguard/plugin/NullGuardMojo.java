@@ -152,15 +152,14 @@ public class NullGuardMojo extends AbstractMojo {
         }
 
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String jsonContent = result.getVisualizations().getJsonGraph();
         String dotContent  = result.getVisualizations().getDotGraph();
         Files.writeString(outputDir.resolve("nullguard-results.sarif"), result.getVisualizations().getSarif());
 
-        // ── JSON ──────────────────────────────────────────────────────────────
+        // ── JSON (streamed; the report can be hundreds of MB on large services) ──
         Path jsonFile = outputDir.resolve("nullguard-report-" + timestamp + ".json");
         Path jsonLatest = outputDir.resolve("nullguard-report-latest.json");
-        Files.writeString(jsonFile, jsonContent);
-        Files.writeString(jsonLatest, jsonContent);
+        result.getVisualizations().writeJson(jsonLatest);
+        Files.copy(jsonLatest, jsonFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
         // ── DOT ───────────────────────────────────────────────────────────────
         Path dotFile  = outputDir.resolve("nullguard-graph-" + timestamp + ".dot");
@@ -169,11 +168,10 @@ public class NullGuardMojo extends AbstractMojo {
         Files.writeString(dotLatest, dotContent);
 
         // ── HTML Dashboard ────────────────────────────────────────────────────
-        String htmlContent = HtmlDashboardRenderer.render(result, timestamp, jsonContent, project.getName());
         Path htmlFile   = outputDir.resolve("nullguard-dashboard-" + timestamp + ".html");
         Path htmlLatest = outputDir.resolve("nullguard-dashboard-latest.html");
-        Files.writeString(htmlFile, htmlContent);
-        Files.writeString(htmlLatest, htmlContent);
+        HtmlDashboardRenderer.write(htmlLatest, result, timestamp, project.getName());
+        Files.copy(htmlLatest, htmlFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
         getLog().info("JSON report  → " + jsonLatest.toAbsolutePath());
         getLog().info("HTML dashboard → " + htmlLatest.toAbsolutePath());

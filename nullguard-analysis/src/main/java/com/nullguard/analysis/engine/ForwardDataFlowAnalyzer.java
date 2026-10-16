@@ -198,6 +198,7 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
                                                 Map<String, List<Instruction>> byNode,
                                                 Map<String, NullState> in) {
         Map<String, NullState> state = new LinkedHashMap<>(in);
+        seedCatch(cfg.getNodes().get(nodeId), state);
 
         // Evaluating `Objects.requireNonNull(x)` proves x non-null on BOTH successors,
         // because the alternative is that the condition threw.
@@ -213,7 +214,17 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
             if (inst instanceof AssignmentInstruction assign && node != null)
                 state.put(assign.target(), assigned);
         }
-        if (node != null) state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
+        if (node != null) {
+            state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
+            // Only receiver evaluations guaranteed on normal completion refine successors.
+            // A receiver reassigned in the same statement (`x = x.next()`) proves nothing about
+            // its new value, so only names this statement does not write are refined. A textual
+            // `contains("=")` check used to discard facts from every `==`, `!=` and declaration.
+            var written = ExpressionNullability.assignedNames(node.getSourceCode());
+            ExpressionNullability.survivingReceivers(node.getSourceCode()).forEach((name, value) -> {
+                if (!written.contains(name)) state.put(name, value);
+            });
+        }
         return state;
     }
 
@@ -230,7 +241,7 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
             }
         } else if (inst instanceof DereferenceInstruction deref) {
             // Surviving a dereference proves the receiver was non-null from here on.
-            state.put(deref.variableName(), NullState.NON_NULL);
+            // Conditional expressions may skip this dereference; do not export its facts.
         }
     }
 
@@ -251,13 +262,15 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
             Map<String, NullState> state = new LinkedHashMap<>(nodeIn.getOrDefault(nodeId, Map.of()));
 
             ControlFlowNode node = cfg.getNodes().get(nodeId);
+            seedCatch(node, state);
             if (node != null && node.getType() == NodeType.CONDITION) {
                 state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
             }
 
             for (Instruction inst : byNode.getOrDefault(nodeId, List.of())) {
-                Map<String, NullState> before = Map.copyOf(state);
-                instIn.put(inst.id(), before);
+                Map<String, NullState> before = inst instanceof DereferenceInstruction d && node != null
+                        ? ExpressionNullability.atReceiver(node.getSourceCode(), d.variableName(), state) : Map.copyOf(state);
+                instIn.put(inst.id(), Map.copyOf(state));
 
                 if (inst instanceof DereferenceInstruction deref) {
                     NullState receiver = ExpressionNullability.evaluate(deref.variableName(), before, callReturns);
@@ -297,6 +310,14 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
         return new NullAnalysisModel(
                 cfg.getMethodSignature(), instIn, instOut,
                 dereferenceCount, returnsNull, propagatesNullFromCallee);
+    }
+
+    private static void seedCatch(ControlFlowNode node, Map<String, NullState> state) {
+        if (node == null || !node.getSourceCode().startsWith("catch (")) return;
+        try {
+            var stmt = com.nullguard.core.parser.SourceExpressions.parseStatement("try {} " + node.getSourceCode() + " {}");
+            stmt.findAll(com.github.javaparser.ast.stmt.CatchClause.class).forEach(c -> state.put(c.getParameter().getNameAsString(), NullState.NON_NULL));
+        } catch (RuntimeException unsupported) { /* retain unknown */ }
     }
 
     // ── CFG helpers ───────────────────────────────────────────────────────────────

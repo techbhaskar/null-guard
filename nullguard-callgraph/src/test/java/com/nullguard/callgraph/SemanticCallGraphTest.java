@@ -20,6 +20,18 @@ class SemanticCallGraphTest {
     @TempDir
     Path sourceRoot;
 
+    @Test void unresolvedCallsDoNotConnectUnrelatedMethods() throws Exception {
+        write("Caller.java", """
+                package com.acme;
+                class Caller { Missing service; void run() { service.process("x"); } }
+                class Unrelated { void process(String value) {} }
+                """);
+        Set<String> callees = graph().getCallees("com.acme.Caller#run()");
+        assertFalse(callees.contains("com.acme.Unrelated#process(String)"));
+        assertTrue(callees.stream().allMatch(id -> id.startsWith("ext#")));
+        assertFalse(callees.isEmpty());
+    }
+
     @Test
     void injectedInterfaceCallTargetsConcreteImplementationAndExactOverload() throws Exception {
         write("PaymentService.java", """

@@ -172,21 +172,19 @@ public final class AnalysisPipeline {
 
         // ── Step 8: Export Visualization Artifacts ────────────────────────────
         VisualizationBundle vizBundle = timed(ctx, "visualization-export", () -> {
-            String json = jsonGraphExporter.export(propGraph, riskSummary);
             String dot  = dotGraphExporter.export(propGraph);
             FindingExporter exporter = new FindingExporter();
             List<Finding> findings = exporter.collect(projectModel, hotspots, suggestions);
-            try {
-                var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                var report = (com.fasterxml.jackson.databind.node.ObjectNode) mapper.readTree(json);
-                report.put("schemaVersion", "1.0");
-                report.set("findings", mapper.valueToTree(findings));
-                report.set("apiEndpoints", mapper.valueToTree(apiEndpoints));
-                report.set("hotspots", mapper.valueToTree(hotspots));
-                report.set("suggestions", mapper.valueToTree(suggestions));
-                json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(report);
-            } catch (java.io.IOException failure) { throw new IllegalStateException("Cannot assemble report", failure); }
-            return new VisualizationBundle(json, dot, exporter.sarif(findings, projectRoot), findings);
+            // Keep the report as an object model and stream it at write time. Rendering it to
+            // an indented String, re-parsing it and rendering again held ~4 copies of the report
+            // in memory and caused OutOfMemoryError on real services.
+            java.util.Map<String, Object> report = JsonGraphExporter.report(propGraph, riskSummary);
+            report.put("schemaVersion", "1.0");
+            report.put("findings", List.copyOf(findings));
+            report.put("apiEndpoints", List.copyOf(apiEndpoints));
+            report.put("hotspots", List.copyOf(hotspots));
+            report.put("suggestions", List.copyOf(suggestions));
+            return new VisualizationBundle(report, jsonGraphExporter, dot, exporter.sarif(findings, projectRoot), findings);
         });
         ctx.setVisualizationBundle(vizBundle);
 

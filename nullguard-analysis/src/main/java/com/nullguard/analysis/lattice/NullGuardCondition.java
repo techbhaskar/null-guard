@@ -2,8 +2,6 @@ package com.nullguard.analysis.lattice;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Parses the source text of a CONDITION node into the null-state refinements it implies on
@@ -21,35 +19,10 @@ import java.util.regex.Pattern;
  * the textual heuristic is gone. {@code if (x == null) x.f();} is now a definite finding, and
  * {@code if (x != null) x.f();} is provably clean rather than merely unreported.
  *
- * <h3>Limits</h3>
- * This is a regex over source text, not an expression tree. It recognises the forms that carry
- * essentially all real null guards, and deliberately returns no refinement for anything it does
- * not fully understand — an unrecognised condition leaves the incoming state untouched, which
- * is the safe direction. Compound conditions ({@code a != null && b != null}) are handled by
- * scanning for every conjunct; disjunctions are not refined, since neither branch would be sound.
+ * <p>AST-based boolean refinements retain only facts guaranteed by a branch. Facts from
+ * one side of a disjunction or a failed conjunction never leak to the other side.
  */
 public final class NullGuardCondition {
-
-    /** {@code x != null} / {@code x == null} */
-    private static final Pattern VAR_CMP_NULL =
-            Pattern.compile("\\b([A-Za-z_$][\\w$]*)\\s*(==|!=)\\s*null\\b");
-
-    /** {@code null != x} / {@code null == x} */
-    private static final Pattern NULL_CMP_VAR =
-            Pattern.compile("\\bnull\\s*(==|!=)\\s*([A-Za-z_$][\\w$]*)\\b");
-
-    /** {@code x instanceof Foo} — implies x is non-null on the true branch. */
-    private static final Pattern INSTANCEOF =
-            Pattern.compile("\\b([A-Za-z_$][\\w$]*)\\s+instanceof\\b");
-
-    /** {@code Objects.nonNull(x)} / {@code Objects.isNull(x)} / {@code x.isPresent()} */
-    private static final Pattern NON_NULL_CALL =
-            Pattern.compile("\\bnonNull\\s*\\(\\s*([A-Za-z_$][\\w$]*)\\s*\\)");
-    private static final Pattern IS_NULL_CALL =
-            Pattern.compile("\\bisNull\\s*\\(\\s*([A-Za-z_$][\\w$]*)\\s*\\)");
-
-    /** A disjunction makes per-branch refinement unsound, so we refuse to refine. */
-    private static final Pattern DISJUNCTION = Pattern.compile("\\|\\|");
 
     private NullGuardCondition() {
         // utility
@@ -80,71 +53,79 @@ public final class NullGuardCondition {
     public static Refinement parse(String condition) {
         if (condition == null || condition.isBlank()) return Refinement.none();
 
-        // `a != null || b != null` tells us nothing definite about either variable on the
-        // true branch, so refining would be unsound. Bail out rather than guess.
-        if (DISJUNCTION.matcher(condition).find()) return Refinement.none();
-
-        Map<String, NullState> onTrue = new LinkedHashMap<>();
-        Map<String, NullState> onFalse = new LinkedHashMap<>();
-
-        Matcher m = VAR_CMP_NULL.matcher(condition);
-        while (m.find()) {
-            record(onTrue, onFalse, m.group(1), "!=".equals(m.group(2)));
-        }
-
-        m = NULL_CMP_VAR.matcher(condition);
-        while (m.find()) {
-            record(onTrue, onFalse, m.group(2), "!=".equals(m.group(1)));
-        }
-
-        m = INSTANCEOF.matcher(condition);
-        while (m.find()) {
-            // instanceof false does NOT imply null (it may be the wrong type), so only the
-            // true branch is refined.
-            onTrue.put(m.group(1), NullState.NON_NULL);
-        }
-
-        m = NON_NULL_CALL.matcher(condition);
-        while (m.find()) {
-            record(onTrue, onFalse, m.group(1), true);
-        }
-
-        m = IS_NULL_CALL.matcher(condition);
-        while (m.find()) {
-            record(onTrue, onFalse, m.group(1), false);
-        }
-
-        return new Refinement(Map.copyOf(onTrue), Map.copyOf(onFalse));
+        try {
+            return expression(com.nullguard.core.parser.SourceExpressions.parseExpression(condition));
+        } catch (RuntimeException unsupported) { return Refinement.none(); }
     }
 
-    /**
-     * Variables that a condition proves non-null on <em>both</em> branches because evaluating
-     * it would have thrown otherwise — currently {@code Objects.requireNonNull(x)}.
-     */
-    private static final Pattern REQUIRE_NON_NULL =
-            Pattern.compile("\\brequireNonNull\\s*\\(\\s*([A-Za-z_$][\\w$]*)\\s*\\)");
-
-    /** @return variables proven non-null merely by the condition having been evaluated */
-    public static Map<String, NullState> unconditionalNonNull(String condition) {
-        if (condition == null || condition.isBlank()) return Map.of();
-        Map<String, NullState> result = new LinkedHashMap<>();
-        Matcher m = REQUIRE_NON_NULL.matcher(condition);
-        while (m.find()) {
-            result.put(m.group(1), NullState.NON_NULL);
+    private static Refinement expression(com.github.javaparser.ast.expr.Expression e) {
+        if (e.isEnclosedExpr()) return expression(e.asEnclosedExpr().getInner());
+        if (e.isUnaryExpr() && e.asUnaryExpr().getOperator() == com.github.javaparser.ast.expr.UnaryExpr.Operator.LOGICAL_COMPLEMENT) {
+            var r = expression(e.asUnaryExpr().getExpression());
+            return new Refinement(r.onFalse(), r.onTrue());
         }
-        return Map.copyOf(result);
+        if (e.isBinaryExpr()) {
+            var b = e.asBinaryExpr(); var op = b.getOperator();
+            var l = expression(b.getLeft()); var r = expression(b.getRight());
+            if (op == com.github.javaparser.ast.expr.BinaryExpr.Operator.AND)
+                return new Refinement(union(l.onTrue(), r.onTrue()), common(l.onFalse(), r.onFalse()));
+            if (op == com.github.javaparser.ast.expr.BinaryExpr.Operator.OR)
+                return new Refinement(common(l.onTrue(), r.onTrue()), union(l.onFalse(), r.onFalse()));
+            if (op == com.github.javaparser.ast.expr.BinaryExpr.Operator.EQUALS || op == com.github.javaparser.ast.expr.BinaryExpr.Operator.NOT_EQUALS) {
+                var value = b.getLeft().isNullLiteralExpr() ? b.getRight() : b.getRight().isNullLiteralExpr() ? b.getLeft() : null;
+                if (value != null && (value.isNameExpr() || (value.isFieldAccessExpr() && value.asFieldAccessExpr().getScope().isThisExpr()))) {
+                    var yes = op == com.github.javaparser.ast.expr.BinaryExpr.Operator.NOT_EQUALS;
+                    return new Refinement(Map.of(value.toString(), yes ? NullState.NON_NULL : NullState.NULL), Map.of(value.toString(), yes ? NullState.NULL : NullState.NON_NULL));
+                }
+            }
+        }
+        if (e.isInstanceOfExpr()) {
+            var i = e.asInstanceOfExpr(); Map<String, NullState> yes = new LinkedHashMap<>();
+            yes.put(i.getExpression().toString(), NullState.NON_NULL);
+            i.getPattern().ifPresent(p -> yes.put(p.getNameAsString(), NullState.NON_NULL));
+            return new Refinement(Map.copyOf(yes), Map.of());
+        }
+        if (e.isMethodCallExpr()) {
+            var c = e.asMethodCallExpr();
+            if (c.getScope().map(Object::toString).filter(x -> x.equals("Objects") || x.equals("java.util.Objects")).isPresent()
+                    && c.getArguments().size() == 1 && (c.getNameAsString().equals("nonNull") || c.getNameAsString().equals("isNull"))) {
+                boolean yes = c.getNameAsString().equals("nonNull"); String v = c.getArgument(0).toString();
+                return new Refinement(Map.of(v, yes ? NullState.NON_NULL : NullState.NULL), Map.of(v, yes ? NullState.NULL : NullState.NON_NULL));
+            }
+        }
+        return Refinement.none();
+    }
+    private static Map<String, NullState> union(Map<String, NullState> a, Map<String, NullState> b) {
+        Map<String, NullState> out = new LinkedHashMap<>(a); b.forEach((k,v) -> out.merge(k,v,NullState::merge)); return Map.copyOf(out);
+    }
+    private static Map<String, NullState> common(Map<String, NullState> a, Map<String, NullState> b) {
+        Map<String, NullState> out = new LinkedHashMap<>(); a.forEach((k,v) -> { if (b.get(k) == v) out.put(k,v); }); return Map.copyOf(out);
     }
 
-    private static void record(Map<String, NullState> onTrue,
-                               Map<String, NullState> onFalse,
-                               String var,
-                               boolean trueMeansNonNull) {
-        if (trueMeansNonNull) {
-            onTrue.put(var, NullState.NON_NULL);
-            onFalse.put(var, NullState.NULL);
-        } else {
-            onTrue.put(var, NullState.NULL);
-            onFalse.put(var, NullState.NON_NULL);
-        }
+    /** Facts established by checks that execute unconditionally on normal completion. */
+    public static Map<String, NullState> unconditionalNonNull(String source) {
+        if (source == null || source.isBlank()) return Map.of();
+        try {
+            com.github.javaparser.ast.Node ast;
+            try { ast = com.nullguard.core.parser.SourceExpressions.parseStatement(source); }
+            catch (RuntimeException notStatement) { ast = com.nullguard.core.parser.SourceExpressions.parseExpression(source); }
+            Map<String, NullState> result = new LinkedHashMap<>();
+            for (var call : ast.findAll(com.github.javaparser.ast.expr.MethodCallExpr.class)) {
+                String owner = call.getScope().map(Object::toString).orElse("");
+                if (!(owner.equals("Objects") || owner.equals("java.util.Objects")) || !call.getNameAsString().equals("requireNonNull") || call.getArguments().isEmpty()) continue;
+                boolean conditional = false;
+                com.github.javaparser.ast.Node child = call;
+                while (child.getParentNode().isPresent()) {
+                    var parent = child.getParentNode().get();
+                    if (parent instanceof com.github.javaparser.ast.expr.ConditionalExpr c && child != c.getCondition()) conditional = true;
+                    if (parent instanceof com.github.javaparser.ast.expr.BinaryExpr b && child == b.getRight()
+                            && (b.getOperator() == com.github.javaparser.ast.expr.BinaryExpr.Operator.AND || b.getOperator() == com.github.javaparser.ast.expr.BinaryExpr.Operator.OR)) conditional = true;
+                    if (parent instanceof com.github.javaparser.ast.expr.LambdaExpr) conditional = true;
+                    child = parent;
+                }
+                if (!conditional) result.put(call.getArgument(0).toString(), NullState.NON_NULL);
+            }
+            return Map.copyOf(result);
+        } catch (RuntimeException unsupported) { return Map.of(); }
     }
 }

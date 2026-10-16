@@ -121,7 +121,8 @@ public final class JavaParserAstParser implements AstParser {
     private ClassModel buildClass(ClassOrInterfaceDeclaration declaration,
                                   String packageName,
                                   BasicControlFlowBuilder cfgBuilder, Path sourcePath, boolean packageDefault) {
-        String fallbackQualifiedName = packageName + "." + declaration.getNameAsString();
+        String fallbackQualifiedName = declaration.findCompilationUnit().flatMap(c -> c.getPackageDeclaration()).isEmpty()
+                ? declaration.getNameAsString() : packageName + "." + declaration.getNameAsString();
         ClassModel.Builder classBuilder = ClassModel.builder()
                 .className(declaration.getNameAsString())
                 .qualifiedName(fallbackQualifiedName)
@@ -135,7 +136,7 @@ public final class JavaParserAstParser implements AstParser {
                     .addAssignableType(resolvedType.getQualifiedName());
             resolvedType.getAllAncestors().forEach(ancestor ->
                     classBuilder.addAssignableType(ancestor.getQualifiedName()));
-        } catch (RuntimeException resolutionFailure) {
+        } catch (RuntimeException | LinkageError resolutionFailure) {
             LOG.debug("Could not resolve type hierarchy for {}: {}",
                     fallbackQualifiedName, resolutionFailure.getMessage());
             declaration.getExtendedTypes().forEach(type ->
@@ -172,7 +173,7 @@ public final class JavaParserAstParser implements AstParser {
                         sourcePath.toString().replace('\\', '/'), r.begin.line, r.begin.column, r.end.line, r.end.column)).orElse(null))
                 .nonNullFields(fields)
                 .parameters(method.getParameters().stream().map(p -> new com.nullguard.core.model.ParameterModel(
-                        p.getNameAsString(), p.getType().isPrimitiveType(), !hasAnnotation(p, "Nullable", "CheckForNull") && (hasAnnotation(p, "NonNull", "NotNull", "Nonnull") || (defaultNonNull && defaultApplies(p.getType(), method))),
+                        p.getNameAsString(), p.getType().isPrimitiveType(), !hasAnnotation(p, "Nullable", "CheckForNull") && (hasAnnotation(p, "NonNull", "NotNull", "Nonnull") || frameworkParameter(method, p) || (defaultNonNull && defaultApplies(p.getType(), method))),
                         hasAnnotation(p, "Nullable", "CheckForNull"))).toList())
                 .nonNullReturn(!hasAnnotation(method, "Nullable", "CheckForNull") && (hasAnnotation(method, "NonNull", "NotNull", "Nonnull") || (defaultNonNull && defaultApplies(method.getType(), method))))
                 .primitiveReturn(method.getType().isPrimitiveType())
@@ -202,7 +203,7 @@ public final class JavaParserAstParser implements AstParser {
                         signature,
                         resolved.getName(),
                         resolved.getNumberOfParams());
-            } catch (RuntimeException resolutionFailure) {
+            } catch (RuntimeException | LinkageError resolutionFailure) {
                 LOG.debug("Could not resolve call {} in {}: {}",
                         call, method.getSignature().asString(), resolutionFailure.getMessage());
             }
@@ -218,7 +219,48 @@ public final class JavaParserAstParser implements AstParser {
         owner.getFields().stream().filter(f -> f.isFinal()).forEach(f -> f.getVariables().forEach(v ->
                 v.getInitializer().filter(e -> e.isObjectCreationExpr() || e.isArrayCreationExpr()
                         || (e.isLiteralExpr() && !e.isNullLiteralExpr())).ifPresent(e -> names.add(v.getNameAsString()))));
+        boolean springBean = java.util.stream.Stream.of("org.springframework.stereotype.Component", "org.springframework.stereotype.Service",
+                "org.springframework.stereotype.Repository", "org.springframework.stereotype.Controller", "org.springframework.web.bind.annotation.RestController",
+                "org.springframework.context.annotation.Configuration").anyMatch(a -> qualifiedAnnotation(owner, a));
+        boolean lombokConstructor = qualifiedAnnotation(owner, "lombok.RequiredArgsConstructor") || qualifiedAnnotation(owner, "lombok.AllArgsConstructor");
+        if (qualifiedAnnotation(owner, "lombok.extern.slf4j.Slf4j")) names.add("log");
+        if (springBean) owner.getFields().forEach(f -> f.getVariables().forEach(v -> {
+            if (hasAnnotation(f, "Nullable", "CheckForNull") || v.getType().getAnnotations().stream().anyMatch(a -> java.util.Set.of("Nullable", "CheckForNull").contains(a.getName().getIdentifier()))) return;
+            boolean writable = hasAnnotation(f, "Setter") || hasAnnotation(owner, "Setter", "Data") || owner.getMethods().stream()
+                    .flatMap(m -> m.findAll(com.github.javaparser.ast.expr.AssignExpr.class).stream())
+                    .anyMatch(a -> a.getTarget().toString().equals(v.getNameAsString()) || a.getTarget().toString().equals("this." + v.getNameAsString()));
+            boolean requiredAutowired = !writable && qualifiedAnnotation(f, "org.springframework.beans.factory.annotation.Autowired")
+                    && f.getAnnotations().stream().filter(a -> a.getNameAsString().endsWith("Autowired"))
+                        .noneMatch(a -> a.toString().contains("required = false") || a.toString().contains("required=false"));
+            boolean constructorField = f.isFinal() && v.getInitializer().isEmpty() && (lombokConstructor ||
+                    (owner.getConstructors().size() == 1 && owner.getConstructors().get(0).getParameters().stream()
+                        .anyMatch(parameter -> parameter.getNameAsString().equals(v.getNameAsString()) && !hasAnnotation(parameter, "Nullable", "CheckForNull"))
+                    && owner.getConstructors().get(0).getBody().getStatements().stream().anyMatch(statement ->
+                        statement.toString().replaceAll("\\s+", "").equals("this." + v.getNameAsString() + "=" + v.getNameAsString() + ";"))));
+            if (requiredAutowired || constructorField) names.add(v.getNameAsString());
+        }));
         return names;
+    }
+
+    private static boolean frameworkParameter(MethodDeclaration method, com.github.javaparser.ast.body.Parameter p) {
+        boolean mapped = java.util.stream.Stream.of("RequestMapping", "GetMapping", "PostMapping", "PutMapping", "DeleteMapping", "PatchMapping")
+                .anyMatch(a -> qualifiedAnnotation(method, "org.springframework.web.bind.annotation." + a));
+        if (mapped && qualifiedAnnotation(p, "org.springframework.web.bind.annotation.RequestBody"))
+            return p.getAnnotations().stream().filter(a -> a.getName().getIdentifier().equals("RequestBody"))
+                    .noneMatch(a -> a.toString().replaceAll("\\s+", "").contains("required=false"));
+        if (mapped && p.getType().isClassOrInterfaceType()) {
+            String type = p.getType().asString();
+            for (String servlet : java.util.List.of("jakarta.servlet.http.HttpServletRequest", "jakarta.servlet.http.HttpServletResponse", "javax.servlet.http.HttpServletRequest", "javax.servlet.http.HttpServletResponse")) {
+                if (type.equals(servlet) || (servlet.endsWith("." + type) && p.findCompilationUnit().stream().flatMap(c -> c.getImports().stream()).anyMatch(i -> !i.isStatic() && i.getNameAsString().equals(servlet)))) return true;
+            }
+        }
+        if (qualifiedAnnotation(method, "org.aspectj.lang.annotation.Around")) {
+            String type = p.getType().asString();
+            if (type.equals("org.aspectj.lang.ProceedingJoinPoint") || (type.equals("ProceedingJoinPoint") && p.findCompilationUnit().stream().flatMap(c -> c.getImports().stream()).anyMatch(i -> i.getNameAsString().equals("org.aspectj.lang.ProceedingJoinPoint")))) return true;
+            return method.getAnnotations().stream().filter(a -> a.getName().getIdentifier().equals("Around"))
+                    .anyMatch(a -> a.toString().contains("@annotation(" + p.getNameAsString() + ")"));
+        }
+        return false;
     }
 
     private static boolean defaultNonNull(MethodDeclaration method, boolean packageDefault) {
@@ -269,7 +311,7 @@ public final class JavaParserAstParser implements AstParser {
 
         for (Path sourceRoot : discoverSourceRoots(projectRoot)) {
             try {
-                typeSolver.add(new JavaParserTypeSolver(sourceRoot));
+                typeSolver.add(new JavaParserTypeSolver(sourceRoot, new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)));
             } catch (RuntimeException invalidSourceRoot) {
                 LOG.warn("Ignoring invalid source root {}: {}",
                         sourceRoot, invalidSourceRoot.getMessage());
@@ -302,6 +344,7 @@ public final class JavaParserAstParser implements AstParser {
         typeSolver.add(new ReflectionTypeSolver());
 
         ParserConfiguration configuration = new ParserConfiguration()
+                .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
                 .setSymbolResolver(new JavaSymbolSolver(typeSolver));
         return new ParserEnvironment(new JavaParser(configuration), dependencyLoader);
     }

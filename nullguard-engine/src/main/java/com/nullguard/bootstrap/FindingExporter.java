@@ -30,7 +30,8 @@ public final class FindingExporter {
                     method.getControlFlowModel().ifPresent(cfg -> {
                         for (var inst : new BasicInstructionExtractor().extract(cfg)) {
                             if (inst instanceof DereferenceInstruction d && com.nullguard.analysis.engine.ExpressionNullability.evaluate(
-                                    d.variableName(), model.getInStates().getOrDefault(d.id(), Map.of()),
+                                    d.variableName(), com.nullguard.analysis.engine.ExpressionNullability.atReceiver(
+                                            cfg.getNodes().get(d.cfgNodeId()).getSourceCode(), d.variableName(), model.getInStates().getOrDefault(d.id(), Map.of())),
                                     com.nullguard.analysis.summary.MethodSummaryEngine.callReturns(method, methods)) != NullState.NON_NULL)
                                 findings.add(new Finding("NG001", "warning", id, "Receiver '" + d.variableName() + "' may be null",
                                         atNode(method, cfg.getNodes().get(inst.cfgNodeId()), inst.lineNumber())));

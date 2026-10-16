@@ -125,7 +125,8 @@ class WorklistDataFlowTest {
         assertTrue(NullGuardCondition.parse("username != null").onTrue().get("user") == null);
 
         // A disjunction proves nothing definite on either branch.
-        assertTrue(NullGuardCondition.parse("a != null || b != null").isEmpty());
+        assertTrue(NullGuardCondition.parse("a != null || b != null").onTrue().isEmpty());
+        assertEquals(NullState.NULL, NullGuardCondition.parse("a != null || b != null").onFalse().get("a"));
     }
 
     // ── Termination ───────────────────────────────────────────────────────────────
