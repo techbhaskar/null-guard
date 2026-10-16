@@ -1,7 +1,10 @@
+> Release 1.0.1 passed Central validation and is publishing in deployment
+> `5fb66ffe-8098-4818-9dc4-bf631bb8ca70`. See [release details](releases/1.0.1.md).
+
 # Publishing to Maven Central
 
 Version `1.0.0` is published and its plugin was installed from Central using an
-empty Maven cache on 2026-10-16. Current development is `1.0.1-SNAPSHOT`. The `central-release` Maven profile attaches
+empty Maven cache on 2026-10-16. The current reactor release is `1.0.1`. The `central-release` Maven profile attaches
 sources and Javadoc, signs artifacts, uploads the reactor bundle, and waits for
 Central to confirm publication.
 
@@ -19,7 +22,7 @@ Central to confirm publication.
 
 ## Release
 
-The reactor is currently `com.arinits.nullguard:…:1.0.1-SNAPSHOT`. For a future release,
+The reactor is currently `com.arinits.nullguard:…:1.0.1`. For a future release,
 update all reactor parent references:
 
 ```sh
@@ -96,3 +99,13 @@ module names and public-key lookup failures. Explicit module names have been
 added and the public signing key was re-uploaded to Ubuntu's keyserver.
 At the time of this failed attempt, no release had been published. Retries required that `com.arinits` shows Verified
 in the account that owns the publishing token.
+
+## Combined reactor and Gradle publication
+
+Stage Maven artifacts without upload using `-Pcentral-release -Dcentral.skipUpload=true`.
+Stage Gradle publications using `publishAllPublicationsToCentralStagingRepository`
+with `-PcentralRelease` and your public `signing.gnupg.keyName` property. Both builds
+use the local GPG agent. Combine the versioned artifact files from both staging
+directories, excluding Maven metadata, verify signatures, generate checksums and
+upload a single bundle through the Central Publisher API with automatic publishing.
+The 1.0.1 release followed this combined process; no artifact was uploaded twice.

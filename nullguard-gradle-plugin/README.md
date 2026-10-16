@@ -1,102 +1,76 @@
-> Release 1.0.1 is being published to Maven Central. Public installation will
-> use the Gradle plugin marker from mavenCentral(), not the Gradle Plugin Portal.
-
 # NullGuard for Gradle
 
-A reusable binary plugin for Java Gradle projects. It runs the standalone CLI
-from Maven Central with the project's compile classpath, without adding
-NullGuard to application dependencies or starting the application.
+Release `1.0.1` has passed Maven Central validation and is publishing. The public
+setup below works once Central finishes publication. The integration resolves
+the lean `1.0.1` CLI and its runtime dependencies separately.
 
-Plugin version: `1.0.1` (local/composite build, not published).
-Default analyzer version: `1.0.1`. The plugin and analyzer versions
-are independent. The new analyzer fixes require a locally installed
-`1.0.1` until a new analyzer release is published.
+## Install from Maven Central
 
-## Use now: locally installed plugin
-
-`publishToMavenLocal` has been verified for this development build. To use it on
-the same machine, merge these repositories into `pluginManagement` in
-`settings.gradle.kts`:
+Merge Maven Central into plugin resolution in `settings.gradle.kts`:
 
 ```kotlin
 pluginManagement {
-    repositories { mavenLocal(); gradlePluginPortal(); mavenCentral() }
+    repositories { mavenCentral(); gradlePluginPortal() }
 }
 ```
 
-Then use `id("com.arinits.nullguard") version "1.0.1"` alongside your
-existing Java/Java-library plugins in `build.gradle.kts`. Keep `mavenCentral()`
-available for normal dependency resolution, then run `./gradlew nullguard`.
-This plugin version exists locally, not in public repositories. Teammates can
-use the composite build below or build/publish the integration locally themselves.
-
-## Alternative: composite build
-
-Clone NullGuard and add the integration build to your application's settings.
-Kotlin DSL (`settings.gradle.kts`):
-
-```kotlin
-pluginManagement {
-    includeBuild("/path/to/null-guard/nullguard-gradle-plugin")
-}
-```
-
-Groovy DSL (`settings.gradle`):
-
-```groovy
-pluginManagement {
-    includeBuild('/path/to/null-guard/nullguard-gradle-plugin')
-}
-```
-
-Add to `build.gradle.kts`:
+Then in `build.gradle.kts`:
 
 ```kotlin
 plugins {
     java
-    id("com.arinits.nullguard")
+    id("com.arinits.nullguard") version "1.0.1"
 }
 repositories { mavenCentral() }
 nullguard {
-    toolVersion.set("1.0.1")
     failBuild.set(false)
     failThreshold.set("HIGH")
 }
 ```
 
-Equivalent `build.gradle`:
+Groovy equivalents (`settings.gradle`, then `build.gradle`):
+
+```groovy
+pluginManagement {
+    repositories { mavenCentral(); gradlePluginPortal() }
+}
+```
 
 ```groovy
 plugins {
     id 'java'
-    id 'com.arinits.nullguard'
+    id 'com.arinits.nullguard' version '1.0.1'
 }
 repositories { mavenCentral() }
 nullguard {
-    toolVersion.set('1.0.1')
     failBuild.set(false)
     failThreshold.set('HIGH')
 }
 ```
 
-Then run:
-
-```sh
-./gradlew nullguard
-```
+Run `./gradlew nullguard`. No Maven installation, CLI download, local repository
+or NullGuard checkout is needed after publication. This release is published to
+Maven Central, not the Gradle Plugin Portal, so the pluginManagement repository
+entry is required.
 
 Open `build/reports/nullguard/nullguard-dashboard-latest.html`. The integration
-generates this offline, searchable HTML report from the CLI JSON. JSON and SARIF
-are in the same directory. The task uses the Java toolchain configured for the
-application; use JDK 17 or newer. Java sources are analyzed, not Kotlin sources.
-The plugin waits for the Java plugin rather than applying it implicitly.
-For Java library/Spring Boot projects, their existing Java plugin is sufficient.
+creates a searchable offline HTML report from the CLI JSON; JSON and SARIF are
+in the same directory. Use Java 17 or newer. Existing Java-library/Spring Boot
+plugins can supply the Java source sets; do not apply Java twice. Kotlin sources
+are not analyzed by this integration.
+
+## Development/composite builds
+
+For an unreleased integration build, replace the settings plugin repository
+block with `pluginManagement { includeBuild("/path/to/null-guard/nullguard-gradle-plugin") }`
+and omit the version in the plugins DSL. Alternatively, run `./gradlew publishToMavenLocal`
+in the integration directory and configure `mavenLocal()` for plugin resolution.
 
 ## Configuration
 
 | Option | Default | Purpose |
 | --- | --- | --- |
-| `toolVersion` | `1.0.0` | CLI artifact version to resolve |
+| `toolVersion` | `1.0.1` | CLI artifact version to resolve |
 | `failBuild` | `false` | Enable the hotspot build gate |
 | `failThreshold` | `CRITICAL` | LOW, MEDIUM/MODERATE, HIGH, CRITICAL |
 | `runOnCheck` | `false` | Include analysis in `check` |
@@ -163,11 +137,11 @@ The first command analyzes one subproject. Gradle's unqualified task selection
 runs matching `nullguard` tasks across subprojects. Reports remain per project;
 this version does not produce a combined cross-module graph or dashboard.
 
-## Try the development analyzer
+## Try a locally built analyzer
 
-From the NullGuard repository, run `mvn clean install`, then add `mavenLocal()`
-to the consuming build's repositories and set `toolVersion` to `1.0.1`.
-For other developers/CI, prefer a published immutable version once available.
+Run `mvn clean install` in NullGuard, make `mavenLocal()` available in the consuming
+build and select the locally built analyzer version with `toolVersion`. Prefer
+immutable Central releases for shared CI.
 
 ## Build and release the integration
 
@@ -178,9 +152,8 @@ cd nullguard-gradle-plugin
 ```
 
 Local publication includes the implementation JAR and Gradle plugin marker.
-It does not publish to Maven Central or the Gradle Plugin Portal. Until a release
-of the integration itself is published, do not advertise a remote
-`plugins { id("com.arinits.nullguard") version "…" }` install as available.
+It does not publish to Maven Central or the Gradle Plugin Portal. The Central release workflow separately stages and signs these Gradle publications
+with `-PcentralRelease`, then bundles them with the Maven reactor publications.
 The integration is an independent Gradle build; Maven's reactor does not build it.
 
 Reports contain timestamps and absolute source URIs, so remote build caching is
@@ -200,7 +173,7 @@ Useful next capabilities, separate from this implementation:
 - Baselines and explicit suppressions so teams can focus on new findings.
 - Pull request annotations derived from SARIF, with confidence and source evidence.
 - A combined multi-module report and source-root mapping for editor links.
-- A published Gradle plugin release for installation without a composite build.
+- Gradle Plugin Portal discovery in addition to Maven Central installation.
 - Kotlin-source analysis only after dedicated parser and semantic support exists.
 
 Verified locally on JDK 17 with Gradle 8.14.4 and 9.7.1: all 8 tests pass,
