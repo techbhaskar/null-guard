@@ -14,6 +14,22 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 
 > **Release status:** `1.0.1` is prepared for publication, including lean CLI packaging and Gradle integration. `1.0.0` remains available from Maven Central while publication completes.
 
+## Developer guide
+
+- [Choose Maven, Gradle, or the CLI](#first-run)
+- [Gradle setup: Kotlin and Groovy DSL](#gradle-projects)
+- [Maven setup and options](#recommended-usage-maven-plugin)
+- [Standalone CLI](#standalone-cli)
+- [Generate and open HTML reports](#generate-and-open-an-html-report)
+- [Read findings, scores, and hotspots](#reading-the-results)
+- [CI adoption](#suggested-ci-adoption)
+- [Troubleshooting](#troubleshooting)
+
+Examples below target **1.0.1**. This version has passed Central validation but
+is still publishing; public installation requires publication to finish. Maven
+users can continue using 1.0.0 meanwhile. For Gradle, the local/composite alternative
+is documented in [the integration guide](nullguard-gradle-plugin/README.md).
+
 ## Why use NullGuard in microservices?
 
 Microservices often have shallow-looking controller methods that call several services, repositories, clients, mappers, and shared libraries. A null-safety problem deep in that chain can affect multiple endpoints while remaining hard to prioritize from isolated compiler or linter warnings.
@@ -94,23 +110,30 @@ mvn -version
 
 ## First run
 
-From your Java service directory, run the published release directly. No NullGuard
-clone or local installation is required:
+Choose the integration that matches the project you are analyzing. You do not
+need to clone or build NullGuard to use a published release.
+
+| Your project | How to run | Reports |
+| --- | --- | --- |
+| Maven (`pom.xml`) | Run the fully qualified Maven goal below | `target/nullguard/` |
+| Gradle (`build.gradle` / `build.gradle.kts`) | Configure the Gradle plugin, then `./gradlew nullguard` | `build/reports/nullguard/` |
+| Source folder or custom script | Use the standalone CLI JAR with `--classpath` when available | `nullguard-out/` or `--output` |
+
+For Maven, run **from the directory containing the service's `pom.xml`**:
 
 ```bash
 mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze -Dnullguard.failBuild=false
 ```
 
-Open `target/nullguard/nullguard-dashboard-latest.html`. For individual warnings
-and file/line locations, inspect `target/nullguard/nullguard-results.sarif` or the
-`findings` array in `target/nullguard/nullguard-report-latest.json`.
-Review those findings even when the project grade is A or there are no hotspots:
-the build gate uses architectural hotspot severity, not every null warning.
-Framework contracts and initialized-field getters can still produce false
-positives. Start in report-only mode before enabling a build gate.
+For Gradle, follow [the setup below](#gradle-projects), then run from the Gradle project:
 
-See [the first-time developer evaluation](docs/developer-onboarding-evaluation.md)
-for tested behavior and current blockers.
+```bash
+./gradlew nullguard
+```
+
+On Windows, use `gradlew.bat nullguard`. Start in **report-only mode**. Open the
+HTML report, choose one finding, inspect its source, and rerun after any fix.
+Review individual findings even when the grade is A or no hotspots are reported.
 
 ## Distribution size
 
@@ -147,12 +170,164 @@ mvn clean install
 
 ## Gradle projects
 
-Use the [reusable Gradle integration](nullguard-gradle-plugin/README.md) to run
-`./gradlew nullguard` with automatic Java source roots and the compile classpath.
-It writes reports to `build/reports/nullguard`, defaults to report-only mode, and
-supports optional `check` wiring, exclusions, custom roots and subprojects.
-The integration is currently used through a local composite build; its default
-analyzer is the published 1.0.0 CLI. A Gradle plugin release is not yet published.
+The plugin resolves the CLI and its dependencies from Maven Central, collects
+main Java source roots and the compile classpath, and writes HTML, JSON, SARIF
+and DOT output. It does not require Maven or a manually downloaded CLI JAR.
+
+### Kotlin DSL setup
+
+In `settings.gradle.kts`, add Maven Central to plugin resolution. Merge into an
+existing `pluginManagement` block if one exists; keep it at the top of settings.
+The plugin is on **Maven Central**, not the Gradle Plugin Portal.
+
+```kotlin
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+```
+
+In `build.gradle.kts`:
+
+```kotlin
+plugins {
+    java
+    id("com.arinits.nullguard") version "1.0.1"
+}
+
+repositories {
+    mavenCentral()
+}
+
+nullguard {
+    failBuild.set(false)
+    failThreshold.set("HIGH")
+}
+```
+
+Keep your existing Spring Boot/Java-library plugins and repositories. If a Java
+plugin is already applied, there is no need to add a second Java declaration.
+If repositories are centralized in settings, add Maven Central there instead
+of adding a project-level repositories block.
+
+### Groovy DSL setup
+
+In `settings.gradle`:
+
+```groovy
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+```
+
+In `build.gradle`:
+
+```groovy
+plugins {
+    id 'java'
+    id 'com.arinits.nullguard' version '1.0.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+nullguard {
+    failBuild.set(false)
+    failThreshold.set('HIGH')
+}
+```
+
+### Analyze, build, and open the report
+
+```bash
+# Analyze main Java sources. No application server is started.
+./gradlew nullguard
+
+# Optional: verify configuration-cache reuse.
+./gradlew nullguard --configuration-cache
+```
+
+The task does not compile the current application by default. Compile classpath
+project dependencies retain their usual Gradle build dependencies. Generated
+Java requiring annotation processing needs its generator task wired explicitly.
+Kotlin and Android-specific source analysis are not supported.
+
+Open `build/reports/nullguard/nullguard-dashboard-latest.html` in your browser.
+No separate HTML generation command or `--html` flag is needed. The Gradle
+integration renders a searchable offline HTML report after the analyzer writes
+JSON, including when an enabled hotspot gate fails after successful analysis.
+
+### Gradle options
+
+| Setting | Default | What it controls |
+| --- | --- | --- |
+| `toolVersion` | `1.0.1` | Analyzer version, independent of the Gradle plugin version |
+| `failBuild` | `false` | Fail on an architectural hotspot at the configured threshold |
+| `failThreshold` | `CRITICAL` | `LOW`, `MEDIUM`/`MODERATE`, `HIGH`, or `CRITICAL` |
+| `runOnCheck` | `false` | Make the existing Gradle `check` task depend on analysis |
+| `reportDirectory` | `build/reports/nullguard` | Output directory |
+| `excludes` | empty | Ant-style patterns relative to Java source roots |
+| `maxHeapSize` | `1g` | Analyzer JVM heap limit |
+
+For a larger service or generated packages, Kotlin DSL configuration can be:
+
+```kotlin
+nullguard {
+    runOnCheck.set(true)
+    failBuild.set(false)
+    excludes.addAll("**/generated/**", "**/legacy/**")
+    maxHeapSize.set("2g")
+    reportDirectory.set(layout.buildDirectory.dir("reports/nullguard"))
+}
+```
+
+Groovy uses the same property methods, for example
+`excludes.set(['**/generated/**', '**/legacy/**'])`.
+With `runOnCheck` enabled, `./gradlew check` runs analysis alongside the project's
+normal verification tasks. It is not included in `check` by default. When ready,
+set `failBuild` to `true` and keep the first threshold at `CRITICAL`.
+
+### Multi-project Gradle builds
+
+Declare the plugin version once in the root build:
+
+```kotlin
+plugins {
+    id("com.arinits.nullguard") version "1.0.1" apply false
+}
+```
+
+Apply it in each Java subproject's `build.gradle.kts`:
+
+```kotlin
+plugins {
+    java
+    id("com.arinits.nullguard")
+}
+```
+
+Then choose one subproject or all matching tasks:
+
+```bash
+./gradlew :access-core:nullguard
+./gradlew nullguard
+```
+
+Replace `access-core` with your actual Gradle project name. Each subproject writes
+its own `build/reports/nullguard/`. There is no combined cross-module dashboard or
+source-level cross-module graph in this release. Projects without main Java
+inputs are `NO-SOURCE`, not evidence that their application code is null-safe.
+
+Multiple main Java roots are staged together with relative package paths
+preserved. Duplicate relative paths fail rather than overwrite source. See
+[the integration guide](nullguard-gradle-plugin/README.md#multiple-roots-and-generated-sources)
+for custom/generated roots, toolchains and development builds.
 
 ## Recommended usage: Maven plugin
 
@@ -285,7 +460,7 @@ If a call cannot be resolved semantically, NullGuard keeps the analysis running 
 
 | Option | Default | Meaning |
 | --- | ---: | --- |
-| `--output=<dir>` | `./nullguard-out` | Directory for generated JSON and DOT reports. |
+| `--output=<dir>` | `./nullguard-out` | Directory for generated JSON, SARIF and DOT reports. |
 | `--classpath=<paths>` | empty | Dependency JARs and class directories separated by the platform path separator. |
 | `--fail-build` | disabled | Return exit code `1` when the severity threshold is breached. |
 | `--fail-threshold=<level>` | `CRITICAL` | Minimum failing hotspot severity: `LOW`, `MODERATE`, `HIGH`, or `CRITICAL`. |
@@ -306,9 +481,45 @@ CLI exit codes:
 
 ## Reports
 
-### Maven plugin output
+### Generate and open an HTML report
 
-The plugin writes both timestamped history and stable `latest` files:
+HTML generation is automatic for the Maven and Gradle integrations:
+
+| Integration | Generate reports | HTML file to open |
+| --- | --- | --- |
+| Maven, one-off | `mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze` | `target/nullguard/nullguard-dashboard-latest.html` |
+| Maven, configured in `verify` | `mvn verify` | `target/nullguard/nullguard-dashboard-latest.html` |
+| Gradle, plugin configured | `./gradlew nullguard` | `build/reports/nullguard/nullguard-dashboard-latest.html` |
+| Gradle, `runOnCheck=true` | `./gradlew check` | `build/reports/nullguard/nullguard-dashboard-latest.html` |
+| Standalone CLI | `java -jar … --output=nullguard-out` | No HTML; CLI writes JSON, SARIF and DOT |
+
+The raw CLI has no HTML option. Use Maven or the Gradle integration if you want
+a browser report. Maven's dashboard offers overview, API flows, architectural
+hotspots, a method explorer and JSON telemetry. Gradle's offline report offers
+a summary and searchable source-linked finding details; it is not the same UI.
+
+From the service directory, open the Gradle report with the command for your OS:
+
+```bash
+# macOS
+open build/reports/nullguard/nullguard-dashboard-latest.html
+
+# Linux desktop
+xdg-open build/reports/nullguard/nullguard-dashboard-latest.html
+```
+
+```powershell
+# Windows PowerShell
+Start-Process "build/reports/nullguard/nullguard-dashboard-latest.html"
+```
+
+For Maven, replace the directory with `target/nullguard/`. You can also open the
+HTML file directly from your file manager. Reports are generated locally; no
+application deployment is required.
+
+### Files and formats
+
+Maven writes timestamped history and stable latest files:
 
 ```text
 target/nullguard/
@@ -321,31 +532,118 @@ target/nullguard/
 └── nullguard-results.sarif
 ```
 
-- **HTML dashboard** — stability summary, risk distribution, API flows, hotspots, method explorer, risk reasons, and suggestions.
-- **JSON report** — schema version `1.0`, project summary, graph, source-linked findings, API endpoints, hotspots, and suggestions.
-- **SARIF report** — `nullguard-results.sarif`, version `2.1.0`, with stable rule IDs and source locations for CI and editor consumers.
-- **DOT graph** — call/risk propagation graph, with external methods rendered as boxes and nodes colored by risk.
+Gradle writes these stable files, without timestamped history:
 
-The CLI writes `nullguard-report-latest.json`, `nullguard-graph-latest.dot`, and `nullguard-results.sarif` to the selected output directory. The HTML dashboard is currently generated by the Maven plugin only.
+```text
+build/reports/nullguard/
+├── nullguard-dashboard-latest.html
+├── nullguard-report-latest.json
+├── nullguard-graph-latest.dot
+└── nullguard-results.sarif
+```
 
-To render the DOT graph with Graphviz:
+- **HTML:** browse and filter analysis results.
+- **JSON:** schema version `1.0`; summary, call graph, findings, API endpoints,
+  hotspots and suggestions, suitable for custom automation.
+- **SARIF:** version `2.1.0`; stable rule IDs and file/line locations for compatible
+  editor/CI consumers. Producing SARIF does not upload it to a code-scanning service.
+- **DOT:** visualize the call/risk graph. External methods are boxes; node colors
+  correspond to modeled risk. Rendering to SVG requires Graphviz:
 
 ```bash
-dot -Tsvg target/nullguard/nullguard-graph-latest.dot -o target/nullguard/nullguard-graph-latest.svg
+dot -Tsvg build/reports/nullguard/nullguard-graph-latest.dot   -o build/reports/nullguard/nullguard-graph-latest.svg
 ```
+
+The standalone CLI writes the JSON, SARIF and DOT files to `--output`, defaulting
+to `nullguard-out/`. It does not generate HTML.
 
 ### Reading the results
 
-Review results in this order:
+Use this review sequence on the first run:
 
-1. Confirm that the report contains methods and does not show grade `N/A`.
-2. Check the stability index and high-risk method count for the broad health signal.
-3. Review `CRITICAL` and `HIGH` architectural hotspots.
-4. Use API flow and impact information to identify customer-facing paths.
-5. Apply the highest-ranked suggestions to shared or high-blast-radius methods first.
-6. Re-run the analysis and compare the score and hotspot count.
+1. **Check analysis coverage.** Ensure methods were found and the grade is not
+   `N/A`. Review parsing/unresolved-call warnings. Total method counts can include
+   modeled external methods; they are not a source-method coverage percentage.
+2. **Read individual findings.** Start with rule, file/line, receiver and method.
+   Open the actual source and check guards, return contracts and caller behavior.
+3. **Use project scores to prioritize.** Stability index, method risk and hotspot
+   severity are heuristics, not proof that a method is safe or broken.
+4. **Review impact.** In Maven's API-flow/hotspot views or JSON, inspect reachable
+   entry points and shared callers. A high-impact method may deserve attention
+   before an isolated warning, but each warning still needs source evidence.
+5. **Make a focused fix and rerun the same command.** Check whether the specific
+   finding disappeared and whether endpoint/graph information still makes sense.
+   A falling finding count alone is not evidence of improved precision.
 
-Treat the score as a prioritization signal, not proof that an application is correct. Static analysis cannot see every runtime value, reflection path, generated source, framework proxy, or environment-specific behavior.
+#### Understand rule IDs
+
+| Rule | Meaning | What to review |
+| --- | --- | --- |
+| `NG001` | Possible null dereference | Receiver state, preceding guards and callee return behavior |
+| `NG002` | Unchecked nullable parameter | Callers, explicit contracts and framework-provided arguments |
+| `NG003` | Non-null return contract violation | Return paths that may produce null despite the declaration |
+| `NG004` | Caller argument contract violation | Potentially nullable argument passed to a required parameter |
+| `NG005` | Architectural hotspot | Risk, reachability and exposed API paths |
+| `NG101`–`NG105` | Remediation recommendations | Suggested guard, contract, external validation, refactoring or risk-chain change |
+
+Recommendations are not additional independently confirmed bugs. A framework
+contract, initialized value or runtime guarantee can explain a false positive;
+do not add defensive checks mechanically without reviewing the code.
+
+#### Example: from warning to fix
+
+Consider this Java method:
+
+```java
+int nameLength() {
+    String name = null;
+    return name.length();
+}
+```
+
+An `NG001` warning identifies `name` as potentially null at the dereference.
+An abbreviated JSON finding looks like this (illustrative file and line):
+
+```json
+{
+  "ruleId": "NG001",
+  "severity": "warning",
+  "methodId": "demo.CustomerService#nameLength()",
+  "message": "Receiver 'name' may be null",
+  "location": {
+    "path": "demo/CustomerService.java",
+    "startLine": 5
+  }
+}
+```
+
+Determine the intended behavior: should a missing name be rejected, replaced by
+a default, or accepted with a different result? If returning zero is correct,
+one possible fix is:
+
+```java
+if (name == null) return 0;
+return name.length();
+```
+
+Rerun analysis and check the specific `NG001` finding. For Gradle, SARIF source
+URIs point into the staged tree under `build/tmp/nullguard/sources`; the relative
+package/file path corresponds to the original Java source roots. Keep the staged
+tree while inspecting those locations, or open the original file manually.
+
+#### Scores are different from build-gate decisions
+
+A project can receive **grade A and still contain a null warning**. Likewise,
+`highRiskMethods > 0` does not necessarily imply an architectural hotspot exists.
+The configured gate evaluates **architectural hotspot severity**, not every
+`NG001` warning or every high-risk method. With `failBuild=false`, analysis can
+succeed while findings remain. Report-only mode does not hide execution failures.
+
+Static analysis does not observe every runtime value, proxy, reflection path or
+framework contract. Start in report-only mode and classify findings as actionable,
+false positive or uncertain before recommending enforcement. See the
+[labeled real-project review](docs/evaluation/real-project-review.md) for concrete
+examples and remaining limitations.
 
 ## Suggested CI adoption
 
@@ -356,7 +654,7 @@ Introduce NullGuard gradually so existing services can establish a baseline befo
 3. **Gate critical risk:** set `failBuild=true` and `failThreshold=CRITICAL`.
 4. **Tighten deliberately:** move to `HIGH` only after the team agrees on the expected quality bar.
 
-Example CI command:
+For Maven (with the plugin execution bound to `verify`):
 
 ```bash
 mvn --batch-mode verify \
@@ -364,7 +662,26 @@ mvn --batch-mode verify \
   -Dnullguard.failThreshold=CRITICAL
 ```
 
-Archive `target/nullguard/` as a CI artifact even when the build fails; the dashboard explains what triggered the gate.
+For Gradle, first configure `runOnCheck=true`. Begin with `failBuild=false`,
+then opt into the critical hotspot gate after reviewing the baseline:
+
+```kotlin
+nullguard {
+    runOnCheck.set(true)
+    failBuild.set(true)
+    failThreshold.set("CRITICAL")
+}
+```
+
+```bash
+./gradlew check
+```
+
+Archive `target/nullguard/` (Maven) or `**/build/reports/nullguard/` (Gradle) as CI
+artifacts **even on failure**. Report-only mode is the initial adoption setting;
+baseline/suppression files and automatic PR comments are not implemented.
+The [volunteer study](docs/usability/README.md) describes how to collect unaided
+first-run feedback instead of treating automated tests as human usability proof.
 
 ## Microservice usage guidance
 
@@ -387,7 +704,9 @@ NullGuard is a Maven multi-module project with one-way pipeline dependencies and
 | `nullguard-scoring` | Risk models, fixpoint propagation, stability index, grade, and blast-radius metrics. |
 | `nullguard-suggestions` | Remediation rules and deterministic suggestion ranking. |
 | `nullguard-visualization` | Propagation graph construction plus JSON and Graphviz DOT export. |
-| `nullguard-maven-plugin` | Pipeline assembly, Maven integration, fail policy, and HTML report generation. |
+| `nullguard-engine` | Shared pipeline assembly, result export and integrity validation, without Maven runtime dependencies. |
+| `nullguard-maven-plugin` | Maven integration, hotspot fail policy and HTML dashboard generation. |
+| `nullguard-gradle-plugin` | Independent Gradle build: source/classpath wiring, CLI execution and offline HTML generation. |
 | `nullguard-cli` | Standalone command-line entry point and exit-code policy. |
 | `nullguard-coverage` | Combines coverage from module tests and integration tests into one reactor report. |
 
@@ -421,7 +740,7 @@ NullGuard recognizes common Spring MVC and JAX-RS mappings, including:
 
 Entry points require a mapping annotation; class names alone do not qualify. Private and protected methods are excluded. The current traversal produces a deterministic reachability list with cycle protection, rather than a separate ordered path for every branch. Complex mappings, class-level path composition, and runtime proxy routing remain limitations.
 
-## Analysis improvements in development
+## Analysis improvements in 1.0.1
 
 `1.0.1` tracks final fields initialized directly with non-null literals,
 objects or arrays when analyzing getters. Mutable fields and unknown factory
@@ -443,7 +762,7 @@ The current release focuses on source-based Java service analysis.
 - Dependency JARs and class directories improve symbol resolution, but only project source methods receive full source-level analysis.
 - Reflection, dynamic proxies, runtime dependency injection choices, and generated methods may create call paths that static analysis cannot resolve.
 - API discovery currently targets common Spring MVC/JAX-RS conventions and controller/resource naming.
-- The CLI emits JSON and DOT; use the Maven plugin for the HTML dashboard.
+- The CLI emits JSON, SARIF and DOT. Maven and Gradle integrations generate HTML, with different report UIs.
 - SARIF and source-linked findings are available. Dedicated IDE integration, incremental analysis, and automatic source rewriting are not implemented yet.
 - NullGuard is not a CVE scanner, dependency vulnerability scanner, SBOM generator, or replacement for tests and runtime observability.
 
@@ -543,28 +862,52 @@ When changing analysis behavior, add focused tests in the owning module and run 
 
 ### Too many calls appear as external or unresolved
 
-- Prefer the Maven plugin, which supplies the compile classpath automatically.
+- Prefer the Maven or Gradle integration; both supply the compile classpath automatically.
 - With the CLI, pass dependency JARs and compiled class directories through `--classpath`.
 - Build the target service first so its `target/classes` directory exists.
 
-### The Maven goal cannot be resolved
+### Maven says there is no POM
 
-The plugin is a snapshot and must first be installed locally:
-
-```bash
-cd path/to/null-guard
-mvn clean install
-```
-
-Then use the fully qualified goal from the target project:
+The Maven goal requires a Maven project. Run it in the directory containing
+`pom.xml`, or point Maven at it:
 
 ```bash
-mvn com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze
+mvn -f path/to/pom.xml com.arinits.nullguard:nullguard-maven-plugin:1.0.1:analyze
 ```
+
+If the project has `build.gradle` or `build.gradle.kts`, use the Gradle integration.
+Adding an artificial POM just to invoke the Maven goal would miss Gradle's classpath.
+
+### The Maven goal or Gradle plugin cannot be resolved
+
+- Confirm the release version has finished publishing to Central. Upload accepted
+  or PUBLISHING is not yet the same as an artifact being downloadable.
+- Maven: use the fully qualified coordinates and check repository mirrors/offline mode.
+- Gradle: include `mavenCentral()` in **pluginManagement repositories**, as well as
+  normal dependency repositories (or settings-level dependency resolution).
+- After publication, Maven `-U` or Gradle `--refresh-dependencies` can clear a
+  cached artifact-not-found result. Do not repeatedly retry a still-publishing release.
+- Local source builds require `mvn clean install`; development Gradle plugin
+  builds use a composite build or `publishToMavenLocal`. Published consumers do not.
+
+### Gradle says the nullguard task is missing or NO-SOURCE
+
+- Apply the plugin to the Java subproject, not only a non-Java aggregator root.
+- Verify the Java/Java-library plugin is applied and main `.java` inputs exist.
+- In a multi-project build, try `./gradlew :your-service:nullguard`.
+- Wire generated-source tasks explicitly. Kotlin-only projects are not supported.
+
+### I cannot find an HTML report
+
+- Maven: `target/nullguard/nullguard-dashboard-latest.html`.
+- Gradle: `build/reports/nullguard/nullguard-dashboard-latest.html`, unless customized.
+- CLI: HTML is not generated; use Maven/Gradle or consume JSON/SARIF directly.
+- Review the console for analysis failure. A skipped or failed analysis is not
+  a fresh clean report. Gradle's task logs its actual report directory.
 
 ### The build fails after enabling NullGuard
 
-Open `target/nullguard/nullguard-dashboard-latest.html`, review hotspots at or above `failThreshold`, and either fix the risky path or temporarily return to report-only mode while establishing a baseline:
+Open the Maven or Gradle HTML report, review hotspots at or above `failThreshold`, and either fix the risky path or temporarily return to report-only mode while establishing a baseline:
 
 ```bash
 mvn verify -Dnullguard.failBuild=false
