@@ -29,6 +29,12 @@ import java.util.List;
 public final class MethodModel {
     private final String methodName;
     private final String signature;
+    private final String canonicalSignature;
+    private final boolean virtualMethod;
+    private final boolean semanticDeclaration;
+    private final java.util.Set<String> overriddenTargets;
+    private final boolean declaredBody;
+    private final List<String> frameworkAssumptions;
     private final ControlFlowModel controlFlowModel;
     private final List<SemanticCallSite> semanticCallSites;
 
@@ -70,6 +76,12 @@ public final class MethodModel {
     private MethodModel(Builder builder) {
         this.methodName        = Objects.requireNonNull(builder.methodName, "Method name cannot be null");
         this.signature         = Objects.requireNonNull(builder.signature, "Signature cannot be null");
+        this.canonicalSignature = builder.canonicalSignature == null ? signature : builder.canonicalSignature;
+        this.virtualMethod = builder.virtualMethod;
+        this.semanticDeclaration = builder.semanticDeclaration;
+        this.overriddenTargets = java.util.Set.copyOf(builder.overriddenTargets);
+        this.declaredBody = builder.declaredBody || builder.controlFlowModel != null;
+        this.frameworkAssumptions = List.copyOf(builder.frameworkAssumptions);
         this.controlFlowModel  = builder.controlFlowModel;
         this.semanticCallSites = List.copyOf(builder.semanticCallSites);
         this.nullAnalysisModel = builder.nullAnalysisModel;
@@ -97,6 +109,12 @@ public final class MethodModel {
 
     public String getMethodName() { return methodName; }
     public String getSignature()  { return signature; }
+    public String getCanonicalSignature() { return canonicalSignature; }
+    public boolean isVirtualMethod() { return virtualMethod; }
+    public boolean isSemanticDeclaration() { return semanticDeclaration; }
+    public java.util.Set<String> getOverriddenTargets() { return overriddenTargets; }
+    public boolean hasDeclaredBody() { return declaredBody; }
+    public List<String> getFrameworkAssumptions() { return frameworkAssumptions; }
     public Optional<SourceLocation> getSourceLocation() { return Optional.ofNullable(sourceLocation); }
     public List<ParameterModel> getParameters() { return parameters; }
     public java.util.Set<String> getNonNullFields() { return nonNullFields; }
@@ -144,6 +162,12 @@ public final class MethodModel {
     public static final class Builder {
         private String methodName;
         private String signature;
+        private String canonicalSignature;
+        private boolean virtualMethod = true;
+        private boolean semanticDeclaration;
+        private java.util.Set<String> overriddenTargets = java.util.Set.of();
+        private boolean declaredBody;
+        private List<String> frameworkAssumptions = List.of();
         private ControlFlowModel controlFlowModel;
         private List<SemanticCallSite> semanticCallSites = List.of();
         private Object nullAnalysisModel;
@@ -168,6 +192,12 @@ public final class MethodModel {
 
         public Builder methodName(String methodName)           { this.methodName = methodName; return this; }
         public Builder signature(String signature)             { this.signature = signature; return this; }
+        public Builder canonicalSignature(String value) { this.canonicalSignature = value; return this; }
+        public Builder virtualMethod(boolean value) { this.virtualMethod = value; return this; }
+        public Builder semanticDeclaration(boolean value) { this.semanticDeclaration = value; return this; }
+        public Builder overriddenTargets(java.util.Set<String> value) { this.overriddenTargets = java.util.Set.copyOf(value); return this; }
+        public Builder declaredBody(boolean value) { this.declaredBody = value; return this; }
+        public Builder frameworkAssumptions(List<String> values) { this.frameworkAssumptions = List.copyOf(values); return this; }
         public Builder controlFlowModel(ControlFlowModel cfm)  { this.controlFlowModel = cfm; return this; }
         public Builder semanticCallSites(List<SemanticCallSite> calls) {
             this.semanticCallSites = calls == null ? List.of() : List.copyOf(calls);

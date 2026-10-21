@@ -202,6 +202,7 @@ public final class AnalysisPipeline {
             // in memory and caused OutOfMemoryError on real services.
             java.util.Map<String, Object> report = JsonGraphExporter.report(propGraph, riskSummary);
             report.put("schemaVersion", "1.0");
+            report.put("analysisCompleteness", AnalysisCompleteness.describe(projectModel));
             report.put("findings", List.copyOf(findings));
             report.put("apiEndpoints", List.copyOf(apiEndpoints));
             report.put("hotspots", List.copyOf(hotspots));

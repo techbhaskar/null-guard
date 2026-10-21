@@ -35,5 +35,10 @@ class MojoIntegrationTest {
         assertTrue(Files.exists(output.resolve("nullguard/nullguard-report-latest.json")));
         assertTrue(Files.exists(output.resolve("nullguard/nullguard-results.sarif")));
     }
-    @Test void actualMojoSupportsReportOnlyMode() throws Exception { assertDoesNotThrow(() -> mojo(false).execute()); }
+    @Test void actualMojoSupportsReportOnlyMode() throws Exception {
+        assertDoesNotThrow(() -> mojo(false).execute());
+        var report = new com.fasterxml.jackson.databind.ObjectMapper().readTree(output.resolve("nullguard/nullguard-report-latest.json").toFile());
+        assertTrue(report.has("analysisCompleteness"));
+        assertFalse(report.path("analysisCompleteness").path("runtimeObserved").asBoolean(true));
+    }
 }

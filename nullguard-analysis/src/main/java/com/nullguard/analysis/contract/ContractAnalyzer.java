@@ -65,6 +65,7 @@ public class ContractAnalyzer {
                     String key = ExpressionNullability.callKey(call);
                     Set<String> candidates = new LinkedHashSet<>();
                     method.getSemanticCallSites().stream().filter(c -> (c.getWrittenName() + "/" + c.getArgumentCount()).equals(key))
+                            .filter(c -> c.getExpression().isEmpty() || c.getExpression().equals(call.toString()))
                             .flatMap(c -> c.getResolvedTarget().stream()).map(ResolvedCallTarget::qualifiedSignature)
                             .filter(methods::containsKey).forEach(candidates::add);
                     for (String calleeId : candidates) {
@@ -75,6 +76,28 @@ public class ContractAnalyzer {
                                 issues.add(new ContractModel.ContractIssue("NG004", "Nullable argument passed to '" + parameter.name() + "' of " + calleeId, node.getLineNumber()));
                         }
                     }
+                }
+                List<Node> constructorCalls = new ArrayList<>(ast.findAll(com.github.javaparser.ast.expr.ObjectCreationExpr.class));
+                constructorCalls.addAll(ast.findAll(com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt.class));
+                for (var call : constructorCalls) {
+                    var arguments = call instanceof com.github.javaparser.ast.expr.ObjectCreationExpr creation ? creation.getArguments()
+                            : ((com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt) call).getArguments();
+                    String writtenName = call instanceof com.github.javaparser.ast.expr.ObjectCreationExpr creation ? "new:" + creation.getType().asString()
+                            : ((com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt) call).isThis() ? "this:<init>" : "super:<init>";
+                    String key = writtenName + "/" + arguments.size();
+                    method.getSemanticCallSites().stream().filter(c -> (c.getWrittenName() + "/" + c.getArgumentCount()).equals(key))
+                            .filter(c -> c.getExpression().isEmpty() || c.getExpression().equals(call.toString()))
+                            .flatMap(c -> c.getResolvedTarget().stream()).map(ResolvedCallTarget::qualifiedSignature)
+                            .distinct().filter(methods::containsKey).forEach(calleeId -> {
+                                var callee = methods.get(calleeId);
+                                for (int n = 0; n < Math.min(arguments.size(), callee.getParameters().size()); n++) {
+                                    var parameter = callee.getParameters().get(n);
+                                    if (required.get(calleeId).contains(parameter.name()) && ExpressionNullability.evaluate(
+                                            arguments.get(n), ExpressionNullability.atExpression(call, state), returns) != NullState.NON_NULL)
+                                        issues.add(new ContractModel.ContractIssue("NG004", "Nullable constructor argument passed to '"
+                                                + parameter.name() + "' of " + calleeId, node.getLineNumber()));
+                                }
+                            });
                 }
             }
         });

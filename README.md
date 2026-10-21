@@ -14,6 +14,8 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 
 > **Release status:** `1.1.1` is published on Maven Central. See the [release notes and verification results](docs/releases/1.1.1.md).
 
+> **Unreleased working-tree changes:** overload/constructor correctness fixes and analysis-completeness reporting described [here](docs/analysis-completeness.md) are not included in the published 1.1.1 artifacts.
+
 ## Developer guide
 
 - [Choose Maven, Gradle, or the CLI](#first-run)
@@ -453,7 +455,7 @@ java -jar nullguard-cli/target/nullguard-cli-1.1.1-jar-with-dependencies.jar \
   --classpath=/work/orders-service/target/classes:/work/libs/shared-contracts.jar
 ```
 
-If a call cannot be resolved semantically, NullGuard keeps the analysis running and falls back to name-and-arity matching. Supplying a complete classpath reduces ambiguous or external fallback nodes.
+If a call cannot be resolved semantically, NullGuard keeps it external rather than guessing an internal target by name and arity. Supplying a complete classpath reduces unresolved calls; dependency bodies are not source-analyzed merely because their symbols resolve.
 
 ### CLI options
 

@@ -32,6 +32,53 @@ class SemanticCallGraphTest {
         assertFalse(callees.isEmpty());
     }
 
+    @Test void qualifiedParameterSpellingNeverBroadensToAnotherOverload() throws Exception {
+        write("Worker.java", """
+                package com.acme;
+                interface Worker { String process(String value); }
+                class WorkerImpl implements Worker {
+                    public String process(java.lang.String value) { return value; }
+                    public String process(Integer value) { return value.toString(); }
+                }
+                class Client { Worker worker; String run() { return worker.process("ok"); } }
+                """);
+        assertEquals(Set.of("com.acme.WorkerImpl#process(java.lang.String)"), graph().getCallees("com.acme.Client#run()"));
+    }
+
+    @Test void staticMethodsDoNotDispatchToSubclassHidingMethods() throws Exception {
+        write("Base.java", """
+                package com.acme;
+                class Base { static String process(String value) { return value; } }
+                class Child extends Base { static String process(String value) { return null; } }
+                class Client { String run() { return Base.process("ok"); } }
+                """);
+        assertEquals(Set.of("com.acme.Base#process(String)"), graph().getCallees("com.acme.Client#run()"));
+    }
+
+    @Test void genericInterfaceDispatchUsesSubstitutionNotUnrelatedOverloads() throws Exception {
+        write("Worker.java", """
+                package com.acme;
+                interface Worker<T> { T process(T value); }
+                class WorkerImpl implements Worker<String> {
+                    public String process(String value) { return value; }
+                    public String process(Integer value) { return value.toString(); }
+                }
+                class Client { Worker<String> worker; String run() { return worker.process("ok"); } }
+                """);
+        assertEquals(Set.of("com.acme.WorkerImpl#process(String)"), graph().getCallees("com.acme.Client#run()"));
+    }
+
+    @Test void superCallsDoNotDispatchBackToOverrides() throws Exception {
+        write("Base.java", """
+                package com.acme;
+                class Base { String process(String value) { return value; } }
+                class Child extends Base {
+                    @Override String process(String value) { return super.process(value); }
+                }
+                """);
+        assertEquals(Set.of("com.acme.Base#process(String)"), graph().getCallees("com.acme.Child#process(String)"));
+    }
+
     @Test
     void injectedInterfaceCallTargetsConcreteImplementationAndExactOverload() throws Exception {
         write("PaymentService.java", """

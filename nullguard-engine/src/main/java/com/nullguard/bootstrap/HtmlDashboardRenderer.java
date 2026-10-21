@@ -312,6 +312,7 @@ public final class HtmlDashboardRenderer {
                   %s
                   <div class="pillars-grid" id="pillarsGrid"></div>
                   <div class="kpi-grid" id="summaryGrid"></div>
+                  <div class="card" id="analysisCompleteness"></div>
 
                   <div class="card">
                     <div class="card-header">
@@ -519,6 +520,33 @@ public final class HtmlDashboardRenderer {
               if (v === null || v === undefined) return '';
               return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             }
+
+            const completeness = data.analysisCompleteness;
+            document.getElementById('analysisCompleteness').innerHTML = !completeness
+              ? '<div class="card-header"><div><h3 class="card-title">Analysis completeness: unavailable</h3><p>No completeness metadata in this report. Risk scores are not proof of safety.</p></div></div>'
+              : `<div class="card-header"><div>
+                  <h3 class="card-title">Analysis completeness: ${esc(completeness.status)}</h3>
+                  <p>${esc(completeness.scope)}. Runtime observed: No.</p>
+                  <p>Sources parsed: ${esc(completeness.sourceFilesParsed)} / ${esc(completeness.sourceFilesDiscovered)};
+                    source files with problems: ${esc(completeness.sourceFilesWithProblems)};
+                    bodies analyzed: ${esc(completeness.analyzedBodies)} / ${esc(completeness.declaredBodies)};
+                    unmodeled executables: ${esc(completeness.unmodeledExecutables)}.</p>
+                  <p>Symbol-resolved calls: ${esc(completeness.symbolResolvedCallSites)} / ${esc(completeness.totalCallSites)};
+                    dependency calls (bodies not analyzed): ${esc(completeness.resolvedDependencyCallSites)};
+                    accessor calls excluded from graph: ${esc(completeness.excludedAccessorCallSites)};
+                    framework assumptions: ${(completeness.frameworkAssumptions || []).length}.</p>
+                  <details><summary>Unresolved calls, failures and assumptions</summary>
+                    <pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify({
+                      unresolvedCalls: completeness.unresolvedCallSites,
+                      sourceDispatchWithoutBody: completeness.sourceDispatchWithoutBody,
+                      sourceProblems: completeness.sourceProblemPaths,
+                      cfgFailures: completeness.cfgFailures,
+                      analysisFailures: completeness.analysisFailures,
+                      frameworkAssumptions: completeness.frameworkAssumptions
+                    }, null, 2))}</pre>
+                  </details>
+                  <ul>${(completeness.limitations || []).map(item => '<li>' + esc(item) + '</li>').join('')}</ul>
+                </div></div>`;
 
             function splitMethod(id) {
               if (!id) return { pkg: '', short: 'project' };

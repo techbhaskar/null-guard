@@ -123,7 +123,7 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
      * Returns true for trivial accessor calls like {@code dataVO.getInvoiceNumber},
      * {@code br.setAm} or {@code isActive} that add noise without architectural meaning.
      */
-    private static boolean isGetterOrSetter(String calledName) {
+    public static boolean isGetterOrSetter(String calledName) {
         String simple = calledName.contains(".")
                 ? calledName.substring(calledName.lastIndexOf('.') + 1)
                 : calledName;

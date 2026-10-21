@@ -14,12 +14,23 @@ public record ResolvedCallTarget(
         String declaringType,
         String signature,
         String methodName,
-        int parameterCount) {
+        int parameterCount,
+        String canonicalSignature,
+        boolean virtualDispatch) {
+
+    public ResolvedCallTarget(String declaringType, String signature, String methodName, int parameterCount, String canonicalSignature) {
+        this(declaringType, signature, methodName, parameterCount, canonicalSignature, true);
+    }
+
+    public ResolvedCallTarget(String declaringType, String signature, String methodName, int parameterCount) {
+        this(declaringType, signature, methodName, parameterCount, signature);
+    }
 
     public ResolvedCallTarget {
         Objects.requireNonNull(declaringType, "declaringType");
         Objects.requireNonNull(signature, "signature");
         Objects.requireNonNull(methodName, "methodName");
+        Objects.requireNonNull(canonicalSignature, "canonicalSignature");
         if (parameterCount < 0) {
             throw new IllegalArgumentException("parameterCount must be >= 0");
         }

@@ -4,6 +4,8 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
@@ -66,6 +68,8 @@ public final class JavaParserAstParser implements AstParser {
         ModuleModel.Builder moduleBuilder = ModuleModel.builder().moduleName("root");
         BasicControlFlowBuilder cfgBuilder = new BasicControlFlowBuilder();
         LinkedHashMap<String, PackageModel.Builder> packageMap = new LinkedHashMap<>();
+        int[] counts = new int[4];
+        List<String> problemPaths = new ArrayList<>();
 
         try (ParserEnvironment environment = createParser(normalizedRoot);
              Stream<Path> paths = Files.walk(normalizedRoot)) {
@@ -76,6 +80,7 @@ public final class JavaParserAstParser implements AstParser {
                     .collect(Collectors.toList());
 
             java.util.Map<String, Boolean> packageDefaults = new java.util.HashMap<>();
+            counts[0] = javaFiles.size();
             for (Path info : javaFiles) {
                 if (!info.getFileName().toString().equals("package-info.java")) continue;
                 environment.parser().parse(info).getResult().ifPresent(cu -> cu.getPackageDeclaration().ifPresent(pkg -> {
@@ -87,6 +92,10 @@ public final class JavaParserAstParser implements AstParser {
             }
             for (Path path : javaFiles) {
                 var result = environment.parser().parse(path);
+                if (!result.isSuccessful()) {
+                    counts[2]++;
+                    problemPaths.add(normalizedRoot.relativize(path).toString().replace('\\', '/'));
+                }
                 if (result.getResult().isEmpty()) {
                     LOG.warn("Could not parse {} - skipping. {} problem(s): {}",
                             path, result.getProblems().size(), result.getProblems());
@@ -94,6 +103,9 @@ public final class JavaParserAstParser implements AstParser {
                 }
 
                 result.getResult().ifPresent(compilationUnit -> {
+                    counts[1]++;
+                    counts[3] += compilationUnit.findAll(MethodDeclaration.class).size()
+                            + compilationUnit.findAll(ConstructorDeclaration.class).size();
                     String packageName = compilationUnit.getPackageDeclaration()
                             .map(declaration -> declaration.getNameAsString())
                             .orElse("default");
@@ -115,6 +127,8 @@ public final class JavaParserAstParser implements AstParser {
 
         packageMap.values().forEach(builder -> moduleBuilder.addPackage(builder.build()));
         projectBuilder.addModule(moduleBuilder.build());
+        projectBuilder.parseDiagnostics(new com.nullguard.core.model.ParseDiagnostics(
+                counts[0], counts[1], counts[2], counts[3], problemPaths));
         return projectBuilder.build();
     }
 
@@ -156,11 +170,41 @@ public final class JavaParserAstParser implements AstParser {
         declaration.getMethods().stream()
                 .sorted(Comparator.comparing(method -> method.getSignature().asString()))
                 .forEach(method -> classBuilder.addMethod(buildMethod(method, cfgBuilder, sourcePath, nonNullFields(declaration), packageDefault)));
+        declaration.getConstructors().stream().sorted(Comparator.comparing(c -> c.getSignature().asString()))
+                .forEach(constructor -> {
+                    MethodDeclaration synthetic = new MethodDeclaration().setName(constructor.getNameAsString())
+                            .setType("void").setParameters(new com.github.javaparser.ast.NodeList<>(constructor.getParameters().stream().map(p -> p.clone()).toList()))
+                            .setBody(constructor.getBody().clone());
+                    constructor.getRange().ifPresent(synthetic::setRange);
+                    synthetic.setParentNode(declaration);
+                    classBuilder.addMethod(buildMethod(synthetic, cfgBuilder, sourcePath, Set.of(), packageDefault, constructor));
+                });
         return classBuilder.build();
     }
 
     private MethodModel buildMethod(MethodDeclaration method, BasicControlFlowBuilder cfgBuilder, Path sourcePath, Set<String> fields, boolean packageDefault) {
+        return buildMethod(method, cfgBuilder, sourcePath, fields, packageDefault, null);
+    }
+
+    private MethodModel buildMethod(MethodDeclaration method, BasicControlFlowBuilder cfgBuilder, Path sourcePath, Set<String> fields, boolean packageDefault, ConstructorDeclaration constructor) {
         boolean defaultNonNull = defaultNonNull(method, packageDefault);
+        String signature = constructor == null ? method.getSignature().asString() : constructorSignature(constructor.getSignature().asString());
+        String canonical = signature;
+        try { canonical = constructor == null ? method.resolve().getSignature() : constructorSignature(constructor.resolve().getSignature()); }
+        catch (RuntimeException | LinkageError unavailable) { /* Exact textual signature only; never arity guessing. */ }
+        List<String> assumptions = new ArrayList<>();
+        if (constructor == null) {
+            var owner = method.findAncestor(ClassOrInterfaceDeclaration.class).orElse(null);
+            if (owner != null) {
+                Set<String> stable = stableNonNullFields(owner);
+                fields.stream().filter(f -> !stable.contains(f)).sorted().forEach(f -> assumptions.add("framework field: " + f));
+            }
+            method.getParameters().stream().filter(p -> frameworkParameter(method, p) && !hasAnnotation(p, "Nullable", "CheckForNull"))
+                    .forEach(p -> assumptions.add("framework parameter: " + p.getNameAsString()));
+        } else {
+            method.getParameters().stream().filter(p -> constructorRequires(constructor, p.getNameAsString()))
+                    .forEach(p -> assumptions.add("constructor parameter required by framework field assumption: " + p.getNameAsString()));
+        }
         ControlFlowModel cfg = null;
         try {
             if (method.getBody().isPresent()) cfg = cfgBuilder.build(method);
@@ -184,10 +228,10 @@ public final class JavaParserAstParser implements AstParser {
                 .parameters(method.getParameters().stream().map(p -> AstMetadataExtractor.buildParameterModel(
                         method,
                         p,
-                        !hasAnnotation(p, "Nullable", "CheckForNull") && (hasAnnotation(p, "NonNull", "NotNull", "Nonnull") || frameworkParameter(method, p) || (defaultNonNull && defaultApplies(p.getType(), method))),
+                        !hasAnnotation(p, "Nullable", "CheckForNull") && (hasAnnotation(p, "NonNull", "NotNull", "Nonnull") || frameworkParameter(method, p) || constructorRequires(constructor, p.getNameAsString()) || (defaultNonNull && defaultApplies(p.getType(), method))),
                         hasAnnotation(p, "Nullable", "CheckForNull"))).toList())
                 .nonNullReturn(!hasAnnotation(method, "Nullable", "CheckForNull") && (hasAnnotation(method, "NonNull", "NotNull", "Nonnull") || (defaultNonNull && defaultApplies(method.getType(), method))))
-                .primitiveReturn(method.getType().isPrimitiveType())
+                .primitiveReturn(constructor != null || method.getType().isPrimitiveType())
                 .nullableReturn(hasAnnotation(method, "Nullable", "CheckForNull"))
                 .returnType(method.getType().asString())
                 .httpMethod(httpMethod)
@@ -196,14 +240,20 @@ public final class JavaParserAstParser implements AstParser {
                 .httpPaths(AstMetadataExtractor.extractPaths(method))
                 .responseStatus(AstMetadataExtractor.extractResponseStatus(method, httpMethod))
                 .methodFindings(AstMetadataExtractor.extractMethodFindings(method))
-                .methodName(method.getNameAsString())
-                .signature(method.getSignature().asString())
+                .methodName(constructor == null ? method.getNameAsString() : "<init>")
+                .signature(signature)
+                .canonicalSignature(canonical)
+                .virtualMethod(constructor == null && !method.isPrivate() && !method.isStatic())
+                .semanticDeclaration(true)
+                .overriddenTargets(constructor == null ? overriddenTargets(method) : Set.of())
+                .declaredBody(method.getBody().isPresent())
+                .frameworkAssumptions(assumptions)
                 .controlFlowModel(cfg)
-                .semanticCallSites(resolveCallSites(method))
+                .semanticCallSites(resolveCallSites(constructor == null ? method : constructor))
                 .build();
     }
 
-    private List<SemanticCallSite> resolveCallSites(MethodDeclaration method) {
+    private List<SemanticCallSite> resolveCallSites(com.github.javaparser.ast.Node method) {
         List<MethodCallExpr> calls = new ArrayList<>(method.findAll(MethodCallExpr.class));
         calls.sort(Comparator.comparing((MethodCallExpr call) -> sourcePosition(call))
                 .thenComparing(call -> call.toString()));
@@ -220,23 +270,92 @@ public final class JavaParserAstParser implements AstParser {
                         resolved.declaringType().getQualifiedName(),
                         signature,
                         resolved.getName(),
-                        resolved.getNumberOfParams());
+                        resolved.getNumberOfParams(), resolved.getSignature(), !resolved.isStatic()
+                                && resolved.accessSpecifier() != com.github.javaparser.ast.AccessSpecifier.PRIVATE
+                                && !call.getScope().map(s -> s.isSuperExpr()).orElse(false));
             } catch (RuntimeException | LinkageError resolutionFailure) {
                 LOG.debug("Could not resolve call {} in {}: {}",
-                        call, method.getSignature().asString(), resolutionFailure.getMessage());
+                        call, sourcePosition(method), resolutionFailure.getMessage());
             }
             semanticCalls.add(new SemanticCallSite(
-                    writtenCallName(call), call.getArguments().size(), target));
+                    writtenCallName(call), call.getArguments().size(), target, call.toString()));
+        }
+        for (ObjectCreationExpr call : method.findAll(ObjectCreationExpr.class)) {
+            ResolvedCallTarget target = null;
+            try {
+                var resolved = call.resolve();
+                String signature = resolved.toAst(ConstructorDeclaration.class)
+                        .map(c -> constructorSignature(c.getSignature().asString()))
+                        .orElseGet(() -> constructorSignature(resolved.getSignature()));
+                target = new ResolvedCallTarget(resolved.declaringType().getQualifiedName(), signature,
+                        "<init>", resolved.getNumberOfParams(), constructorSignature(resolved.getSignature()));
+            } catch (RuntimeException | LinkageError unavailable) { /* Reported as unresolved. */ }
+            semanticCalls.add(new SemanticCallSite("new:" + call.getType().asString(), call.getArguments().size(), target, call.toString()));
+        }
+        for (var call : method.findAll(com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt.class)) {
+            ResolvedCallTarget target = null;
+            try {
+                var resolved = call.resolve();
+                String signature = resolved.toAst(ConstructorDeclaration.class)
+                        .map(c -> constructorSignature(c.getSignature().asString()))
+                        .orElseGet(() -> constructorSignature(resolved.getSignature()));
+                target = new ResolvedCallTarget(resolved.declaringType().getQualifiedName(), signature,
+                        "<init>", resolved.getNumberOfParams(), constructorSignature(resolved.getSignature()));
+            } catch (RuntimeException | LinkageError unavailable) { /* Reported as unresolved. */ }
+            semanticCalls.add(new SemanticCallSite(call.isThis() ? "this:<init>" : "super:<init>", call.getArguments().size(), target, call.toString()));
         }
         return List.copyOf(semanticCalls);
     }
 
+    private static String constructorSignature(String signature) {
+        return "<init>" + signature.substring(signature.indexOf('('));
+    }
+
+    /** Substitute ancestor type arguments before comparing an actual override. */
+    private static Set<String> overriddenTargets(MethodDeclaration method) {
+        Set<String> targets = new LinkedHashSet<>();
+        if (method.isStatic() || method.isPrivate()) return targets;
+        try {
+            var resolved = method.resolve();
+            String own = resolved.getSignature().replaceAll("\\s+", "");
+            for (var ancestor : resolved.declaringType().getAllAncestors()) {
+                for (var parent : ancestor.getTypeDeclaration().orElseThrow().getDeclaredMethods()) {
+                    if (parent.isStatic() || parent.accessSpecifier() == com.github.javaparser.ast.AccessSpecifier.PRIVATE) continue;
+                    if (parent.accessSpecifier() == com.github.javaparser.ast.AccessSpecifier.NONE
+                            && !parent.declaringType().getPackageName().equals(resolved.declaringType().getPackageName())) continue;
+                    List<String> parameters = new ArrayList<>();
+                    for (int i = 0; i < parent.getNumberOfParams(); i++)
+                        parameters.add(ancestor.typeParametersMap().replaceAll(parent.getParam(i).getType()).describe());
+                    String substituted = parent.getName() + "(" + String.join(",", parameters) + ")";
+                    if (own.equals(substituted.replaceAll("\\s+", "")))
+                        targets.add(parent.declaringType().getQualifiedName() + "#" + parent.getSignature().replaceAll("\\s+", ""));
+                }
+            }
+        } catch (RuntimeException | LinkageError unavailable) { /* Never guess missing hierarchy. */ }
+        return targets;
+    }
+
+    private static boolean constructorRequires(ConstructorDeclaration constructor, String parameter) {
+        if (constructor == null) return false;
+        var owner = constructor.findAncestor(ClassOrInterfaceDeclaration.class).orElse(null);
+        if (owner == null) return false;
+        Set<String> fields = nonNullFields(owner);
+        return constructor.getBody().getStatements().stream().map(s -> s.toString().replaceAll("\\s+", ""))
+                .anyMatch(s -> fields.stream().anyMatch(f -> s.equals("this." + f + "=" + parameter + ";")));
+    }
+
     /** Only stable fields with syntactically definite initializers are seeded. */
-    private static Set<String> nonNullFields(ClassOrInterfaceDeclaration owner) {
+    private static Set<String> stableNonNullFields(ClassOrInterfaceDeclaration owner) {
         Set<String> names = new LinkedHashSet<>();
         owner.getFields().stream().filter(f -> f.isFinal()).forEach(f -> f.getVariables().forEach(v ->
                 v.getInitializer().filter(e -> e.isObjectCreationExpr() || e.isArrayCreationExpr()
-                        || (e.isLiteralExpr() && !e.isNullLiteralExpr()) || nonNullLoggerFactory(e)).ifPresent(e -> names.add(v.getNameAsString()))));
+                        || (e.isLiteralExpr() && !e.isNullLiteralExpr()) || nonNullLoggerFactory(e))
+                        .ifPresent(e -> names.add(v.getNameAsString()))));
+        return names;
+    }
+
+    private static Set<String> nonNullFields(ClassOrInterfaceDeclaration owner) {
+        Set<String> names = stableNonNullFields(owner);
         boolean springBean = java.util.stream.Stream.of("org.springframework.stereotype.Component", "org.springframework.stereotype.Service",
                 "org.springframework.stereotype.Repository", "org.springframework.stereotype.Controller", "org.springframework.web.bind.annotation.RestController",
                 "org.springframework.context.annotation.Configuration").anyMatch(a -> qualifiedAnnotation(owner, a));

@@ -14,8 +14,12 @@ class CliIntegrationTest {
         assertTrue(Files.exists(output.resolve("nullguard-results.sarif")));
         assertTrue(Files.exists(output.resolve("nullguard-dashboard-latest.html")));
     }
-    @Test void reportOnlyModePassesTheSameRiskyService() {
+    @Test void reportOnlyModePassesTheSameRiskyService() throws Exception {
         assertEquals(0, new NullGuardCliApplication().run(new String[] {"../examples/orders-service/src/main/java", "--output=" + output}));
+        var report = new com.fasterxml.jackson.databind.ObjectMapper().readTree(output.resolve("nullguard-report-latest.json").toFile());
+        assertTrue(report.has("analysisCompleteness"));
+        assertFalse(report.path("analysisCompleteness").path("runtimeObserved").asBoolean(true));
+        assertTrue(Files.readString(output.resolve("nullguard-dashboard-latest.html")).contains("Analysis completeness"));
     }
     @Test void missingSourceAndUnknownOptionsReturnTwo() {
         assertEquals(2, new NullGuardCliApplication().run(new String[] {output.resolve("missing").toString()}));

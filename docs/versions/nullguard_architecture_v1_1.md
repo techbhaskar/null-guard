@@ -9,7 +9,7 @@ NullGuard analyzes Java source without running the target application. It combin
 ## Execution order
 
 1. Parse Java classes/interfaces, method signatures, parameter declarations, nullability annotations, source ranges, and semantic call sites.
-2. Build the global call graph using resolved targets where available and name/arity fallback otherwise.
+2. Build the global call graph using resolved targets; unresolved calls remain external, without internal name/arity guessing.
 3. Iterate method return summaries across resolved calls. Run CFG data flow with parameter entry states and known callee return states.
 4. Check declared non-null returns, unchecked parameters, and nullable arguments passed to non-null or unguarded callee parameters.
 5. Discover annotated API entry points, traverse outgoing calls, and attach reverse API reach counts.
@@ -38,7 +38,9 @@ CFG joins and null-condition branches refine state. Early returns and throws pro
 
 Method summaries expose parameter entry nullability and whether any return can be null. Primitive returns are non-null on surviving paths; bodyless declarations do not acquire proven summaries from empty CFGs. Return-summary iteration follows resolved in-project calls. Recursive or unresolved reference returns remain unknown where non-nullness cannot be proven. A method returning null is not automatically a contract violation: NG003 requires a declared non-null return. Nullable returns still contribute intrinsic risk and may generate strengthening suggestions.
 
-NG002 identifies an unannotated reference parameter dereferenced without a guard. NG004 checks caller arguments against declared non-null or inferred unguarded callee parameters using CFG state at the call. Resolved target metadata is preferred, with call-graph candidates as a conservative fallback. Overloads sharing a written name and arity can be merged conservatively; runtime dependency injection and dispatch precision are not guaranteed.
+NG002 identifies an unannotated reference parameter dereferenced without a guard. NG004 checks caller arguments against declared non-null or inferred unguarded callee parameters using CFG state at the call. Caller checks require resolved source targets; they do not guess targets from call-graph names. Runtime dependency injection and dispatch precision are not guaranteed.
+
+Unreleased post-1.1.1 changes add resolved parameter/override matching, explicit constructor CFGs and argument checks, and source-analysis completeness metadata in the report/dashboard. See [the exact behavior and remaining limits](../analysis-completeness.md); these changes are not part of the published 1.1.1 artifact.
 
 ## API analysis
 

@@ -44,8 +44,7 @@ import java.util.Set;
  *
  * <p>When the parser supplies a {@link ResolvedCallTarget}, resolution uses its declaring type,
  * exact source signature, and the resolved class hierarchy. The name/arity path remains as a
- * conservative fallback for calls that JavaParser cannot solve because source or bytecode is
- * unavailable.
+ * legacy API only. The graph builder keeps unresolved calls external; it never uses that API.
  *
  * <p>Not thread-safe: the name index is memoised against the last project seen.
  */
@@ -56,6 +55,9 @@ public final class MethodResolver {
                              String className,
                              String qualifiedClassName,
                              String signature,
+                             boolean virtualMethod,
+                             boolean semanticDeclaration,
+                             Set<String> overriddenTargets,
                              int arity,
                              boolean hasBody,
                              boolean interfaceType,
@@ -145,13 +147,18 @@ public final class MethodResolver {
                         && candidate.arity() == target.parameterCount());
         List<Candidate> runtimeImplementations = filter(byName, candidate ->
                 !candidate.interfaceType()
+                        && candidate.virtualMethod()
+                        && !target.methodName().equals("<init>")
                         && candidate.hasBody()
                         && !candidate.qualifiedClassName().equals(target.declaringType())
                         && candidate.assignableTypes().contains(target.declaringType())
                         && candidate.arity() == target.parameterCount());
 
-        exactOwner = preferSignature(exactOwner, target.signature());
-        runtimeImplementations = preferSignature(runtimeImplementations, target.signature());
+        exactOwner = preferSignature(exactOwner, target.canonicalSignature());
+        runtimeImplementations = filter(runtimeImplementations, c -> (!c.semanticDeclaration() && normalizeSignature(c.signature()).equals(normalizeSignature(target.canonicalSignature())))
+                || c.overriddenTargets().contains(target.declaringType() + "#" + normalizeSignature(target.canonicalSignature())));
+        if (!target.virtualDispatch() || (!exactOwner.isEmpty() && exactOwner.stream().noneMatch(Candidate::virtualMethod)))
+            runtimeImplementations = List.of();
 
         boolean ownerIsInterface = exactOwner.stream().anyMatch(Candidate::interfaceType);
         List<String> resolved = new ArrayList<>();
@@ -210,7 +217,10 @@ public final class MethodResolver {
                                      MethodIds.of(pkg, cls, mth),
                                      cls.getClassName(),
                                      qualifiedName(pkg, cls),
-                                     mth.getSignature(),
+                                     mth.getCanonicalSignature(),
+                                     mth.isVirtualMethod(),
+                                     mth.isSemanticDeclaration(),
+                                     mth.getOverriddenTargets(),
                                      arityOf(mth.getSignature()),
                                      mth.getControlFlowModel().isPresent(),
                                      cls.isInterfaceType(),
@@ -296,7 +306,7 @@ public final class MethodResolver {
         List<Candidate> exact = filter(candidates,
                 candidate -> normalizeSignature(candidate.signature())
                         .equals(normalizeSignature(signature)));
-        return exact.isEmpty() ? candidates : exact;
+        return exact;
     }
 
     private static String normalizeSignature(String signature) {
