@@ -12,7 +12,7 @@ It is intended to answer questions that are difficult to answer with a method-le
 
 NullGuard performs static analysis only. It does not instrument or run the analyzed application.
 
-> **Release status:** `1.1.1` is being prepared for Maven Central. `1.1.0` remains the latest confirmed publication until Central validates and publishes this release.
+> **Release status:** `1.1.1` is published on Maven Central. See the [release notes and verification results](docs/releases/1.1.1.md).
 
 ## Developer guide
 
@@ -25,9 +25,9 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 - [CI adoption](#suggested-ci-adoption)
 - [Troubleshooting](#troubleshooting)
 
-Examples below target **1.1.1** (pending publication). The previous signed standalone
+Examples below target **1.1.1**, available from Maven Central. The previous signed standalone
 CLI downloads remain on the [1.1.0 GitHub release page](https://github.com/techbhaskar/null-guard/releases/tag/v1.1.0).
-For the authenticated GitHub Packages mirror, see [registry setup](docs/github-packages.md).
+For the authenticated GitHub Packages mirror of **1.1.0**, see [registry setup](docs/github-packages.md); a 1.1.1 mirror publication is not claimed.
 
 ## Why use NullGuard in microservices?
 

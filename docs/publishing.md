@@ -1,12 +1,17 @@
-> Release 1.1.0 is PUBLISHED in deployment
-> `2b11f55c-b7ad-4cd0-a3c2-40bd247760c8`. See [release details](releases/1.1.0.md).
+> Release 1.1.1 is PUBLISHED in deployment
+> `97ba9be7-6a6f-4c3c-aba0-9bee05cbfd30`. See [release details](releases/1.1.1.md).
 
 # Publishing to Maven Central
 
 Version `1.0.0` is published and its plugin was installed from Central using an
-empty Maven cache on 2026-10-16. Versions 1.0.0, 1.0.1 and 1.1.0 are published. The current reactor release candidate is `1.1.1`. The `central-release` Maven profile attaches
+empty Maven cache on 2026-10-16. Versions 1.0.0, 1.0.1, 1.1.0 and 1.1.1 are published. The current reactor version is `1.1.1`. The `central-release` Maven profile attaches
 sources and Javadoc, signs artifacts, uploads the reactor bundle, and waits for
 Central to confirm publication.
+
+The 1.1.1 status response on 2026-10-22 warned that Arinits exceeded its monthly
+File Count publishing limit. Further publishing is blocked until the reported
+reset on November 1, 2026; this does not change the confirmed `PUBLISHED` status
+of 1.1.1. Check current Portal usage before preparing another upload.
 
 ## One-time prerequisites
 

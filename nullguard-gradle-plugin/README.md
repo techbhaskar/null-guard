@@ -1,8 +1,8 @@
 # NullGuard for Gradle
 
-Release `1.1.1` is pending publication on Maven Central. The integration resolves the CLI
+Release `1.1.1` is published on Maven Central. The integration resolves the CLI
 and its runtime dependencies separately. An authenticated GitHub Packages mirror
-is also available; see [registry setup](../docs/github-packages.md).
+of `1.1.0` is also available; see [registry setup](../docs/github-packages.md).
 
 ## Install from Maven Central
 
@@ -49,7 +49,7 @@ nullguard {
 ```
 
 Run `./gradlew nullguard`. No Maven installation, CLI download, local repository
-or NullGuard checkout is needed after publication. This release is published to
+or NullGuard checkout is needed. This release is published to
 Maven Central, not the Gradle Plugin Portal, so the pluginManagement repository
 entry is required.
 
