@@ -9,6 +9,7 @@
 /nullguard/nullguard-maven-plugin/target/**
 /nullguard-maven-plugin/target/**
 /nullguard-suggestions/target/**
+__pycache__/
 /nullguard-visualization/target/**
 /nullguard-core/target/**
 /nullguard-analysis/target/**

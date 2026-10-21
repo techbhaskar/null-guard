@@ -4,7 +4,7 @@
 # Publishing to Maven Central
 
 Version `1.0.0` is published and its plugin was installed from Central using an
-empty Maven cache on 2026-10-16. Versions 1.0.0, 1.0.1 and 1.1.0 are published. The current reactor release is `1.1.0`. The `central-release` Maven profile attaches
+empty Maven cache on 2026-10-16. Versions 1.0.0, 1.0.1 and 1.1.0 are published. The current reactor release candidate is `1.1.1`. The `central-release` Maven profile attaches
 sources and Javadoc, signs artifacts, uploads the reactor bundle, and waits for
 Central to confirm publication.
 
@@ -22,11 +22,11 @@ Central to confirm publication.
 
 ## Release
 
-The reactor is currently `com.arinits.nullguard:…:1.1.0`. For a future release,
+The reactor is currently `com.arinits.nullguard:…:1.1.1`. For a future release,
 update all reactor parent references:
 
 ```sh
-mvn org.codehaus.mojo:versions-maven-plugin:2.19.1:set -DnewVersion=1.1.0 -DgenerateBackupPoms=false
+mvn org.codehaus.mojo:versions-maven-plugin:2.19.1:set -DnewVersion=1.1.1 -DgenerateBackupPoms=false
 ```
 
 Update README commands and scripts containing the old version, run the normal
@@ -109,6 +109,14 @@ use the local GPG agent. Combine the versioned artifact files from both staging
 directories, excluding Maven metadata, verify signatures, generate checksums and
 upload a single bundle through the Central Publisher API with automatic publishing.
 The 1.0.1 release followed this combined process; no artifact was uploaded twice.
+
+The checked-in `scripts/publish_central.py` verifies all detached signatures against
+the established release fingerprint, checks the 13-component inventory, and builds
+the combined bundle with checksums. `bundle`, `upload`, and `status` are separate
+commands. Upload records an intent before sending and refuses to reuse an existing
+state file, so an ambiguous network failure cannot silently create duplicate deployments.
+Credentials are read from private Maven settings and never printed. Run its safety
+tests with `python -m unittest discover -s scripts -p test_publish_central.py`.
 
 ## GitHub distribution
 
