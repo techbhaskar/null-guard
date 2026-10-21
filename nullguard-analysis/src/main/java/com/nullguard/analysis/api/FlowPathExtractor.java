@@ -419,7 +419,7 @@ public class FlowPathExtractor {
         // ── Rule 1: Has a mapping annotation (Required) ───────────────────────
         // We now strictly require an annotation to avoid false positives 
         // with internal helper methods in Controller classes.
-        return MAPPING_ANNOTATIONS.stream().anyMatch(entrySource::contains);
+        return !method.getHttpMethods().isEmpty() || MAPPING_ANNOTATIONS.stream().anyMatch(entrySource::contains);
     }
 
 }

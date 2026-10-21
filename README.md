@@ -496,6 +496,46 @@ HTML generation is automatic across Maven, Gradle, and the standalone CLI:
 
 Maven, Gradle, and the standalone CLI all generate the unified 8-tab interactive dashboard (`HtmlDashboardRenderer`), offering **Overview**, **API Flows**, **Swagger / OpenAPI**, **Code Quality & Arch**, **Reachable CVEs**, **Arch Hotspots**, **Method Explorer**, and **Raw JSON**.
 
+### Embedded Swagger UI and OpenAPI configuration
+
+The Swagger / OpenAPI tab includes locally bundled Swagger UI 5.33.2 alongside the risk-aware explorer. Open `nullguard-dashboard-latest.html` or `nullguard-swagger.html`; keep the neighboring `swagger-ui/` asset directory with the report. The spec is embedded safely in the Swagger page, so viewing it does not require fetching JSON or contacting a CDN. Vendor licenses are included in the asset directory.
+
+Live API requests are disabled by default. Configure documentation with a JSON file, such as [examples/openapi-config.json](examples/openapi-config.json):
+
+```json
+{
+  "title": "Orders API",
+  "version": "1.0.0",
+  "servers": [{"url": "http://localhost:8080", "description": "Local development"}],
+  "securitySchemes": {
+    "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+  },
+  "security": [{"bearerAuth": []}],
+  "tryItOut": false
+}
+```
+
+Pass the file to the CLI with `--openapi-config=examples/openapi-config.json`, to Maven with `"-Dnullguard.openapiConfig=examples/openapi-config.json"`, or configure Gradle:
+
+```groovy
+nullguard {
+    openApiConfig = layout.projectDirectory.file('openapi-config.json')
+}
+```
+
+Set `tryItOut` to `true` only when you intend to send live requests. An explicit server is required. Use HTTP(S) URLs or root-relative paths without embedded credentials, query strings, or fragments; root-relative servers require hosting the report over HTTP rather than opening a local file. API calls require the service's CORS policy to allow the report origin. For example, serve the output directory locally with `python -m http.server 8765 --directory nullguard-out`, then open `http://localhost:8765/nullguard-dashboard-latest.html`.
+
+Supported security definitions are HTTP bearer/basic and API keys (`in`: `header`, `query`, or `cookie`); global `security` requirements select which definitions apply. Cookie behavior remains browser-controlled and cross-origin cookies are not enabled by this UI. Enter real credentials only in Swagger UI's **Authorize** dialog. Authorization is not persisted, the remote Swagger validator is disabled, and the configuration must not contain tokens, passwords, or secrets. Configuration describes the API contract; it does not implement server-side authentication. OAuth2/OpenID Connect flows, server variables, per-operation security overrides, and automatic `@Operation`/`@ApiResponse` extraction are not implemented.
+
+Route extraction preserves literal class/method path arrays and multiple verbs; unconstrained method-level Spring `@RequestMapping` expands to all eight supported verbs. Non-literal route constants and unsupported response statuses fail explicitly instead of silently inventing a route/status. Conflicting path/verb operations fail export rather than overwrite each other (including Spring overloads distinguished only by headers, parameters, or media type). DTO schema names are qualified when simple names collide; unresolved/ambiguous types remain objects with `x-java-type` and `x-nullguard-schema-warning`, not guessed DTO definitions. Nullable DTOs use a valid OpenAPI 3.0 union with a null-only branch. Risk telemetry does not invent `400`/`500` API responses. Default response status is `200` unless supported `@ResponseStatus` metadata specifies otherwise; dynamic `ResponseEntity` statuses and exception handlers are not inferred. Content defaults to JSON; custom media types, record/enum models, inheritance, and Jackson serialization customizations still need richer extraction.
+
+`mvn test` includes regression cases for these contracts and offline UI packaging. CI also uses `openapi-spec-validator==0.7.2` to independently validate generated documents and nullable instance semantics:
+
+```powershell
+python -m pip install openapi-spec-validator==0.7.2
+python scripts/validate_openapi.py nullguard-engine/target/openapi-validation/variants.json nullguard-engine/target/openapi-validation/schemas.json nullguard-engine/target/openapi-validation/configured.json nullguard-engine/target/openapi-validation/responses.json
+```
+
 From the service directory, open the Gradle report with the command for your OS:
 
 ```bash
@@ -956,7 +996,7 @@ mvn verify -Dnullguard.failBuild=false
 
 High-value next steps include:
 
-- OpenAPI generation and Swagger UI in the unified developer portal
+- Broader OpenAPI framework/schema coverage and OAuth2/OpenID Connect support
 - More precise framework metadata and class-level API path composition
 - Framework-aware dependency-injection and proxy resolution
 - Baseline/diff mode so CI can gate only newly introduced risk

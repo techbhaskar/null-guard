@@ -49,6 +49,46 @@ public final class AstMetadataExtractor {
 
     private AstMetadataExtractor() {}
 
+    /** Preserve every literal mapping variant, not just the first array element. */
+    public static List<String> extractPaths(NodeWithAnnotations<?> node) {
+        for (AnnotationExpr ann : node.getAnnotations()) {
+            String name = ann.getName().getIdentifier();
+            if (!name.endsWith("Mapping") && !name.equals("Path")) continue;
+            Expression value = annotationValue(ann, "path", "value");
+            if (value == null) return List.of("");
+            List<Expression> values = value.isArrayInitializerExpr()
+                    ? value.asArrayInitializerExpr().getValues() : List.of(value);
+            return values.stream().map(v -> {
+                if (!v.isStringLiteralExpr()) throw new IllegalArgumentException("Non-literal route is not supported: " + v);
+                return normalizePathSegment(v.asStringLiteralExpr().getValue());
+            }).distinct().toList();
+        }
+        return List.of("");
+    }
+
+    public static List<String> extractHttpMethods(MethodDeclaration method) {
+        for (AnnotationExpr ann : method.getAnnotations()) {
+            String name = ann.getName().getIdentifier();
+            if (name.equals("HEAD") || name.equals("OPTIONS")) return List.of(name);
+            if (name.equals("RequestMapping")) {
+                Expression value = annotationValue(ann, "method");
+                if (value == null) return List.of("GET", "PUT", "POST", "DELETE", "OPTIONS", "HEAD", "PATCH", "TRACE");
+                List<Expression> values = value.isArrayInitializerExpr() ? value.asArrayInitializerExpr().getValues() : List.of(value);
+                return values.stream().map(v -> v.toString().replaceAll(".*\\.", "").toUpperCase(Locale.ROOT)).distinct().toList();
+            }
+        }
+        String single = extractHttpMethod(method);
+        return single.isEmpty() ? List.of() : List.of(single);
+    }
+
+    private static Expression annotationValue(AnnotationExpr ann, String... keys) {
+        if (ann instanceof SingleMemberAnnotationExpr single && java.util.Arrays.asList(keys).contains("value")) return single.getMemberValue();
+        if (ann instanceof NormalAnnotationExpr normal)
+            for (String key : keys) for (MemberValuePair pair : normal.getPairs())
+                if (pair.getNameAsString().equals(key)) return pair.getValue();
+        return null;
+    }
+
     public static String extractBasePath(ClassOrInterfaceDeclaration declaration) {
         for (AnnotationExpr ann : declaration.getAnnotations()) {
             String name = ann.getName().getIdentifier();
@@ -126,6 +166,7 @@ public final class AstMetadataExtractor {
                 case "PutMapping", "PUT" -> { return "PUT"; }
                 case "DeleteMapping", "DELETE" -> { return "DELETE"; }
                 case "PatchMapping", "PATCH" -> { return "PATCH"; }
+                case "HEAD", "OPTIONS" -> { return name; }
                 case "RequestMapping" -> {
                     String raw = ann.toString().toUpperCase(Locale.ROOT);
                     if (raw.contains("POST")) return "POST";
@@ -156,15 +197,18 @@ public final class AstMetadataExtractor {
     public static int extractResponseStatus(MethodDeclaration method, String httpMethod) {
         for (AnnotationExpr ann : method.getAnnotations()) {
             if (ann.getName().getIdentifier().equals("ResponseStatus")) {
-                String raw = ann.toString().toUpperCase(Locale.ROOT);
-                if (raw.contains("CREATED") || raw.contains("201")) return 201;
-                if (raw.contains("NO_CONTENT") || raw.contains("204")) return 204;
-                if (raw.contains("ACCEPTED") || raw.contains("202")) return 202;
-                if (raw.contains("BAD_REQUEST") || raw.contains("400")) return 400;
+                Expression value = annotationValue(ann, "code", "value");
+                String raw = value == null ? "INTERNAL_SERVER_ERROR" : (value.isStringLiteralExpr()
+                        ? value.asStringLiteralExpr().getValue() : value.toString()).replaceAll(".*\\.", "").toUpperCase(Locale.ROOT);
+                if (raw.matches("[1-5][0-9]{2}")) return Integer.parseInt(raw);
+                Integer code = java.util.Map.ofEntries(java.util.Map.entry("OK", 200), java.util.Map.entry("CREATED", 201),
+                        java.util.Map.entry("ACCEPTED", 202), java.util.Map.entry("NO_CONTENT", 204), java.util.Map.entry("NOT_MODIFIED", 304),
+                        java.util.Map.entry("BAD_REQUEST", 400), java.util.Map.entry("UNAUTHORIZED", 401), java.util.Map.entry("FORBIDDEN", 403),
+                        java.util.Map.entry("NOT_FOUND", 404), java.util.Map.entry("CONFLICT", 409), java.util.Map.entry("INTERNAL_SERVER_ERROR", 500),
+                        java.util.Map.entry("SERVICE_UNAVAILABLE", 503)).get(raw);
+                if (code != null) return code;
+                throw new IllegalArgumentException("Unsupported @ResponseStatus: " + ann);
             }
-        }
-        if ("DELETE".equals(httpMethod) && method.getType().isVoidType()) {
-            return 204;
         }
         return 200;
     }

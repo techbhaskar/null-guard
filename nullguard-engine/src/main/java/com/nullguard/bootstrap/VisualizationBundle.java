@@ -72,6 +72,10 @@ public final class VisualizationBundle {
         }
     }
 
+    public Object getOpenApiSpec() {
+        return report instanceof java.util.Map<?, ?> map ? map.getOrDefault("openApiSpec", null) : java.util.Map.of();
+    }
+
     /** Streams the report as JSON that is safe inside an HTML script element. */
     public void writeJsonForScript(Writer out) throws IOException {
         if (report != null) { exporter.writeForScript(report, out); return; }

@@ -42,6 +42,8 @@ public final class MethodModel {
     private final String returnType;
     private final String httpMethod;
     private final String httpPath;
+    private final List<String> httpMethods;
+    private final List<String> httpPaths;
     private final int responseStatus;
     private final List<MethodFinding> methodFindings;
 
@@ -80,6 +82,8 @@ public final class MethodModel {
         this.returnType = builder.returnType == null ? "void" : builder.returnType;
         this.httpMethod = builder.httpMethod == null ? "" : builder.httpMethod;
         this.httpPath = builder.httpPath == null ? "" : builder.httpPath;
+        this.httpMethods = builder.httpMethods.isEmpty() ? (httpMethod.isEmpty() ? List.of() : List.of(httpMethod)) : List.copyOf(builder.httpMethods);
+        this.httpPaths = builder.httpPaths.isEmpty() ? List.of(httpPath) : List.copyOf(builder.httpPaths);
         this.responseStatus = builder.responseStatus <= 0 ? 200 : builder.responseStatus;
         this.methodFindings = List.copyOf(builder.methodFindings);
         this.methodSummary     = builder.methodSummary;
@@ -102,6 +106,8 @@ public final class MethodModel {
     public String getReturnType() { return returnType; }
     public String getHttpMethod() { return httpMethod; }
     public String getHttpPath() { return httpPath; }
+    public List<String> getHttpMethods() { return httpMethods; }
+    public List<String> getHttpPaths() { return httpPaths; }
     public int getResponseStatus() { return responseStatus; }
     public List<MethodFinding> getMethodFindings() { return methodFindings; }
     public void setNullAnalysisModel(Object model) { this.nullAnalysisModel = model; }
@@ -150,6 +156,8 @@ public final class MethodModel {
         private String returnType = "void";
         private String httpMethod = "";
         private String httpPath = "";
+        private List<String> httpMethods = List.of();
+        private List<String> httpPaths = List.of();
         private int responseStatus = 200;
         private List<MethodFinding> methodFindings = List.of();
         private IntrinsicRiskSource methodSummary;
@@ -175,6 +183,8 @@ public final class MethodModel {
         public Builder returnType(String value) { this.returnType = value == null ? "void" : value; return this; }
         public Builder httpMethod(String value) { this.httpMethod = value == null ? "" : value; return this; }
         public Builder httpPath(String value) { this.httpPath = value == null ? "" : value; return this; }
+        public Builder httpMethods(List<String> values) { this.httpMethods = List.copyOf(values); return this; }
+        public Builder httpPaths(List<String> values) { this.httpPaths = List.copyOf(values); return this; }
         public Builder responseStatus(int value) { this.responseStatus = value; return this; }
         public Builder methodFindings(List<MethodFinding> values) {
             this.methodFindings = values == null ? List.of() : List.copyOf(values);

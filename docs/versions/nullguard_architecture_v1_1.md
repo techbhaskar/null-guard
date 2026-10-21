@@ -106,4 +106,4 @@ JaCoCo produces per-module HTML/XML coverage measurements under `target/site/jac
 
 Real-framework fixtures and metadata, interface/proxy precision, annotation package disambiguation, general expression semantics, multi-module analysis aggregation, incremental caching, baseline/diff gates, robust incomplete-analysis policies, published artifacts, security/release policies, and larger benchmark corpora remain work items. CFG exception handling is conservative and finally blocks are not duplicated over every abrupt exit.
 
-OpenAPI generation, Swagger UI, and the unified developer portal are the next product phase. They are not implemented by this hardening pass.
+Historical note: the hardening pass above did not implement OpenAPI or Swagger UI. The current engine now generates OpenAPI 3.0.3 and embeds a locally bundled Swagger UI in the unified dashboard. See the README's embedded Swagger/OpenAPI section for current configuration, supported contracts, validation commands, and extraction limitations. API execution is opt-in, requires explicit servers, and does not persist entered credentials.

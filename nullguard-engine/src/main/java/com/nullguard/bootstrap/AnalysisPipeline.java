@@ -174,6 +174,18 @@ public final class AnalysisPipeline {
         VisualizationBundle vizBundle = timed(ctx, "visualization-export", () -> {
             String dot  = dotGraphExporter.export(propGraph);
             Map<String, Object> openApiSpec = OpenApiSpecGenerator.generate(projectModel, apiEndpoints, riskMap);
+            var options = config.getOpenApiOptions();
+            @SuppressWarnings("unchecked")
+            var info = (Map<String, Object>) openApiSpec.get("info");
+            if (options.specFields().get("info") instanceof Map<?, ?> configuredInfo)
+                configuredInfo.forEach((key, value) -> info.put(key.toString(), value));
+            for (String key : List.of("servers", "security"))
+                if (options.specFields().containsKey(key)) openApiSpec.put(key, options.specFields().get(key));
+            @SuppressWarnings("unchecked")
+            var components = new java.util.LinkedHashMap<>((Map<String, Object>) openApiSpec.get("components"));
+            if (options.specFields().containsKey("securitySchemes")) components.put("securitySchemes", options.specFields().get("securitySchemes"));
+            openApiSpec.put("components", components);
+            openApiSpec.put("x-nullguard-try-it-out", options.tryItOut());
             List<Finding> staticFindings = StaticCodeAnalyzer.analyze(projectModel, callGraph, apiEndpoints);
             Map<String, Object> archSummary = StaticCodeAnalyzer.buildSummary(staticFindings);
             ReachableCveScanner.ScanOutcome cveOutcome = ReachableCveScanner.scan(

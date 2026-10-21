@@ -128,6 +128,7 @@ public final class JavaParserAstParser implements AstParser {
                 .qualifiedName(fallbackQualifiedName)
                 .interfaceType(declaration.isInterface())
                 .basePath(AstMetadataExtractor.extractBasePath(declaration))
+                .basePaths(AstMetadataExtractor.extractPaths(declaration))
                 .annotations(AstMetadataExtractor.extractAnnotations(declaration))
                 .fields(AstMetadataExtractor.extractFields(declaration))
                 .sourceLocation(declaration.getRange().map(r -> new com.nullguard.core.model.SourceLocation(
@@ -191,6 +192,8 @@ public final class JavaParserAstParser implements AstParser {
                 .returnType(method.getType().asString())
                 .httpMethod(httpMethod)
                 .httpPath(httpPath)
+                .httpMethods(AstMetadataExtractor.extractHttpMethods(method))
+                .httpPaths(AstMetadataExtractor.extractPaths(method))
                 .responseStatus(AstMetadataExtractor.extractResponseStatus(method, httpMethod))
                 .methodFindings(AstMetadataExtractor.extractMethodFindings(method))
                 .methodName(method.getNameAsString())

@@ -89,6 +89,15 @@ class NullGuardPluginTest {
         runner("nullguard").build();
         assertTrue(Files.exists(project.resolve("build/custom-nullguard/invocation.txt")));
     }
+
+    @Test void forwardsOpenApiConfigurationFile() throws Exception {
+        source("src/main/java/demo/Main.java");
+        Files.writeString(project.resolve("api-docs.json"), "{}");
+        Files.writeString(project.resolve("build.gradle"), groovy() + "\nnullguard { openApiConfig = layout.projectDirectory.file('api-docs.json') }\n");
+        assertEquals(TaskOutcome.SUCCESS, runner("nullguard").build().task(":nullguard").getOutcome());
+        String invocation = Files.readString(project.resolve("build/reports/nullguard/invocation.txt"));
+        assertTrue(invocation.contains("--openapi-config=" + project.resolve("api-docs.json")));
+    }
     @Test void failuresPropagateWhenOptingIntoCheck() throws Exception {
         source("src/main/java/demo/Main.java");
         Files.writeString(project.resolve("build.gradle"), groovy() + "nullguard { failBuild.set(true); runOnCheck.set(true) }\n");
@@ -106,7 +115,7 @@ class NullGuardPluginTest {
         Files.writeString(project.resolve("build.gradle"), groovy() + "tasks.named('nullguard') { sourceFiles.from(fileTree('extra')) }\n");
         var result = runner("nullguard").buildAndFail();
         assertEquals(TaskOutcome.FAILED, result.task(":nullguard").getOutcome());
-        assertTrue(result.getOutput().contains("demo/Main.java"), result.getOutput());
+        assertTrue(result.getOutput().replace('\\', '/').contains("demo/Main.java"), result.getOutput());
     }
     @Test void subprojectsHaveSeparateTasksAndReports() throws Exception {
         Files.writeString(project.resolve("settings.gradle"), "rootProject.name='consumer'\ninclude 'service'\n");

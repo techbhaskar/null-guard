@@ -17,6 +17,7 @@ public final class ClassModel {
     private final Set<String> assignableTypes;
     private final Map<String, MethodModel> methods;
     private final String basePath;
+    private final List<String> basePaths;
     private final Set<String> annotations;
     private final List<FieldModel> fields;
     private final SourceLocation sourceLocation;
@@ -29,6 +30,7 @@ public final class ClassModel {
                 new LinkedHashSet<>(builder.assignableTypes));
         this.methods = Collections.unmodifiableMap(new LinkedHashMap<>(builder.methods));
         this.basePath = builder.basePath == null ? "" : builder.basePath;
+        this.basePaths = builder.basePaths.isEmpty() ? List.of(basePath) : List.copyOf(builder.basePaths);
         this.annotations = Collections.unmodifiableSet(new LinkedHashSet<>(builder.annotations));
         this.fields = List.copyOf(builder.fields);
         this.sourceLocation = builder.sourceLocation;
@@ -40,6 +42,7 @@ public final class ClassModel {
     public Set<String> getAssignableTypes() { return assignableTypes; }
     public Map<String, MethodModel> getMethods() { return methods; }
     public String getBasePath() { return basePath; }
+    public List<String> getBasePaths() { return basePaths; }
     public Set<String> getAnnotations() { return annotations; }
     public List<FieldModel> getFields() { return fields; }
     public Optional<SourceLocation> getSourceLocation() { return Optional.ofNullable(sourceLocation); }
@@ -53,6 +56,7 @@ public final class ClassModel {
         private final Set<String> assignableTypes = new LinkedHashSet<>();
         private final Map<String, MethodModel> methods = new LinkedHashMap<>();
         private String basePath = "";
+        private List<String> basePaths = List.of();
         private final Set<String> annotations = new LinkedHashSet<>();
         private final List<FieldModel> fields = new ArrayList<>();
         private SourceLocation sourceLocation;
@@ -61,6 +65,7 @@ public final class ClassModel {
         public Builder qualifiedName(String qualifiedName) { this.qualifiedName = qualifiedName; return this; }
         public Builder interfaceType(boolean interfaceType) { this.interfaceType = interfaceType; return this; }
         public Builder basePath(String basePath) { this.basePath = basePath == null ? "" : basePath; return this; }
+        public Builder basePaths(List<String> values) { this.basePaths = List.copyOf(values); return this; }
         public Builder sourceLocation(SourceLocation sourceLocation) { this.sourceLocation = sourceLocation; return this; }
         public Builder addAssignableType(String qualifiedType) {
             if (qualifiedType != null && !qualifiedType.isBlank()) assignableTypes.add(qualifiedType);

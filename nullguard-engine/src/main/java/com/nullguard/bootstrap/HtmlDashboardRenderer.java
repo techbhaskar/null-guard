@@ -19,6 +19,7 @@ public final class HtmlDashboardRenderer {
     /** Streams the dashboard to {@code file} without materialising the report as a String. */
     public static void write(java.nio.file.Path file, FinalAnalysisResult result, String timestamp, String projectName)
             throws java.io.IOException {
+        SwaggerUiReport.write(file.toAbsolutePath().getParent(), result.getVisualizations());
         try (java.io.Writer out = java.nio.file.Files.newBufferedWriter(file, java.nio.charset.StandardCharsets.UTF_8)) {
             write(out, result, timestamp, projectName);
         }
@@ -343,6 +344,12 @@ public final class HtmlDashboardRenderer {
 
                 <!-- 2. SWAGGER / OPENAPI -->
                 <section id="swagger" class="content">
+                  <div class="card">
+                    <h3 class="card-title">Interactive Swagger UI</h3>
+                    <p class="card-subtitle">Live requests are disabled unless explicitly enabled in OpenAPI configuration.</p>
+                    <a class="btn btn-ghost" href="nullguard-swagger.html" target="_blank" rel="noopener">Open Swagger UI</a>
+                    <iframe title="NullGuard Swagger UI" src="nullguard-swagger.html" loading="lazy" style="width:100%%;height:720px;border:0;background:white"></iframe>
+                  </div>
                   <div class="card" id="swaggerHeader"></div>
                   <div id="swaggerPaths"></div>
                   <div class="card" id="swaggerSchemas"></div>

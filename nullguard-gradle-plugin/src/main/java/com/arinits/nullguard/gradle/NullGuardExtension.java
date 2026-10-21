@@ -13,4 +13,5 @@ public abstract class NullGuardExtension {
     public abstract DirectoryProperty getReportDirectory();
     public abstract ListProperty<String> getExcludes();
     public abstract Property<String> getMaxHeapSize();
+    public abstract org.gradle.api.file.RegularFileProperty getOpenApiConfig();
 }

@@ -99,6 +99,7 @@ public final class NullGuardCliApplication {
         List<Path> classpathEntries = new ArrayList<>();
         Path    cveInputFile    = null;
         boolean osvOnline       = false;
+        Path openApiConfigFile = null;
 
         for (String arg : args) {
             if (arg.startsWith("--")) {
@@ -118,6 +119,8 @@ public final class NullGuardCliApplication {
                     highRiskThresh = Integer.parseInt(arg.substring("--high-risk-threshold=".length()));
                 } else if (arg.startsWith("--output=")) {
                     outputDir = Paths.get(arg.substring("--output=".length()));
+                } else if (arg.startsWith("--openapi-config=")) {
+                    openApiConfigFile = Paths.get(arg.substring("--openapi-config=".length()));
                 } else if (arg.startsWith("--cve-input=")) {
                     cveInputFile = Paths.get(arg.substring("--cve-input=".length()));
                 } else if (arg.equals("--cve-online")) {
@@ -165,6 +168,7 @@ public final class NullGuardCliApplication {
                 .classpathEntries(classpathEntries)
                 .cveInputFile(cveInputFile)
                 .osvOnlineLookup(osvOnline)
+                .openApiConfigFile(openApiConfigFile)
                 .build();
 
         // ── Execute via bootstrap ─────────────────────────────────────────────
@@ -295,5 +299,6 @@ public final class NullGuardCliApplication {
         System.out.println("  --classpath=<paths>           Dependency classpath (" + File.pathSeparator + " separated)");
         System.out.println("  --cve-input=<file>            External OSV/Trivy CVE JSON report to enrich with reachability");
         System.out.println("  --cve-online                  Query OSV.dev REST API for project dependencies");
+        System.out.println("  --openapi-config=<file>        OpenAPI title/version, servers, security schemes and opt-in live requests");
     }
 }

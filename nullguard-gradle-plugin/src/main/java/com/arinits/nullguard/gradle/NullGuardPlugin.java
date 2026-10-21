@@ -46,6 +46,7 @@ public final class NullGuardPlugin implements Plugin<Project> {
                 task.getFailThreshold().convention(extension.getFailThreshold());
                 task.getExcludes().convention(extension.getExcludes());
                 task.getAnalyzerHeapSize().convention(extension.getMaxHeapSize());
+                task.getOpenApiConfig().convention(extension.getOpenApiConfig());
             });
             project.getTasks().named("check").configure(task -> task.dependsOn(
                     extension.getRunOnCheck().map(enabled -> enabled ? List.of(analyze) : List.of())));

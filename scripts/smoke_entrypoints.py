@@ -36,6 +36,16 @@ assert "cveSummary" in report
 assert (OUTPUT / "nullguard-openapi.json").exists()
 assert (OUTPUT / "nullguard-results.sarif").exists()
 assert (OUTPUT / "nullguard-dashboard-latest.html").exists()
+assert (OUTPUT / "nullguard-swagger.html").exists()
+assert (OUTPUT / "swagger-ui/swagger-ui-bundle.js").stat().st_size > 100_000
+
+configured = OUTPUT / "configured"
+api_config = ROOT / "examples/openapi-config.json"
+run(["java", "-jar", str(JAR), str(SOURCE), f"--output={configured}", f"--openapi-config={api_config}"], 0, "cli-openapi-config")
+configured_spec = json.loads((configured / "nullguard-openapi.json").read_text(encoding="utf-8"))
+assert configured_spec["info"]["title"] == "Example Service API"
+assert configured_spec["security"] == [{"bearerAuth": []}]
+assert configured_spec["x-nullguard-try-it-out"] is False
 
 maven = shutil.which("mvn")
 if not maven:
@@ -48,3 +58,7 @@ openapi_spec = ROOT / "examples/orders-service/target/nullguard/nullguard-openap
 assert dashboard.exists()
 assert openapi_spec.exists()
 assert "hotspot" in (OUTPUT / "maven-gate.log").read_text(encoding="utf-8").lower()
+run(goal + ["-Dnullguard.failBuild=false", f"-Dnullguard.openapiConfig={api_config}"], 0, "maven-openapi-config")
+configured_maven_spec = json.loads(openapi_spec.read_text(encoding="utf-8"))
+assert configured_maven_spec["info"]["title"] == "Example Service API"
+assert configured_maven_spec["components"]["securitySchemes"]["bearerAuth"]["scheme"] == "bearer"

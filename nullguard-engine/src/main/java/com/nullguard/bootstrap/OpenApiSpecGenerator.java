@@ -45,11 +45,12 @@ public final class OpenApiSpecGenerator {
         Map<String, ClassModel> ownerClassById = new LinkedHashMap<>();
         Map<String, ClassModel> classBySimpleName = new LinkedHashMap<>();
         Map<String, ClassModel> classByQualifiedName = new LinkedHashMap<>();
+        Set<String> ambiguousNames = new LinkedHashSet<>();
 
         for (ModuleModel mod : project.getModules().values()) {
             for (PackageModel pkg : mod.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
-                    classBySimpleName.putIfAbsent(cls.getClassName(), cls);
+                    if (classBySimpleName.putIfAbsent(cls.getClassName(), cls) != null) ambiguousNames.add(cls.getClassName());
                     if (cls.getQualifiedName() != null) {
                         classByQualifiedName.put(cls.getQualifiedName(), cls);
                     }
@@ -62,6 +63,7 @@ public final class OpenApiSpecGenerator {
             }
         }
 
+        ambiguousNames.forEach(classBySimpleName::remove);
         Map<String, Map<String, Object>> paths = new TreeMap<>();
         Map<String, Map<String, Object>> schemas = new TreeMap<>();
         Set<String> visitedDtos = new LinkedHashSet<>();
@@ -83,7 +85,7 @@ public final class OpenApiSpecGenerator {
 
             operation.put("tags", List.of(controllerName));
             operation.put("summary", controllerName + "." + methodName);
-            operation.put("operationId", controllerName + "_" + methodName);
+            operation.put("operationId", operationId(methodId, verb, path));
 
             List<Map<String, Object>> openApiParams = new ArrayList<>();
             Set<String> documentedPathVars = new LinkedHashSet<>();
@@ -158,7 +160,8 @@ public final class OpenApiSpecGenerator {
 
             Map<String, Object> primaryResponse = new LinkedHashMap<>();
             primaryResponse.put("description", httpStatusDescription(statusCode));
-            if (!"void".equalsIgnoreCase(unwrappedReturn)) {
+            if (!"void".equalsIgnoreCase(unwrappedReturn) && !"Void".equals(unwrappedReturn)
+                    && statusCode != 204 && statusCode != 304 && !verb.equals("head")) {
                 boolean responseNullable = method != null && (method.isNullableReturn() || (!method.isNonNullReturn() && !method.isPrimitiveReturn()));
                 Map<String, Object> respSchema = buildTypeSchema(
                         unwrappedReturn, responseNullable, classBySimpleName, classByQualifiedName, schemas, visitedDtos);
@@ -166,16 +169,7 @@ public final class OpenApiSpecGenerator {
             }
             responses.put(String.valueOf(statusCode), primaryResponse);
 
-            if (requestBody != null || !openApiParams.isEmpty()) {
-                responses.put("400", Map.of("description", "Bad Request / Invalid Input Contract"));
-            }
             double riskScore = Math.round(endpoint.getApiRiskScore() * 100.0) / 100.0;
-            if (riskScore >= 60.0) {
-                responses.put("500", Map.of(
-                        "description",
-                        "High Downstream Null-Safety Risk Detected (NullGuard Score: " + String.format(Locale.ROOT, "%.2f", riskScore) + ")"
-                ));
-            }
             operation.put("responses", responses);
 
             operation.put("x-nullguard-endpoint-id", endpoint.getEndpointId());
@@ -185,6 +179,8 @@ public final class OpenApiSpecGenerator {
             operation.put("x-nullguard-blast-chain", endpoint.getPropagationChain());
             operation.put("x-nullguard-hotspots", endpoint.getHotspotIndicators());
 
+            if (pathItem.containsKey(verb)) throw new IllegalArgumentException("Conflicting OpenAPI route: " + verb + " " + path
+                    + "; cannot merge " + pathItem.get(verb) + " with " + methodId);
             pathItem.put(verb, operation);
         }
 
@@ -304,7 +300,16 @@ public final class OpenApiSpecGenerator {
         if (type.startsWith("Map<") && type.endsWith(">")) {
             Map<String, Object> schema = new LinkedHashMap<>();
             schema.put("type", "object");
-            schema.put("additionalProperties", true);
+            String arguments = type.substring(4, type.length() - 1);
+            int depth = 0, separator = -1;
+            for (int n = 0; n < arguments.length(); n++) {
+                char c = arguments.charAt(n);
+                if (c == '<') depth++;
+                if (c == '>') depth--;
+                if (c == ',' && depth == 0) { separator = n; break; }
+            }
+            schema.put("additionalProperties", separator < 0 ? true : buildTypeSchema(arguments.substring(separator + 1), false,
+                    classBySimpleName, classByQualifiedName, schemas, visitedDtos));
             if (nullable) schema.put("nullable", true);
             return schema;
         }
@@ -320,14 +325,17 @@ public final class OpenApiSpecGenerator {
         if (dtoClass != null && isDtoCandidate(dtoClass)) {
             registerDtoSchema(dtoClass, classBySimpleName, classByQualifiedName, schemas, visitedDtos);
             Map<String, Object> refSchema = new LinkedHashMap<>();
-            refSchema.put("$ref", "#/components/schemas/" + dtoClass.getClassName());
-            if (nullable) refSchema.put("nullable", true);
-            return refSchema;
+            refSchema.put("$ref", "#/components/schemas/" + schemaName(dtoClass, classBySimpleName));
+            // OAS 3.0 ignores Reference Object siblings. Use a genuine nullable-only
+            // schema branch, rather than nullable alongside $ref or an ineffective allOf.
+            return nullable ? Map.of("anyOf", List.of(refSchema,
+                    Map.of("type", "object", "nullable", true, "enum", java.util.Collections.singletonList(null)))) : refSchema;
         }
 
         Map<String, Object> fallback = new LinkedHashMap<>();
         fallback.put("type", "object");
         fallback.put("x-java-type", type);
+        fallback.put("x-nullguard-schema-warning", "Type not resolved to a unique source DTO or supported scalar");
         if (nullable) fallback.put("nullable", true);
         return fallback;
     }
@@ -339,7 +347,7 @@ public final class OpenApiSpecGenerator {
             Map<String, Map<String, Object>> schemas,
             Set<String> visitedDtos) {
 
-        String schemaName = dtoClass.getClassName();
+        String schemaName = schemaName(dtoClass, classBySimpleName);
         if (!visitedDtos.add(schemaName)) {
             return;
         }
@@ -354,8 +362,8 @@ public final class OpenApiSpecGenerator {
             }
             Map<String, Object> propSchema = new LinkedHashMap<>(buildTypeSchema(
                     field.typeName(), !field.nonNull(), classBySimpleName, classByQualifiedName, schemas, visitedDtos));
-            propSchema.put("nullable", !field.nonNull());
             if (field.mutated()) {
+                if (propSchema.containsKey("$ref")) propSchema = new LinkedHashMap<>(Map.of("allOf", List.of(propSchema)));
                 propSchema.put("x-nullguard-mutated", true);
             }
             properties.put(field.name(), propSchema);
@@ -422,7 +430,7 @@ public final class OpenApiSpecGenerator {
         String trimmed = returnType.trim();
         for (String wrapper : List.of("ResponseEntity<", "HttpEntity<", "CompletableFuture<", "Mono<")) {
             if (trimmed.startsWith(wrapper) && trimmed.endsWith(">")) {
-                return trimmed.substring(wrapper.length(), trimmed.length() - 1).trim();
+                return unwrapResponseContainer(trimmed.substring(wrapper.length(), trimmed.length() - 1).trim());
             }
         }
         return trimmed;
@@ -443,10 +451,21 @@ public final class OpenApiSpecGenerator {
     }
 
     private static String normalizeVerb(String httpMethod) {
-        if (httpMethod == null || httpMethod.isBlank() || "UNKNOWN".equalsIgnoreCase(httpMethod)) {
-            return "get";
-        }
+        if (httpMethod == null || !Set.of("GET", "PUT", "POST", "DELETE", "OPTIONS", "HEAD", "PATCH", "TRACE").contains(httpMethod.toUpperCase(Locale.ROOT)))
+            throw new IllegalArgumentException("Unsupported HTTP verb: " + httpMethod);
         return httpMethod.toLowerCase(Locale.ROOT);
+    }
+
+    private static String schemaName(ClassModel cls, Map<String, ClassModel> simpleNames) {
+        return simpleNames.containsKey(cls.getClassName()) ? cls.getClassName() : cls.getQualifiedName();
+    }
+
+    private static String operationId(String method, String verb, String path) {
+        try {
+            byte[] hash = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest((method + " " + verb + " " + path).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return "op_" + java.util.HexFormat.of().formatHex(hash);
+        } catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
 
     private static String httpStatusDescription(int statusCode) {
@@ -455,7 +474,7 @@ public final class OpenApiSpecGenerator {
             case 202 -> "Accepted";
             case 204 -> "No Content";
             case 400 -> "Bad Request";
-            default -> "OK";
+            default -> "HTTP " + statusCode;
         };
     }
 

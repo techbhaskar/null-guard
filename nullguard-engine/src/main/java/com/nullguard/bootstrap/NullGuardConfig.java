@@ -37,6 +37,7 @@ public final class NullGuardConfig {
     private final List<Path> classpathEntries;
     private final Path cveInputFile;
     private final boolean osvOnlineLookup;
+    private final OpenApiOptions openApiOptions;
 
     private NullGuardConfig(Builder builder) {
         this.propagationDepthLimit   = builder.propagationDepthLimit;
@@ -56,6 +57,7 @@ public final class NullGuardConfig {
         this.classpathEntries        = List.copyOf(builder.classpathEntries);
         this.cveInputFile            = builder.cveInputFile;
         this.osvOnlineLookup         = builder.osvOnlineLookup;
+        this.openApiOptions = OpenApiOptions.load(builder.openApiConfigFile);
     }
 
     // ── Analysis config projection ──────────────────────────────────────────
@@ -99,6 +101,7 @@ public final class NullGuardConfig {
     public List<Path> getClasspathEntries() { return classpathEntries; }
     public Path getCveInputFile()      { return cveInputFile; }
     public boolean isOsvOnlineLookup() { return osvOnlineLookup; }
+    public OpenApiOptions getOpenApiOptions() { return openApiOptions; }
 
     // ── Builder ─────────────────────────────────────────────────────────────
 
@@ -137,6 +140,7 @@ public final class NullGuardConfig {
         private List<Path> classpathEntries = List.of();
         private Path cveInputFile = null;
         private boolean osvOnlineLookup = false;
+        private Path openApiConfigFile;
 
         public Builder propagationDepthLimit(int v)    { this.propagationDepthLimit   = v; return this; }
         public Builder propagationDecayExponent(double v){ this.propagationDecayExponent = v; return this; }
@@ -161,6 +165,7 @@ public final class NullGuardConfig {
         }
         public Builder cveInputFile(Path v)            { this.cveInputFile            = v; return this; }
         public Builder osvOnlineLookup(boolean v)      { this.osvOnlineLookup         = v; return this; }
+        public Builder openApiConfigFile(Path v) { this.openApiConfigFile = v; return this; }
 
         public NullGuardConfig build() {
             if (!Double.isFinite(hotspotRiskThreshold) || hotspotRiskThreshold < 0 || hotspotRiskThreshold > 100)

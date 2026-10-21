@@ -25,6 +25,8 @@ public abstract class NullGuardTask extends JavaExec {
     @Input public abstract Property<String> getFailThreshold();
     @Input public abstract ListProperty<String> getExcludes();
     @Input public abstract Property<String> getAnalyzerHeapSize();
+    @Optional @InputFile @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract org.gradle.api.file.RegularFileProperty getOpenApiConfig();
     @OutputDirectory public abstract DirectoryProperty getReportDirectory();
     @Inject protected abstract FileSystemOperations getFileSystemOperations();
 
@@ -49,6 +51,7 @@ public abstract class NullGuardTask extends JavaExec {
         arguments.add("--classpath=" + getAnalysisClasspath().getAsPath());
         arguments.add("--output=" + getReportDirectory().get().getAsFile().getAbsolutePath());
         arguments.add("--fail-threshold=" + threshold);
+        if (getOpenApiConfig().isPresent()) arguments.add("--openapi-config=" + getOpenApiConfig().get().getAsFile().getAbsolutePath());
         if (getFailBuild().get()) arguments.add("--fail-build");
         setArgs(arguments);
         setMaxHeapSize(getAnalyzerHeapSize().get());

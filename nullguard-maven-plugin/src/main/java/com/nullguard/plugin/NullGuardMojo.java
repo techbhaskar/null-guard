@@ -79,6 +79,8 @@ public class NullGuardMojo extends AbstractMojo {
      */
     @Parameter(property = "nullguard.highRiskThreshold", defaultValue = "60")
     private int highRiskThreshold;
+    @Parameter(property = "nullguard.openapiConfig")
+    private File openApiConfig;
 
     // ── Mojo entry point ──────────────────────────────────────────────────────
 
@@ -109,6 +111,7 @@ public class NullGuardMojo extends AbstractMojo {
                     .maxScoringIterations(maxScoringIterations)
                     .highRiskThreshold(highRiskThreshold)
                     .outputDirectory(outputDir)
+                    .openApiConfigFile(openApiConfig == null ? null : openApiConfig.toPath())
                     .sourceRoots(project.getCompileSourceRoots().stream()
                             .map(Paths::get)
                             .toList())

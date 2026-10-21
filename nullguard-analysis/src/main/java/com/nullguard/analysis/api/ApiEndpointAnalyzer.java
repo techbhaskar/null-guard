@@ -70,6 +70,16 @@ public class ApiEndpointAnalyzer {
                     ? FlowPathExtractor.inferPath(entryPoint, ownerClass, entryMethod)
                     : inferPathFromId(entryPoint);
 
+            if (entryMethod != null && !entryMethod.getHttpMethods().isEmpty()) {
+                List<String> bases = ownerClass == null ? List.of("") : ownerClass.getBasePaths();
+                for (String base : bases) for (String sub : entryMethod.getHttpPaths())
+                    for (String verb : entryMethod.getHttpMethods()) {
+                        String route = (base.replaceAll("/+$", "") + (sub.isEmpty() ? "" : "/" + sub.replaceAll("^/+", ""))).replaceAll("/{2,}", "/");
+                        if (route.isEmpty()) route = "/";
+                        built.add(new ApiEndpointModel(entryPoint, verb, route, trace.getPath()));
+                    }
+                continue;
+            }
             built.add(new ApiEndpointModel(
                     entryPoint,
                     httpMethod,

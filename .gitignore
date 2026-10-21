@@ -29,3 +29,4 @@
 # Gradle integration build outputs
 **/.gradle/
 /nullguard-gradle-plugin/build/**
+/nullguard-suggestions/target/**
