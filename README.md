@@ -1,5 +1,8 @@
 # NullGuard
 
+[![Build Status](https://github.com/techbhaskar/null-guard/actions/workflows/verify.yml/badge.svg)](https://github.com/techbhaskar/null-guard/actions/workflows/verify.yml)
+[![Coverage Status](https://codecov.io/gh/techbhaskar/null-guard/graph/badge.svg)](https://codecov.io/gh/techbhaskar/null-guard)
+
 NullGuard is a static stability-analysis engine for Java services. It parses a codebase, builds control-flow and call graphs, follows risk across method boundaries, identifies API-facing and high-blast-radius hotspots, calculates a project stability score, and produces prioritized remediation suggestions.
 
 It is intended to answer questions that are difficult to answer with a method-level nullability warning alone:
@@ -17,6 +20,11 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 > **GitHub source release `1.1.2`:** includes overload/constructor correctness fixes, local object lifecycle analysis, and analysis-completeness reporting. See the [release notes](docs/releases/1.1.2.md). Maven Central publication of `1.1.2` is pending; use a local build to try these changes.
 
 ## Developer guide
+
+Accuracy evaluation: see the [review protocol and corpus](docs/evaluation/accuracy-protocol.md)
+for reproducible sampling, two-reviewer judgments, and measured false discoveries.
+Independent human accuracy review is pending; historical selected labels are not
+an overall precision estimate.
 
 - [Choose Maven, Gradle, or the CLI](#first-run)
 - [Gradle setup: Kotlin and Groovy DSL](#gradle-projects)

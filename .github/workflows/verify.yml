@@ -29,11 +29,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install jsonschema==4.23.0 openapi-spec-validator==0.7.2
+      - run: python -m unittest discover -s scripts -p test_accuracy_review.py -v
       - run: python scripts/validate_openapi.py nullguard-engine/target/openapi-validation/variants.json nullguard-engine/target/openapi-validation/schemas.json nullguard-engine/target/openapi-validation/configured.json nullguard-engine/target/openapi-validation/responses.json
       - run: python scripts/smoke_entrypoints.py
       - run: python scripts/validate_openapi.py nullguard-cli/target/ci-reports/nullguard-openapi.json
       - run: python scripts/validate_sarif.py nullguard-cli/target/ci-reports/nullguard-results.sarif
       - run: python scripts/summarize_coverage.py --min-instruction=80 --min-branch=60
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.java == '17'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: nullguard-coverage/target/site/jacoco-aggregate/jacoco.xml
+          disable_search: true
+          fail_ci_if_error: true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
