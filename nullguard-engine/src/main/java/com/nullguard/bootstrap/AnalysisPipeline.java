@@ -24,12 +24,12 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * AnalysisPipeline – executes the full NullGuard analysis in a single,
+ * AnalysisPipeline â€“ executes the full NullGuard analysis in a single,
  * deterministic, sequential pass.
  *
  * <p><strong>Execution order (frozen):</strong>
  * <ol>
- *   <li>Parse project → ProjectModel (core)</li>
+ *   <li>Parse project â†’ ProjectModel (core)</li>
  *   <li>Build Global Call Graph (callgraph)</li>
  *   <li>Run Analysis Orchestrator: null-state + CFG + contracts + APIs + hotspots (analysis)</li>
  *   <li>Run Fixpoint Risk Propagation (scoring)</li>
@@ -46,7 +46,7 @@ import java.util.Objects;
  */
 public final class AnalysisPipeline {
 
-    // ── Injected module singletons ───────────────────────────────────────────
+    // â”€â”€ Injected module singletons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private final JavaParserAstParser             coreParser;
     private final BasicCallGraphBuilder           callGraphBuilder;
@@ -61,7 +61,7 @@ public final class AnalysisPipeline {
     private final ArchitectureValidator           architectureValidator;
 
     /**
-     * Constructor injection – all dependencies are wired by {@link EngineBootstrap}.
+     * Constructor injection â€“ all dependencies are wired by {@link EngineBootstrap}.
      */
     AnalysisPipeline(
             JavaParserAstParser            coreParser,
@@ -103,30 +103,30 @@ public final class AnalysisPipeline {
         PipelineContext ctx = new PipelineContext(config);
         ctx.getTiming().markPipelineStart();
 
-        // ── Step 1: Parse → ProjectModel ────────────────────────────────────
+        // â”€â”€ Step 1: Parse â†’ ProjectModel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         ProjectModel projectModel = timed(ctx, "parse",
                 () -> coreParser.parse(projectRoot));
         ctx.setProjectModel(projectModel);
 
-        // ── Step 2: Build Global Call Graph ──────────────────────────────────
+        // â”€â”€ Step 2: Build Global Call Graph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         GlobalCallGraph callGraph = timed(ctx, "callgraph",
                 () -> callGraphBuilder.build(projectModel));
         ctx.setCallGraph(callGraph);
 
-        // ── Step 3: Analysis Orchestrator (null-state, CFG, contracts, APIs, hotspots) ──
+        // â”€â”€ Step 3: Analysis Orchestrator (null-state, CFG, contracts, APIs, hotspots) â”€â”€
         // Pass the outgoing call edges so FlowPathExtractor can resolve
-        // controller → service → repository → external chains correctly.
+        // controller â†’ service â†’ repository â†’ external chains correctly.
         timed(ctx, "analysis", () -> {
             analysisOrchestrator.analyze(projectModel, callGraph.getOutgoing());
             return null;
         });
 
-        // ── Step 3.5: Extract API Endpoints (needed for v1.1 Blast Radius scoring) ──
+        // â”€â”€ Step 3.5: Extract API Endpoints (needed for v1.1 Blast Radius scoring) â”€â”€
         List<ApiEndpointModel> apiEndpoints = timed(ctx, "api-endpoints",
                 () -> new ArrayList<>(analysisOrchestrator.getApiEndpointAnalyzer().getEndpoints()));
         ctx.setApiEndpoints(apiEndpoints);
 
-        // ── Step 4: Fixpoint Risk Propagation ────────────────────────────────
+        // â”€â”€ Step 4: Fixpoint Risk Propagation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Map<String, AdjustedRiskModel> riskMap = timed(ctx, "risk-propagation",
                 () -> riskPropagationEngine.propagate(projectModel, callGraph, config.toScoringConfig(), apiEndpoints));
         ctx.setAdjustedRiskMap(riskMap);
@@ -149,28 +149,28 @@ public final class AnalysisPipeline {
             ctx.setRiskReasonMap(fpe.getRiskContributors());
         }
 
-        // ── Step 5: Stability Scoring ─────────────────────────────────────────
+        // â”€â”€ Step 5: Stability Scoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         ProjectRiskSummary riskSummary = timed(ctx, "scoring",
                 () -> stabilityScorer.score(riskMap, callGraph, config.toScoringConfig()));
         ctx.setRiskSummary(riskSummary);
 
 
-        // ── Step 5b: Collect Hotspots from Analysis result ────────────────────
+        // â”€â”€ Step 5b: Collect Hotspots from Analysis result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         List<ArchitecturalHotspot> hotspots = timed(ctx, "hotspots",
                 () -> new ArrayList<>(analysisOrchestrator.getHotspotDetector().getArchitecturalHotspots()));
         ctx.setHotspots(hotspots);
 
-        // ── Step 6: Generate Suggestions ─────────────────────────────────────
+        // â”€â”€ Step 6: Generate Suggestions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         List<com.nullguard.suggestions.model.Suggestion> suggestions = timed(ctx, "suggestions",
                 () -> suggestionEngine.generate(projectModel, riskMap, callGraph));
         ctx.setSuggestions(suggestions);
 
-        // ── Step 7: Build Propagation Graph ──────────────────────────────────
+        // â”€â”€ Step 7: Build Propagation Graph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         PropagationGraph propGraph = timed(ctx, "visualization-graph",
                 () -> propagationGraphBuilder.build(projectModel, callGraph, riskMap));
         ctx.setPropagationGraph(propGraph);
 
-        // ── Step 8: Export Visualization, OpenAPI, Static Analysis & CVE Artifacts ──
+        // â”€â”€ Step 8: Export Visualization, OpenAPI, Static Analysis & CVE Artifacts â”€â”€
         VisualizationBundle vizBundle = timed(ctx, "visualization-export", () -> {
             String dot  = dotGraphExporter.export(propGraph);
             Map<String, Object> openApiSpec = OpenApiSpecGenerator.generate(projectModel, apiEndpoints, riskMap);
@@ -209,12 +209,13 @@ public final class AnalysisPipeline {
             report.put("suggestions", List.copyOf(suggestions));
             report.put("openApiSpec", openApiSpec);
             report.put("architectureSummary", archSummary);
+            report.put("memoryInsights", MemoryInsights.describe(projectModel));
             report.put("cveSummary", cveOutcome.cveSummary());
             return new VisualizationBundle(report, jsonGraphExporter, dot, exporter.sarif(findings, projectRoot), findings);
         });
         ctx.setVisualizationBundle(vizBundle);
 
-        // ── Step 9: Architecture Integrity Validation ─────────────────────────
+        // â”€â”€ Step 9: Architecture Integrity Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         timed(ctx, "validation", () -> {
             architectureValidator.validateArchitectureIntegrity(ctx);
             architectureValidator.validateNoCircularDependencies(ctx);
@@ -222,12 +223,12 @@ public final class AnalysisPipeline {
             return null;
         });
 
-        // ── Step 10: Assemble Final Result ────────────────────────────────────
+        // â”€â”€ Step 10: Assemble Final Result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         ctx.getTiming().markPipelineEnd();
         return resultAssembler.assemble(ctx);
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
     /**

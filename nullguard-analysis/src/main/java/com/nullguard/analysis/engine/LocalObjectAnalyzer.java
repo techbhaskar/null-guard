@@ -145,10 +145,12 @@ public final class LocalObjectAnalyzer {
             invoke(target, value, args, state, depth); return value;
         }
         if (expression instanceof MethodCallExpr call) {
-            Value receiver = call.getScope().map(e -> eval(e, state, method, depth)).orElse(state.variables.getOrDefault("@this", Value.unknown()));
-            if (receiver.field() && receiver.state() != NullState.NON_NULL) issues.add(new MethodFinding("NG006", "warning", "Locally constructed object may dereference a null field at " + call, callLine));
-            var args = call.getArguments().stream().map(a -> eval(a, state, method, depth)).toList();
             var target = target(method, call.toString());
+            Value receiver = call.getScope().map(e -> eval(e, state, method, depth)).orElse(state.variables.getOrDefault("@this", Value.unknown()));
+            // Static calls do not dereference their qualifier, even when written
+            // through an instance. Still evaluate it for nested instance calls.
+            if ((target == null || !target.staticMethod()) && receiver.field() && receiver.state() != NullState.NON_NULL) issues.add(new MethodFinding("NG006", "warning", "Locally constructed object may dereference a null field at " + call, callLine));
+            var args = call.getArguments().stream().map(a -> eval(a, state, method, depth)).toList();
             if (target != null && target.declaringType().equals("java.util.Objects") && target.methodName().equals("requireNonNull") && !args.isEmpty()) {
                 if (call.getArgument(0).isNameExpr()) state.variables.put(call.getArgument(0).toString(), new Value(NullState.NON_NULL, args.get(0).object(), false));
                 return new Value(NullState.NON_NULL, args.get(0).object(), false);

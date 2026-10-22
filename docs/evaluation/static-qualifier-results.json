@@ -1,0 +1,55 @@
+{
+  "baseline_jar_sha256": "f70fa9f62b7197ab4f74dc00be8903004d19a697c193272f2a042079dc2ef5d7",
+  "candidate_jar_sha256": "b4c5346431fb3d9fbc7ef86d2e686e4641561ee0adfca93fadf09a93172b3796",
+  "analyzer_revision": "9ae896d07d720e0ef20c2520736f71338e23b02a",
+  "analyzer_working_tree_status": " M .github/workflows/verify.yml\n M docs/evaluation/accuracy-protocol.md\n M nullguard-analysis/src/main/java/com/nullguard/analysis/engine/LocalObjectAnalyzer.java\n M nullguard-core/src/main/java/com/nullguard/core/model/ResolvedCallTarget.java\n M nullguard-core/src/main/java/com/nullguard/core/parser/JavaParserAstParser.java\n?? docs/evaluation/static-qualifier-fix.md\n?? nullguard-engine/src/test/java/com/nullguard/bootstrap/StaticQualifierLifecycleTest.java\n?? scripts/compare_accuracy_reports.py\n?? scripts/test_compare_accuracy_reports.py\n",
+  "java_version": "java version \"21.0.9\" 2025-10-21 LTS\nJava(TM) SE Runtime Environment (build 21.0.9+7-LTS-338)\nJava HotSpot(TM) 64-Bit Server VM (build 21.0.9+7-LTS-338, mixed mode, sharing)",
+  "classpath": "none; source-only evaluation",
+  "projects": [
+    {
+      "name": "gson",
+      "source_commit": "e2292f9c9f2e07a4791827e8eea34aa7d80545d6",
+      "source_dirty": false,
+      "baseline_report_sha256": "9395375b39169af74318f3d2fde9e84fc153cee43e0dea5e2fde0e908c63f702",
+      "candidate_report_sha256": "24615f0bd79897ac3c80c0a4ce99a44d0474839e83ea4e99fc2a81264446037f",
+      "baseline_ng006": 98,
+      "candidate_ng006": 10,
+      "removed": 88,
+      "added": 0,
+      "other_rule_changes": [],
+      "completeness": "INCOMPLETE",
+      "recovered_overflows": 0,
+      "candidate_command": "java -Xmx2g -jar .accuracy-work/static-qualifier/analyzer.jar .accuracy-work/corpus/gson/gson/src/main/java --output=.accuracy-work/static-qualifier/reports/gson",
+      "reviewed_ng006_false_positives": 11,
+      "reviewed_ng006_removed_ids": [
+        "1a5a86bc8f69d5067a25e554ba636a16344b2fcdfff9311c094b3e9440ab073b",
+        "d133a11a0b17581f800dbbca645c064fde458acf07528b55b9f54f1f0682cfa1",
+        "c4c7617e7e64e8ec4b4b4733a57ccfdaf1acc75f034f92dfd28b22e77494aa91",
+        "5b7fd7e68449a11312a9cf22f9bb5eda0d6e52242c2455ffd656f92f2027bb0a",
+        "2cce1923234ceb4d8532e3b7d9386d79c47eb77340c7b1dcd2d3b532f1923d5c",
+        "226ec6d22f68e94fbf53ae76def4fda8f4e73488cd15468c7f01534a0e8b6592",
+        "2210eba6fa1ec063c23f49d995eddb0854397fef011a411290f4ff37eedc29f0",
+        "e5de794ad8107dc68187bd426680d00b486d46899cb9454b7b5da192bb136242",
+        "113928816a62bce0521608e6eee7de494d20316e77bf9c525db2925f6257d70f",
+        "165eaa5347885312030ee8247a3da5e6e45653d68ecf1b17de950ed7a6f28c57",
+        "59bd8b5bb9ccdc9fabd41e6bce35cc829c07a57b33596da7f958af924238fde0"
+      ]
+    },
+    {
+      "name": "commons-lang",
+      "source_commit": "b9b30efb01e861a16503232bb96b684107e73199",
+      "source_dirty": false,
+      "baseline_report_sha256": "6eea0cb0b02cde9f7d4247b5c4f9d596516beedd021f6206af22ac3a38cfc844",
+      "candidate_report_sha256": "bdde66720ced160e215874c55c06c9629b8eb8798d5845804a636de51de1400a",
+      "baseline_ng006": 222,
+      "candidate_ng006": 58,
+      "removed": 164,
+      "added": 0,
+      "other_rule_changes": [],
+      "completeness": "INCOMPLETE",
+      "recovered_overflows": 71,
+      "candidate_command": "java -Xmx2g -jar .accuracy-work/static-qualifier/analyzer.jar .accuracy-work/corpus/commons-lang/src/main/java --output=.accuracy-work/static-qualifier/reports/commons-lang"
+    }
+  ],
+  "note": "Targeted regression comparison; no independent human accuracy, precision or recall claim."
+}

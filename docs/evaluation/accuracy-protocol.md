@@ -1,5 +1,9 @@
 # Accuracy evidence protocol
 
+Targeted correction: [NG004 primitive arguments and class literals](primitive-argument-fix.md).
+
+Targeted correction: [NG006 static qualifier classification](static-qualifier-fix.md).
+
 Latest: [crash recovery and agent-assisted review](accuracy-followup-2026-10-23.md).
 Use `.accuracy-work/` for new raw evidence so Maven clean does not remove it.
 

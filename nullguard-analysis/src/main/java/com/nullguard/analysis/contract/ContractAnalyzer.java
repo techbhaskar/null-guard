@@ -73,7 +73,8 @@ public class ContractAnalyzer {
                         var callee = methods.get(calleeId);
                         for (int n = 0; n < Math.min(call.getArguments().size(), callee.getParameters().size()); n++) {
                             var parameter = callee.getParameters().get(n);
-                            if (required.get(calleeId).contains(parameter.name()) && ExpressionNullability.evaluate(call.getArgument(n), ExpressionNullability.atExpression(call, state), returns) != NullState.NON_NULL)
+                            if (required.get(calleeId).contains(parameter.name()) && !provenPrimitiveArgument(method, call, calleeId, n)
+                                    && ExpressionNullability.evaluate(call.getArgument(n), ExpressionNullability.atExpression(call, state), returns) != NullState.NON_NULL)
                                 issues.add(new ContractModel.ContractIssue("NG004", "Nullable argument passed to '" + parameter.name() + "' of " + calleeId, node.getLineNumber()));
                         }
                     }
@@ -93,7 +94,7 @@ public class ContractAnalyzer {
                                 var callee = methods.get(calleeId);
                                 for (int n = 0; n < Math.min(arguments.size(), callee.getParameters().size()); n++) {
                                     var parameter = callee.getParameters().get(n);
-                                    if (required.get(calleeId).contains(parameter.name()) && ExpressionNullability.evaluate(
+                                    if (required.get(calleeId).contains(parameter.name()) && !provenPrimitiveArgument(method, call, calleeId, n) && ExpressionNullability.evaluate(
                                             arguments.get(n), ExpressionNullability.atExpression(call, state), returns) != NullState.NON_NULL)
                                         issues.add(new ContractModel.ContractIssue("NG004", "Nullable constructor argument passed to '"
                                                 + parameter.name() + "' of " + calleeId, node.getLineNumber()));
@@ -107,6 +108,13 @@ public class ContractAnalyzer {
         int penalty = (returnViolation ? 10 : 0) + (parameterViolation ? 5 : 0);
         method.setContractModel(new ContractModel(returnViolation, parameterViolation, penalty, issues.stream().distinct().toList()));
         if (!issues.isEmpty()) violations.add(new ContractViolation(id, returnViolation, parameterViolation, penalty));
+    }
+    private static boolean provenPrimitiveArgument(MethodModel method, Node call, String calleeId, int index) {
+        var sites = method.getSemanticCallSites().stream().filter(s -> s.getExpression().equals(call.toString())).toList();
+        // Repeated printed calls can belong to different scopes/overloads. A
+        // primitive fact is usable only when every matching source site agrees.
+        return !sites.isEmpty() && sites.stream().allMatch(s -> s.hasPrimitiveArgument(index)
+                && s.getResolvedTarget().filter(t -> t.qualifiedSignature().equals(calleeId)).isPresent());
     }
     private static Optional<NullAnalysisModel> model(MethodModel method) {
         return method.getNullAnalysisModel().filter(NullAnalysisModel.class::isInstance).map(NullAnalysisModel.class::cast);

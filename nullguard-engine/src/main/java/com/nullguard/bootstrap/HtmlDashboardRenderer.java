@@ -243,6 +243,7 @@ public final class HtmlDashboardRenderer {
                   <span>Overview</span>
                   <span class="nav-count" id="cnt-overview">0</span>
                 </a>
+                <a onclick="show('memory')" class="nav-item" id="nav-memory"><span>Memory &amp; retention</span></a>
                 <a onclick="show('quality')" class="nav-item" id="nav-quality">
                   <span>Code Quality &amp; Arch</span>
                   <span class="nav-count" id="cnt-quality">0</span>
@@ -307,6 +308,14 @@ public final class HtmlDashboardRenderer {
               </header>
 
               <div class="workspace">
+                <section id="memory" class="content">
+                  <div class="card"><div class="card-header"><div><h3 class="card-title">Memory &amp; retention</h3>
+                  <p>Source analysis · Heap used: unmeasured · GC activity: unmeasured · Confirmed leaks: unmeasured</p>
+                  <p>Source sites are not live object counts or allocation rates. Runtime profiling is required to confirm leaks and retained bytes.</p></div></div></div>
+                  <div class="card" id="memoryVisual"></div>
+                  <div class="card"><div class="card-header"><h3 class="card-title">Retention review map</h3></div><div id="memoryMap"></div></div>
+                  <div class="card"><div class="card-header"><h3 class="card-title">Source locations &amp; review guidance</h3></div><div class="table-wrap"><table id="memoryTable"></table></div></div>
+                </section>
                 <!-- 1. OVERVIEW -->
                 <section id="overview" class="content active">
                   %s
@@ -1064,7 +1073,22 @@ public final class HtmlDashboardRenderer {
               });
             }
 
+            function renderMemory() {
+              const m = data.memoryInsights;
+              if (!m) { document.getElementById('memoryVisual').textContent = 'Memory inventory unavailable in this report.'; return; }
+              const bars = [['Object allocation sites', m.objectAllocationSites], ['Array allocation sites', m.arrayAllocationSites], ['Allocation sites inside loops', m.loopAllocationSites]];
+              const max = Math.max(1, ...bars.map(b => b[1]));
+              document.getElementById('memoryVisual').innerHTML = `<div class="card-header"><div><h3 class="card-title">Allocation source inventory</h3><p>${esc(m.bodiesInspected)} bodies inspected; ${esc(m.bodiesUnavailable)} unavailable. Loop sites overlap object and array counts. Zero signals do not establish leak freedom.</p></div></div><svg viewBox="0 0 760 155" role="img" aria-label="Source allocation site counts" style="width:100%;max-width:900px">${bars.map(([label, count], i) => `<text x="12" y="${30+i*45}" fill="var(--text-main)" font-size="14">${esc(label)}</text><rect x="270" y="${13+i*45}" width="${count/max*410}" height="24" rx="4" fill="var(--primary)"/><text x="${280+count/max*410}" y="${30+i*45}" fill="var(--text-main)" font-size="14">${count}</text>`).join('')}</svg>`;
+              const sites = m.reviewSites || [];
+              const paths = {'Thread-local retention': 'Worker thread → ThreadLocal value → application object', 'Static collection retention': 'Class / static field → collection entry → application object', 'Allocation inside loop': 'Loop iteration → new object / array → lifetime to review'};
+              document.getElementById('memoryMap').innerHTML = [...new Set(sites.map(s => s.kind))].map(kind => `<div style="padding:16px;margin:12px;border:1px solid var(--border);border-radius:8px"><strong>${esc(kind)}</strong><p>${esc(paths[kind])}</p><span>${sites.filter(s => s.kind === kind).length} candidate sites; no confirmed leak</span></div>`).join('') || '<p style="padding:16px">No supported signals found. Runtime leak status remains unmeasured.</p>';
+              const query = (document.getElementById('gSearch').value || '').toLowerCase();
+              const visible = sites.filter(s => Object.values(s).join(' ').toLowerCase().includes(query));
+              document.getElementById('memoryTable').innerHTML = '<thead><tr><th>Review signal</th><th>Symbol / enclosing method</th><th>Source</th><th>Review guidance</th></tr></thead><tbody>' + visible.map(s => `<tr><td>${esc(s.kind)}</td><td>${esc(s.symbol)}</td><td>${esc(s.location)}</td><td>${esc(s.guidance)}</td></tr>`).join('') + (visible.length ? '' : '<tr><td colspan="4">No matching source sites.</td></tr>') + '</tbody>';
+            }
+
             function renderAllDynamic() {
+              renderMemory();
               renderAllFindings();
               renderSuggestions();
               renderSwaggerPaths();

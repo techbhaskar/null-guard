@@ -27,7 +27,7 @@ public final class ExpressionNullability {
         if (expression instanceof MethodCallExpr call) {
             return returns.getOrDefault(callKey(call), NullState.UNKNOWN);
         }
-        if (expression instanceof LiteralExpr || expression instanceof ObjectCreationExpr
+        if (expression instanceof ClassExpr || expression instanceof LiteralExpr || expression instanceof ObjectCreationExpr
                 || expression instanceof ArrayCreationExpr || expression instanceof ThisExpr
                 || expression instanceof BinaryExpr || expression instanceof UnaryExpr) return NullState.NON_NULL;
         return NullState.UNKNOWN;

@@ -287,7 +287,7 @@ public final class JavaParserAstParser implements AstParser {
                         resolved.getName(),
                         resolved.getNumberOfParams(), resolved.getSignature(), !resolved.isStatic()
                                 && resolved.accessSpecifier() != com.github.javaparser.ast.AccessSpecifier.PRIVATE
-                                && !call.getScope().map(s -> s.isSuperExpr()).orElse(false));
+                                && !call.getScope().map(s -> s.isSuperExpr()).orElse(false), resolved.isStatic());
             } catch (StackOverflowError resolutionFailure) {
                 // JavaParser can recurse through generic type bounds indefinitely.
                 // Keep this source call visible; never guess a replacement target.
@@ -298,7 +298,8 @@ public final class JavaParserAstParser implements AstParser {
                         call, sourcePosition(method), resolutionFailure.getMessage());
             }
             semanticCalls.add(new SemanticCallSite(
-                    writtenCallName(call), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure));
+                    writtenCallName(call), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure,
+                    target == null ? Set.of() : primitiveArguments(call.getArguments())));
         }
         for (ObjectCreationExpr call : method.findAll(ObjectCreationExpr.class)) {
             ResolvedCallTarget target = null;
@@ -313,7 +314,8 @@ public final class JavaParserAstParser implements AstParser {
             } catch (StackOverflowError unavailable) {
                 failure = "StackOverflowError during constructor resolution";
             } catch (RuntimeException | LinkageError unavailable) { /* Reported as unresolved. */ }
-            semanticCalls.add(new SemanticCallSite("new:" + call.getType().asString(), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure));
+            semanticCalls.add(new SemanticCallSite("new:" + call.getType().asString(), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure,
+                    target == null ? Set.of() : primitiveArguments(call.getArguments())));
         }
         for (var call : method.findAll(com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt.class)) {
             ResolvedCallTarget target = null;
@@ -328,9 +330,29 @@ public final class JavaParserAstParser implements AstParser {
             } catch (StackOverflowError unavailable) {
                 failure = "StackOverflowError during constructor resolution";
             } catch (RuntimeException | LinkageError unavailable) { /* Reported as unresolved. */ }
-            semanticCalls.add(new SemanticCallSite(call.isThis() ? "this:<init>" : "super:<init>", call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure));
+            semanticCalls.add(new SemanticCallSite(call.isThis() ? "this:<init>" : "super:<init>", call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure,
+                    target == null ? Set.of() : primitiveArguments(call.getArguments())));
         }
         return List.copyOf(semanticCalls);
+    }
+
+    /** Optional argument facts; failed resolution never establishes a primitive type. */
+    private static Set<Integer> primitiveArguments(List<com.github.javaparser.ast.expr.Expression> arguments) {
+        Set<Integer> indexes = new LinkedHashSet<>();
+        for (int i = 0; i < arguments.size(); i++) {
+            var expression = arguments.get(i);
+            while (expression.isEnclosedExpr()) expression = expression.asEnclosedExpr().getInner();
+            // Preserve explicit unboxing warnings. Syntax-only non-null facts are
+            // already handled by the expression evaluator and need no type lookup.
+            if (!(expression.isNameExpr() || expression.isFieldAccessExpr()
+                    || expression.isMethodCallExpr() || expression.isArrayAccessExpr())) continue;
+            try {
+                if (expression.calculateResolvedType().isPrimitive()) indexes.add(i);
+            } catch (RuntimeException | LinkageError | StackOverflowError unavailable) {
+                // A missing optional fact keeps the existing conservative warning.
+            }
+        }
+        return indexes;
     }
 
     private static String constructorSignature(String signature) {

@@ -9,6 +9,7 @@ import java.util.Objects;
  * @param signature     source-compatible method signature, for example {@code save(Order)}
  * @param methodName    simple method name
  * @param parameterCount resolved declaration arity
+ * @param staticMethod true only when symbol resolution proves the selected method is static
  */
 public record ResolvedCallTarget(
         String declaringType,
@@ -16,7 +17,14 @@ public record ResolvedCallTarget(
         String methodName,
         int parameterCount,
         String canonicalSignature,
-        boolean virtualDispatch) {
+        boolean virtualDispatch,
+        boolean staticMethod) {
+
+    /** Older/manual targets do not establish that a call is static. */
+    public ResolvedCallTarget(String declaringType, String signature, String methodName, int parameterCount,
+                              String canonicalSignature, boolean virtualDispatch) {
+        this(declaringType, signature, methodName, parameterCount, canonicalSignature, virtualDispatch, false);
+    }
 
     public ResolvedCallTarget(String declaringType, String signature, String methodName, int parameterCount, String canonicalSignature) {
         this(declaringType, signature, methodName, parameterCount, canonicalSignature, true);

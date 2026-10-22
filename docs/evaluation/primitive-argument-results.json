@@ -1,0 +1,143 @@
+{
+  "baseline_jar_sha256": "b4c5346431fb3d9fbc7ef86d2e686e4641561ee0adfca93fadf09a93172b3796",
+  "candidate_jar_sha256": "f49db1ce2670d9aef38babfd14e446130e3a701ec7d9018de6a674de387994df",
+  "analyzer_revision": "9ae896d07d720e0ef20c2520736f71338e23b02a",
+  "working_tree_status_at_evidence_collection": " M .github/workflows/verify.yml\n M docs/evaluation/accuracy-protocol.md\n M nullguard-analysis/src/main/java/com/nullguard/analysis/contract/ContractAnalyzer.java\n M nullguard-analysis/src/main/java/com/nullguard/analysis/engine/ExpressionNullability.java\n M nullguard-analysis/src/main/java/com/nullguard/analysis/engine/LocalObjectAnalyzer.java\n M nullguard-core/src/main/java/com/nullguard/core/model/ResolvedCallTarget.java\n M nullguard-core/src/main/java/com/nullguard/core/model/SemanticCallSite.java\n M nullguard-core/src/main/java/com/nullguard/core/parser/JavaParserAstParser.java\n M nullguard-engine/src/main/java/com/nullguard/bootstrap/AnalysisPipeline.java\n M nullguard-engine/src/main/java/com/nullguard/bootstrap/HtmlDashboardRenderer.java\n?? docs/evaluation/primitive-argument-fix.md\n?? docs/evaluation/static-qualifier-fix.md\n?? docs/evaluation/static-qualifier-results.json\n?? docs/memory-insights.md\n?? nullguard-engine/src/main/java/com/nullguard/bootstrap/MemoryInsights.java\n?? nullguard-engine/src/test/java/com/nullguard/bootstrap/MemoryInsightsTest.java\n?? nullguard-engine/src/test/java/com/nullguard/bootstrap/PrimitiveArgumentContractTest.java\n?? nullguard-engine/src/test/java/com/nullguard/bootstrap/StaticQualifierLifecycleTest.java\n?? scripts/compare_accuracy_reports.py\n?? scripts/test_compare_accuracy_reports.py\n",
+  "java_version": "java version \"21.0.9\" 2025-10-21 LTS\nJava(TM) SE Runtime Environment (build 21.0.9+7-LTS-338)\nJava HotSpot(TM) 64-Bit Server VM (build 21.0.9+7-LTS-338, mixed mode, sharing)",
+  "classpath": "none; source-only evaluation",
+  "projects": [
+    {
+      "name": "gson",
+      "source_commit": "e2292f9c9f2e07a4791827e8eea34aa7d80545d6",
+      "source_dirty": false,
+      "baseline_report_sha256": "24615f0bd79897ac3c80c0a4ce99a44d0474839e83ea4e99fc2a81264446037f",
+      "candidate_report_sha256": "7e17eb4fc1b5fa65bbe4ad2484b10957ed3e062e0b434c2efbab3f4133edb28d",
+      "baseline_by_rule": {
+        "NG001": 590,
+        "NG205": 56,
+        "NG002": 157,
+        "NG004": 262,
+        "NG101": 109,
+        "NG104": 132,
+        "NG105": 96,
+        "NG006": 10
+      },
+      "candidate_by_rule": {
+        "NG001": 590,
+        "NG205": 56,
+        "NG002": 157,
+        "NG004": 140,
+        "NG101": 109,
+        "NG104": 132,
+        "NG105": 95,
+        "NG006": 10
+      },
+      "removed_by_rule": {
+        "NG004": 122,
+        "NG105": 1
+      },
+      "added_by_rule": {},
+      "baseline_completeness": {
+        "status": "INCOMPLETE",
+        "sourceFilesDiscovered": 86,
+        "sourceFilesParsed": 86,
+        "declaredBodies": 817,
+        "analyzedBodies": 817,
+        "totalCallSites": 3174,
+        "symbolResolvedCallSites": 3151
+      },
+      "candidate_completeness": {
+        "status": "INCOMPLETE",
+        "sourceFilesDiscovered": 86,
+        "sourceFilesParsed": 86,
+        "declaredBodies": 817,
+        "analyzedBodies": 817,
+        "totalCallSites": 3174,
+        "symbolResolvedCallSites": 3151
+      },
+      "recovered_overflows": 0,
+      "candidate_command": "java -Xmx2g -jar .accuracy-work/primitive-arguments/analyzer.jar .accuracy-work/corpus/gson/gson/src/main/java --output=.accuracy-work/primitive-arguments/reports/gson",
+      "reviewed_ng004": {
+        "false_positive": {
+          "reviewed": 18,
+          "removed_ids": [
+            "15c0d6e38149282244d6d701a77b9196270752f9ec140d467f47a7dd7423be8e",
+            "6b280254bdde913d2d305185f98234bd105c2fbe8071dc0fd6c1c0ad07b2658f",
+            "311111a36d4019515fa7eed973b8c9c64bfb93a25ec35184f9072f9bf4687e07",
+            "efb41123120f584823067842ff97ef4b0f6a9864dee6ea7a67cb6a16cf882da8",
+            "d9770b3857c17764161a1dc710316a88939caa9ce47acca11661207f3e65ad6b",
+            "3ec06402543d7ecf390de2ec1774766f9e60856d49b635625ac7ccf1cda578da",
+            "29d48d8dded85a58cbe24a9270f92fb5bd7e5b6e3fe4c092224d28aca22fe536",
+            "38dad7a5586502261f40b35ae7a95e6a5ffb76bed7af46f978510dbeef954666",
+            "ee2db337ea8111c903842b635199563d29155b106e8d27089114837d22db657c",
+            "02a9e242d2a7e723eeeaf07d32e7844e6264aa16eadee995f043000512caaf15",
+            "fc39b93932aa31c6d1c47bf0f15b11488d3c95fb5ac693924edc6e5f6c0511c4",
+            "ed387fcfb0aa36b88edc8f0f88ac5ce30924581801bcf140ef6cdc5927dd2e89",
+            "ceaeb2630601156ecadb6e7cd5dac647661d00b492706746580a2afef59953a2",
+            "7e3de36da52feebafe65178b02d12e4be3c013f43a8ba1c0ce8ad6b31ae448ba",
+            "749002c6a29b8cf839f0fdc8d9af0f527b67f8116bedf1f95f431e9f338b441f"
+          ]
+        },
+        "context_dependent": {
+          "reviewed": 6,
+          "removed_ids": []
+        }
+      }
+    },
+    {
+      "name": "commons-lang",
+      "source_commit": "b9b30efb01e861a16503232bb96b684107e73199",
+      "source_dirty": false,
+      "baseline_report_sha256": "bdde66720ced160e215874c55c06c9629b8eb8798d5845804a636de51de1400a",
+      "candidate_report_sha256": "c27e2a0fa732fb87d7257e164ce7be50a65f82c1c98e9d7597be05a00f231f75",
+      "baseline_by_rule": {
+        "NG001": 1553,
+        "NG004": 1126,
+        "NG205": 67,
+        "NG104": 156,
+        "NG002": 495,
+        "NG105": 155,
+        "NG101": 213,
+        "NG006": 58,
+        "NG202": 1
+      },
+      "candidate_by_rule": {
+        "NG001": 1553,
+        "NG004": 502,
+        "NG205": 67,
+        "NG104": 156,
+        "NG002": 495,
+        "NG105": 155,
+        "NG101": 211,
+        "NG006": 58,
+        "NG202": 1
+      },
+      "removed_by_rule": {
+        "NG004": 624,
+        "NG101": 2
+      },
+      "added_by_rule": {},
+      "baseline_completeness": {
+        "status": "INCOMPLETE",
+        "sourceFilesDiscovered": 264,
+        "sourceFilesParsed": 264,
+        "declaredBodies": 4517,
+        "analyzedBodies": 4517,
+        "totalCallSites": 10932,
+        "symbolResolvedCallSites": 10376
+      },
+      "candidate_completeness": {
+        "status": "INCOMPLETE",
+        "sourceFilesDiscovered": 264,
+        "sourceFilesParsed": 264,
+        "declaredBodies": 4517,
+        "analyzedBodies": 4517,
+        "totalCallSites": 10932,
+        "symbolResolvedCallSites": 10376
+      },
+      "recovered_overflows": 71,
+      "candidate_command": "java -Xmx2g -jar .accuracy-work/primitive-arguments/analyzer.jar .accuracy-work/corpus/commons-lang/src/main/java --output=.accuracy-work/primitive-arguments/reports/commons-lang"
+    }
+  ],
+  "note": "Targeted source-based regression comparison; no independent accuracy, precision or recall claim."
+}
