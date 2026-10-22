@@ -117,7 +117,7 @@ class CorrectnessCompletenessTest {
         var completeness = new ObjectMapper().readTree(result.getVisualizations().getJsonGraph()).path("analysisCompleteness");
         assertEquals("SOURCE_ANALYZED", completeness.path("status").asText());
         assertFalse(completeness.path("runtimeObserved").asBoolean(true));
-        assertEquals(1, completeness.path("analyzedBodies").asInt());
+        assertEquals(2, completeness.path("analyzedBodies").asInt()); // method + implicit constructor
     }
 
     @Test void dependencyAndExcludedAccessorCallsAreSeparateFromMissingSourceBodies() throws Exception {
@@ -141,7 +141,7 @@ class CorrectnessCompletenessTest {
         var project = new com.nullguard.core.parser.JavaParserAstParser().parse(root);
         var completeness = AnalysisCompleteness.describe(project);
         assertEquals("INCOMPLETE", completeness.get("status"));
-        assertEquals(1, ((java.util.List<?>) completeness.get("analysisFailures")).size());
+        assertEquals(2, ((java.util.List<?>) completeness.get("analysisFailures")).size());
         assertEquals(0, completeness.get("analyzedBodies"));
     }
 }

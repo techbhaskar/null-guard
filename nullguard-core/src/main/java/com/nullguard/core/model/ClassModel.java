@@ -12,6 +12,7 @@ import java.util.Set;
 
 public final class ClassModel {
     private final String className;
+    private final List<String> constructionLimitations;
     private final String qualifiedName;
     private final boolean interfaceType;
     private final Set<String> assignableTypes;
@@ -24,6 +25,7 @@ public final class ClassModel {
 
     private ClassModel(Builder builder) {
         this.className = Objects.requireNonNull(builder.className, "Class name cannot be null");
+        this.constructionLimitations = List.copyOf(builder.constructionLimitations);
         this.qualifiedName = builder.qualifiedName;
         this.interfaceType = builder.interfaceType;
         this.assignableTypes = Collections.unmodifiableSet(
@@ -37,6 +39,7 @@ public final class ClassModel {
     }
 
     public String getClassName() { return className; }
+    public List<String> getConstructionLimitations() { return constructionLimitations; }
     public String getQualifiedName() { return qualifiedName; }
     public boolean isInterfaceType() { return interfaceType; }
     public Set<String> getAssignableTypes() { return assignableTypes; }
@@ -51,6 +54,8 @@ public final class ClassModel {
 
     public static final class Builder {
         private String className;
+        private List<String> constructionLimitations = List.of();
+        public Builder constructionLimitations(List<String> values) { constructionLimitations = List.copyOf(values); return this; }
         private String qualifiedName;
         private boolean interfaceType;
         private final Set<String> assignableTypes = new LinkedHashSet<>();

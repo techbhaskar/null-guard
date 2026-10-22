@@ -74,6 +74,9 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
     private final Map<String, NullState> initialStates;
     private final Map<String, NullState> callReturns;
     private final boolean primitiveReturn;
+    private Map<String, Set<Integer>> validationEffects = Map.of();
+    private boolean semanticValidation;
+    public ForwardDataFlowAnalyzer validationEffects(Map<String, Set<Integer>> values) { validationEffects = Map.copyOf(values); semanticValidation = true; return this; }
 
     public ForwardDataFlowAnalyzer(InstructionExtractor extractor) {
         this(extractor, Map.of(), Map.of());
@@ -204,7 +207,8 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
         // because the alternative is that the condition threw.
         ControlFlowNode node = cfg.getNodes().get(nodeId);
         if (node != null && node.getType() == NodeType.CONDITION) {
-            state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
+            if (!semanticValidation) state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
+            com.nullguard.analysis.summary.ValidationEffects.refine(node.getSourceCode(), state, validationEffects);
         }
 
         for (Instruction inst : byNode.getOrDefault(nodeId, List.of())) {
@@ -215,7 +219,8 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
                 state.put(assign.target(), assigned);
         }
         if (node != null) {
-            state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
+            com.nullguard.analysis.summary.ValidationEffects.refine(node.getSourceCode(), state, validationEffects);
+            if (!semanticValidation) state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
             // Only receiver evaluations guaranteed on normal completion refine successors.
             // A receiver reassigned in the same statement (`x = x.next()`) proves nothing about
             // its new value, so only names this statement does not write are refined. A textual
@@ -264,7 +269,8 @@ public final class ForwardDataFlowAnalyzer implements NullStateAnalyzer {
             ControlFlowNode node = cfg.getNodes().get(nodeId);
             seedCatch(node, state);
             if (node != null && node.getType() == NodeType.CONDITION) {
-                state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
+                if (!semanticValidation) state.putAll(NullGuardCondition.unconditionalNonNull(node.getSourceCode()));
+                com.nullguard.analysis.summary.ValidationEffects.refine(node.getSourceCode(), state, validationEffects);
             }
 
             for (Instruction inst : byNode.getOrDefault(nodeId, List.of())) {

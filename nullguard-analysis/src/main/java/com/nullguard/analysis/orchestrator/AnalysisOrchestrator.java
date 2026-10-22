@@ -38,6 +38,7 @@ public class AnalysisOrchestrator {
         // propagation is actually performed by FixpointRiskPropagationEngine in
         // nullguard-scoring — the call only made the pipeline look like it did more than it did.
         contractAnalyzer.analyze(project, callEdges);
+        new com.nullguard.analysis.engine.LocalObjectAnalyzer().analyze(project);
 
         apiEndpointAnalyzer.build(project, callEdges);
 

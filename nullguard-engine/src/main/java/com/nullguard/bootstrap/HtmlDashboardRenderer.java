@@ -498,6 +498,7 @@ public final class HtmlDashboardRenderer {
               NG003: 'Non-Null Return Violation',
               NG004: 'Caller Argument Contract Violation',
               NG005: 'Architectural Risk Hotspot',
+              NG006: 'Local Object Lifecycle Null Field',
               NG101: 'Add Null Guard',
               NG102: 'Strengthen Nullability Contract',
               NG103: 'Validate External Call Return',
@@ -539,6 +540,9 @@ public final class HtmlDashboardRenderer {
                     <pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify({
                       unresolvedCalls: completeness.unresolvedCallSites,
                       sourceDispatchWithoutBody: completeness.sourceDispatchWithoutBody,
+                      generatedExecutables: completeness.generatedExecutables,
+                      localLifecycleLimitations: completeness.localLifecycleLimitations,
+                      constructionLimitations: completeness.constructionLimitations,
                       sourceProblems: completeness.sourceProblemPaths,
                       cfgFailures: completeness.cfgFailures,
                       analysisFailures: completeness.analysisFailures,

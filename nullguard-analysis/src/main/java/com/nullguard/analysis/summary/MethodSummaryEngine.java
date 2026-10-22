@@ -53,6 +53,15 @@ public class MethodSummaryEngine {
         project.getModules().values().forEach(mod -> mod.getPackages().values().forEach(pkg ->
                 pkg.getClasses().values().forEach(cls -> cls.getMethods().values().forEach(method ->
                         methods.put(com.nullguard.core.model.MethodIds.of(pkg, cls, method), method)))));
+        for (int pass = 0; pass < 8; pass++) {
+            boolean changed = false;
+            for (var method : methods.values()) {
+                var effects = ValidationEffects.infer(method, methods);
+                if (!effects.equals(method.getValidatedParameters())) changed = true;
+                method.setValidatedParameters(effects);
+            }
+            if (!changed) break;
+        }
         // Start unknown and iterate summaries across resolved calls, including recursive cycles.
         for (int pass = 0; pass < Math.max(2, methods.size() + 1); pass++) {
             boolean changed = false;
@@ -85,7 +94,8 @@ public class MethodSummaryEngine {
                 initial.put("this." + field, NullState.NON_NULL);
             });
             initial.putAll(parameters); // Parameters shadow unqualified fields.
-            NullAnalysisModel nullModel = new ForwardDataFlowAnalyzer(new BasicInstructionExtractor(), initial, returns, method.isPrimitiveReturn()).analyze(cfg);
+            NullAnalysisModel nullModel = new ForwardDataFlowAnalyzer(new BasicInstructionExtractor(), initial, returns, method.isPrimitiveReturn())
+                    .validationEffects(ValidationEffects.calls(method, methods)).analyze(cfg);
             method.setNullAnalysisModel(nullModel);
 
             // Compute intrinsic risk from null model
@@ -116,6 +126,7 @@ public class MethodSummaryEngine {
 
     private static boolean nonNullFrameworkReturn(com.nullguard.core.model.ResolvedCallTarget t) {
         String owner = t.declaringType(), name = t.methodName();
+        if (owner.equals("java.util.Objects") && name.equals("requireNonNull")) return true;
         if (owner.equals("org.springframework.aot.hint.RuntimeHints"))
             return t.parameterCount() == 0 && java.util.Set.of("resources", "reflection", "serialization", "proxies", "jni").contains(name);
         if (owner.equals("java.util.Optional"))

@@ -88,6 +88,7 @@ JSON has `schemaVersion: "1.0"`, `summary`, `graph`, `findings`, `apiEndpoints`,
 | NG003 | Declared non-null return violation |
 | NG004 | Nullable caller argument violates callee requirements |
 | NG005 | Architectural hotspot |
+| NG006 | Bounded local allocation/field lifecycle warning (unreleased) |
 | NG101 | Add null guard suggestion |
 | NG102 | Strengthen contract suggestion |
 | NG103 | Validate external return suggestion |

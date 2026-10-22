@@ -27,6 +27,7 @@ public class ContractAnalyzer {
         methods.forEach((id, method) -> {
             Set<String> names = new LinkedHashSet<>();
             method.getParameters().stream().filter(p -> p.nonNull() || p.primitive()).forEach(p -> names.add(p.name()));
+            if (method.getMethodName().equals("<init>")) method.getValidatedParameters().forEach(index -> names.add(method.getParameters().get(index).name()));
             model(method).ifPresent(model -> method.getControlFlowModel().ifPresent(cfg -> {
                 for (var inst : new BasicInstructionExtractor().extract(cfg))
                     if (inst instanceof DereferenceInstruction d && ExpressionNullability.evaluate(d.variableName(),

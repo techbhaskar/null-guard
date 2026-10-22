@@ -9,6 +9,7 @@ public final class SemanticCallSite {
     private final int argumentCount;
     private final ResolvedCallTarget resolvedTarget;
     private final String expression;
+    private final int lineNumber;
 
     public SemanticCallSite(String writtenName,
                             int argumentCount,
@@ -17,10 +18,15 @@ public final class SemanticCallSite {
     }
 
     public SemanticCallSite(String writtenName, int argumentCount, ResolvedCallTarget resolvedTarget, String expression) {
+        this(writtenName, argumentCount, resolvedTarget, expression, -1);
+    }
+
+    public SemanticCallSite(String writtenName, int argumentCount, ResolvedCallTarget resolvedTarget, String expression, int lineNumber) {
         this.writtenName = Objects.requireNonNull(writtenName, "writtenName");
         this.argumentCount = argumentCount;
         this.resolvedTarget = resolvedTarget;
         this.expression = expression;
+        this.lineNumber = lineNumber;
     }
 
     public String getWrittenName() {
@@ -31,6 +37,7 @@ public final class SemanticCallSite {
         return argumentCount;
     }
     public String getExpression() { return expression; }
+    public int getLineNumber() { return lineNumber; }
 
     public Optional<ResolvedCallTarget> getResolvedTarget() {
         return Optional.ofNullable(resolvedTarget);

@@ -49,10 +49,19 @@ public final class BasicCallGraphBuilder implements CallGraphBuilder {
         for (ModuleModel module : project.getModules().values()) {
             for (PackageModel pkg : module.getPackages().values()) {
                 for (ClassModel cls : pkg.getClasses().values()) {
+                    String staticInitializer = cls.getMethods().values().stream()
+                            .filter(initializer -> initializer.getOrigin().equals("static-initializer"))
+                            .map(initializer -> MethodIds.of(pkg, cls, initializer)).findFirst().orElse(null);
                     for (MethodModel mth : cls.getMethods().values()) {
                         String callerId = MethodIds.of(pkg, cls, mth);
                         outgoing.putIfAbsent(callerId, new LinkedHashSet<>());
                         incoming.putIfAbsent(callerId, new LinkedHashSet<>());
+                        // Potential class initialization is reachable from class use; not an
+                        // assertion that initialization repeats on every runtime invocation.
+                        if (staticInitializer != null && !staticInitializer.equals(callerId)) {
+                            outgoing.get(callerId).add(staticInitializer);
+                            incoming.computeIfAbsent(staticInitializer, ignored -> new LinkedHashSet<>()).add(callerId);
+                        }
 
                         if (!mth.getSemanticCallSites().isEmpty()) {
                             for (SemanticCallSite site : mth.getSemanticCallSites()) {

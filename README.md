@@ -620,6 +620,7 @@ Use this review sequence on the first run:
 | `NG002` | Null-Safety | Unchecked nullable parameter | Callers, explicit contracts and framework-provided arguments |
 | `NG003` | Null-Safety | Non-null return contract violation | Return paths that may produce null despite the declaration |
 | `NG004` | Null-Safety | Caller argument contract violation | Potentially nullable argument passed to a required parameter |
+| `NG006` | Null-Safety (unreleased) | Local object lifecycle null field | Potential null field dereference on a tracked local allocation after construction or mutation |
 | `NG005` | Null-Safety | Architectural hotspot | Risk, reachability and exposed API paths |
 | `NG101`–`NG105` | Remediation | Remediation recommendations | Suggested guard, contract, external validation, refactoring or risk-chain change |
 | `NG201` | Reliability & Arch | External or DB call inside loop (`N+1` / latency amplification) | Batch queries or hoist external/repository calls outside `for`/`while`/`do` loops |

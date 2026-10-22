@@ -57,7 +57,8 @@ class PerformanceBenchmarkTest {
     }
     private void runAndCheck(Path root, int methods) {
         var result = new EngineBootstrap(NullGuardConfig.defaults().build()).run(root);
-        assertEquals(methods, result.getRiskSummary().getTotalMethods());
+        // One synthesized implicit constructor per generated source class.
+        assertEquals(methods + (methods + 99) / 100, result.getRiskSummary().getTotalMethods());
     }
     private void writeReport(List<Map<String, Object>> measurements, int[] sizes, int samples, int warmups, String status) throws Exception {
         Files.createDirectories(Path.of("target"));

@@ -18,6 +18,7 @@ public final class FindingExporter {
             Map.entry("NG001", "Possible null dereference"), Map.entry("NG002", "Unchecked nullable parameter"),
             Map.entry("NG003", "Non-null return contract violation"), Map.entry("NG004", "Caller argument contract violation"),
             Map.entry("NG005", "Architectural hotspot"), Map.entry("NG101", "Add null guard"),
+            Map.entry("NG006", "Local object lifecycle null field"),
             Map.entry("NG102", "Strengthen contract"), Map.entry("NG103", "Validate external return"),
             Map.entry("NG104", "Refactor high blast radius"), Map.entry("NG105", "Break risk chain"),
             Map.entry("NG201", "External or database call inside loop (N+1 risk)"),
@@ -40,6 +41,7 @@ public final class FindingExporter {
         project.getModules().values().forEach(mod -> mod.getPackages().values().forEach(pkg ->
                 pkg.getClasses().values().forEach(cls -> cls.getMethods().values().forEach(m -> methods.put(MethodIds.of(pkg, cls, m), m)))));
         methods.forEach((id, method) -> {
+            method.getLifecycleIssues().forEach(i -> findings.add(new Finding(i.ruleId(), i.severity(), id, i.message(), at(method, i.line()))));
             method.getNullAnalysisModel().filter(NullAnalysisModel.class::isInstance).map(NullAnalysisModel.class::cast).ifPresent(model ->
                     method.getControlFlowModel().ifPresent(cfg -> {
                         for (var inst : new BasicInstructionExtractor().extract(cfg)) {

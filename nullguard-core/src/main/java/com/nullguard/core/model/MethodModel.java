@@ -28,6 +28,11 @@ import java.util.List;
  */
 public final class MethodModel {
     private final String methodName;
+    private final String origin;
+    private final String bodySource;
+    private java.util.Set<Integer> validatedParameters = java.util.Set.of();
+    private List<MethodFinding> lifecycleIssues = List.of();
+    private List<String> lifecycleLimitations = List.of();
     private final String signature;
     private final String canonicalSignature;
     private final boolean virtualMethod;
@@ -75,6 +80,8 @@ public final class MethodModel {
 
     private MethodModel(Builder builder) {
         this.methodName        = Objects.requireNonNull(builder.methodName, "Method name cannot be null");
+        this.origin = builder.origin;
+        this.bodySource = builder.bodySource;
         this.signature         = Objects.requireNonNull(builder.signature, "Signature cannot be null");
         this.canonicalSignature = builder.canonicalSignature == null ? signature : builder.canonicalSignature;
         this.virtualMethod = builder.virtualMethod;
@@ -108,6 +115,14 @@ public final class MethodModel {
     // ── Getters ───────────────────────────────────────────────────────────────
 
     public String getMethodName() { return methodName; }
+    public String getOrigin() { return origin; }
+    public String getBodySource() { return bodySource; }
+    public java.util.Set<Integer> getValidatedParameters() { return validatedParameters; }
+    public void setValidatedParameters(java.util.Set<Integer> values) { validatedParameters = java.util.Set.copyOf(values); }
+    public List<MethodFinding> getLifecycleIssues() { return lifecycleIssues; }
+    public void setLifecycleIssues(List<MethodFinding> values) { lifecycleIssues = List.copyOf(values); }
+    public List<String> getLifecycleLimitations() { return lifecycleLimitations; }
+    public void setLifecycleLimitations(List<String> values) { lifecycleLimitations = List.copyOf(values); }
     public String getSignature()  { return signature; }
     public String getCanonicalSignature() { return canonicalSignature; }
     public boolean isVirtualMethod() { return virtualMethod; }
@@ -161,6 +176,10 @@ public final class MethodModel {
 
     public static final class Builder {
         private String methodName;
+        private String origin = "source";
+        private String bodySource = "";
+        public Builder origin(String value) { this.origin = value; return this; }
+        public Builder bodySource(String value) { this.bodySource = value; return this; }
         private String signature;
         private String canonicalSignature;
         private boolean virtualMethod = true;

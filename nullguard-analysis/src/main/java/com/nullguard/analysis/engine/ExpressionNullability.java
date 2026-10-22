@@ -25,8 +25,6 @@ public final class ExpressionNullability {
         if (expression instanceof ConditionalExpr conditional)
             return evaluate(conditional.getThenExpr(), refined(state, conditional.getCondition(), true), returns).merge(evaluate(conditional.getElseExpr(), refined(state, conditional.getCondition(), false), returns));
         if (expression instanceof MethodCallExpr call) {
-            if (call.getNameAsString().equals("requireNonNull") && call.getScope().map(Object::toString).orElse("").endsWith("Objects"))
-                return NullState.NON_NULL;
             return returns.getOrDefault(callKey(call), NullState.UNKNOWN);
         }
         if (expression instanceof LiteralExpr || expression instanceof ObjectCreationExpr

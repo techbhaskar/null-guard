@@ -80,6 +80,7 @@ public final class JavaParserAstParser implements AstParser {
                     .collect(Collectors.toList());
 
             java.util.Map<String, Boolean> packageDefaults = new java.util.HashMap<>();
+            java.util.Map<Path, com.github.javaparser.ast.CompilationUnit> units = new LinkedHashMap<>();
             counts[0] = javaFiles.size();
             for (Path info : javaFiles) {
                 if (!info.getFileName().toString().equals("package-info.java")) continue;
@@ -106,6 +107,16 @@ public final class JavaParserAstParser implements AstParser {
                     counts[1]++;
                     counts[3] += compilationUnit.findAll(MethodDeclaration.class).size()
                             + compilationUnit.findAll(ConstructorDeclaration.class).size();
+                    units.put(path, compilationUnit);
+                });
+            }
+            units.values().forEach(cu -> cu.findAll(ClassOrInterfaceDeclaration.class).forEach(ConstructorExpansion::expand));
+            units.values().forEach(cu -> cu.findAll(ClassOrInterfaceDeclaration.class).forEach(type -> {
+                type.getFullyQualifiedName().ifPresent(name -> environment.memory().addDeclaration(name, type.isInterface()
+                        ? new com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserInterfaceDeclaration(type, environment.types())
+                        : new com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserClassDeclaration(type, environment.types())));
+            }));
+            units.forEach((path, compilationUnit) -> {
                     String packageName = compilationUnit.getPackageDeclaration()
                             .map(declaration -> declaration.getNameAsString())
                             .orElse("default");
@@ -119,8 +130,7 @@ public final class JavaParserAstParser implements AstParser {
                                     .thenComparing(ClassOrInterfaceDeclaration::getNameAsString))
                             .forEach(type -> packageBuilder.addClass(
                                     buildClass(type, packageName, cfgBuilder, normalizedRoot.relativize(path), packageDefaults.getOrDefault(packageName, false))));
-                });
-            }
+            });
         } catch (IOException e) {
             throw new CoreAnalysisException("Failed to read project: " + normalizedRoot, e);
         }
@@ -138,6 +148,7 @@ public final class JavaParserAstParser implements AstParser {
         String fallbackQualifiedName = declaration.findCompilationUnit().flatMap(c -> c.getPackageDeclaration()).isEmpty()
                 ? declaration.getNameAsString() : packageName + "." + declaration.getNameAsString();
         ClassModel.Builder classBuilder = ClassModel.builder()
+                .constructionLimitations(declaration.containsData(ConstructorExpansion.LIMITS) ? declaration.getData(ConstructorExpansion.LIMITS) : List.of())
                 .className(declaration.getNameAsString())
                 .qualifiedName(fallbackQualifiedName)
                 .interfaceType(declaration.isInterface())
@@ -222,6 +233,9 @@ public final class JavaParserAstParser implements AstParser {
         String httpPath = AstMetadataExtractor.extractHttpPath(method);
 
         return MethodModel.builder()
+                .bodySource(method.getBody().map(Object::toString).orElse(""))
+                .origin(constructor != null && constructor.containsData(ConstructorExpansion.ORIGIN) ? constructor.getData(ConstructorExpansion.ORIGIN)
+                        : method.containsData(ConstructorExpansion.ORIGIN) ? method.getData(ConstructorExpansion.ORIGIN) : "source")
                 .sourceLocation(method.getRange().map(r -> new com.nullguard.core.model.SourceLocation(
                         sourcePath.toString().replace('\\', '/'), r.begin.line, r.begin.column, r.end.line, r.end.column)).orElse(null))
                 .nonNullFields(fields)
@@ -278,7 +292,7 @@ public final class JavaParserAstParser implements AstParser {
                         call, sourcePosition(method), resolutionFailure.getMessage());
             }
             semanticCalls.add(new SemanticCallSite(
-                    writtenCallName(call), call.getArguments().size(), target, call.toString()));
+                    writtenCallName(call), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1)));
         }
         for (ObjectCreationExpr call : method.findAll(ObjectCreationExpr.class)) {
             ResolvedCallTarget target = null;
@@ -290,7 +304,7 @@ public final class JavaParserAstParser implements AstParser {
                 target = new ResolvedCallTarget(resolved.declaringType().getQualifiedName(), signature,
                         "<init>", resolved.getNumberOfParams(), constructorSignature(resolved.getSignature()));
             } catch (RuntimeException | LinkageError unavailable) { /* Reported as unresolved. */ }
-            semanticCalls.add(new SemanticCallSite("new:" + call.getType().asString(), call.getArguments().size(), target, call.toString()));
+            semanticCalls.add(new SemanticCallSite("new:" + call.getType().asString(), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1)));
         }
         for (var call : method.findAll(com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt.class)) {
             ResolvedCallTarget target = null;
@@ -302,7 +316,7 @@ public final class JavaParserAstParser implements AstParser {
                 target = new ResolvedCallTarget(resolved.declaringType().getQualifiedName(), signature,
                         "<init>", resolved.getNumberOfParams(), constructorSignature(resolved.getSignature()));
             } catch (RuntimeException | LinkageError unavailable) { /* Reported as unresolved. */ }
-            semanticCalls.add(new SemanticCallSite(call.isThis() ? "this:<init>" : "super:<init>", call.getArguments().size(), target, call.toString()));
+            semanticCalls.add(new SemanticCallSite(call.isThis() ? "this:<init>" : "super:<init>", call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1)));
         }
         return List.copyOf(semanticCalls);
     }
@@ -427,6 +441,7 @@ public final class JavaParserAstParser implements AstParser {
             String written = a.getNameAsString();
             if (written.equals(qualified)) return true;
             if (written.contains(".")) return false;
+            if (!qualified.endsWith("." + written)) return false;
             return a.findCompilationUnit().map(cu -> cu.getImports().stream().anyMatch(i -> !i.isStatic()
                     && ((!i.isAsterisk() && i.getNameAsString().equals(qualified))
                     || (i.isAsterisk() && (i.getNameAsString() + "." + written).equals(qualified))))) .orElse(false);
@@ -455,6 +470,8 @@ public final class JavaParserAstParser implements AstParser {
 
     private ParserEnvironment createParser(Path projectRoot) throws IOException {
         CombinedTypeSolver typeSolver = new CombinedTypeSolver();
+        var memory = new com.github.javaparser.symbolsolver.resolution.typesolvers.MemoryTypeSolver();
+        typeSolver.add(memory);
 
         for (Path sourceRoot : discoverSourceRoots(projectRoot)) {
             try {
@@ -493,7 +510,7 @@ public final class JavaParserAstParser implements AstParser {
         ParserConfiguration configuration = new ParserConfiguration()
                 .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
                 .setSymbolResolver(new JavaSymbolSolver(typeSolver));
-        return new ParserEnvironment(new JavaParser(configuration), dependencyLoader);
+        return new ParserEnvironment(new JavaParser(configuration), dependencyLoader, typeSolver, memory);
     }
 
     private Set<Path> discoverSourceRoots(Path projectRoot) throws IOException {
@@ -536,7 +553,8 @@ public final class JavaParserAstParser implements AstParser {
                 .toList();
     }
 
-    private record ParserEnvironment(JavaParser parser, URLClassLoader dependencyLoader)
+    private record ParserEnvironment(JavaParser parser, URLClassLoader dependencyLoader, CombinedTypeSolver types,
+                                     com.github.javaparser.symbolsolver.resolution.typesolvers.MemoryTypeSolver memory)
             implements AutoCloseable {
         @Override
         public void close() throws IOException {
