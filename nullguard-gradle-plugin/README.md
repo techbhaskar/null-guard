@@ -61,7 +61,10 @@ are not analyzed by this integration.
 
 ## Development/composite builds
 
-For an unreleased integration build, replace the settings plugin repository
+The current source version is `1.1.2`, not yet published to Maven Central. Run
+`mvn install` at the repository root first to install the matching CLI. Add
+`mavenLocal()` to the consuming project's dependency repositories so it can resolve
+that CLI. For this source integration build, replace the settings plugin repository
 block with `pluginManagement { includeBuild("/path/to/null-guard/nullguard-gradle-plugin") }`
 and omit the version in the plugins DSL. Alternatively, run `./gradlew publishToMavenLocal`
 in the integration directory and configure `mavenLocal()` for plugin resolution.
@@ -70,7 +73,7 @@ in the integration directory and configure `mavenLocal()` for plugin resolution.
 
 | Option | Default | Purpose |
 | --- | --- | --- |
-| `toolVersion` | `1.1.1` | CLI artifact version to resolve |
+| `toolVersion` | `1.1.2` (source) / `1.1.1` (Central release) | CLI artifact version to resolve |
 | `failBuild` | `false` | Enable the hotspot build gate |
 | `failThreshold` | `CRITICAL` | LOW, MEDIUM/MODERATE, HIGH, CRITICAL |
 | `runOnCheck` | `false` | Include analysis in `check` |

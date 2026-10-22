@@ -4,7 +4,7 @@
 # Publishing to Maven Central
 
 Version `1.0.0` is published and its plugin was installed from Central using an
-empty Maven cache on 2026-10-16. Versions 1.0.0, 1.0.1, 1.1.0 and 1.1.1 are published. The current reactor version is `1.1.1`. The `central-release` Maven profile attaches
+empty Maven cache on 2026-10-16. Versions 1.0.0, 1.0.1, 1.1.0 and 1.1.1 are published. The current reactor version is `1.1.2` (GitHub source/tag only; not yet published to Central). The `central-release` Maven profile attaches
 sources and Javadoc, signs artifacts, uploads the reactor bundle, and waits for
 Central to confirm publication.
 
@@ -27,11 +27,11 @@ of 1.1.1. Check current Portal usage before preparing another upload.
 
 ## Release
 
-The reactor is currently `com.arinits.nullguard:…:1.1.1`. For a future release,
+The reactor is currently `com.arinits.nullguard:…:1.1.2`. For a future release,
 update all reactor parent references:
 
 ```sh
-mvn org.codehaus.mojo:versions-maven-plugin:2.19.1:set -DnewVersion=1.1.1 -DgenerateBackupPoms=false
+mvn org.codehaus.mojo:versions-maven-plugin:2.19.1:set -DnewVersion=NEXT_VERSION -DgenerateBackupPoms=false
 ```
 
 Update README commands and scripts containing the old version, run the normal

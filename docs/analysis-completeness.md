@@ -1,7 +1,8 @@
-# Correctness fixes and analysis completeness (unreleased)
+# Correctness fixes and analysis completeness (1.1.2)
 
-These are working-tree changes after the published 1.1.1 release. They do not
-modify artifacts already available from Maven Central.
+These changes are included in the GitHub source/tag release 1.1.2 after the
+published 1.1.1 release. Version 1.1.2 is not yet published to Maven Central;
+these changes do not modify artifacts already available there.
 
 ## Matching and constructor contracts
 

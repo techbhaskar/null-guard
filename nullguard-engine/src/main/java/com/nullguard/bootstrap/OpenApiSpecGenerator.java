@@ -188,7 +188,7 @@ public final class OpenApiSpecGenerator {
         spec.put("openapi", "3.0.3");
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("title", (project.getProjectName() == null ? "Service" : project.getProjectName()) + " API");
-        info.put("version", "1.1.1");
+        info.put("version", "1.1.2");
         info.put("description", "Statically extracted OpenAPI 3.0.3 specification with NullGuard blast-radius and nullability telemetry.");
         spec.put("info", info);
         spec.put("paths", paths);

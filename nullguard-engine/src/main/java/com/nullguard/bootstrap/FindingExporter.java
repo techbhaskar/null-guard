@@ -113,7 +113,7 @@ public final class FindingExporter {
         }
         String base = root.toAbsolutePath().normalize().toUri().toASCIIString();
         if (!base.endsWith("/")) base += "/";
-        var run = Map.of("tool", Map.of("driver", Map.of("name", "NullGuard", "version", "1.1.1", "rules", rules)),
+        var run = Map.of("tool", Map.of("driver", Map.of("name", "NullGuard", "version", "1.1.2", "rules", rules)),
                 "originalUriBaseIds", Map.of("SOURCE_ROOT", Map.of("uri", base)), "columnKind", "utf16CodeUnits", "results", results);
         try { return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(Map.of(
                 "$schema", "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json", "version", "2.1.0", "runs", List.of(run))); }

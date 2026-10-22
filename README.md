@@ -14,7 +14,7 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 
 > **Release status:** `1.1.1` is published on Maven Central. See the [release notes and verification results](docs/releases/1.1.1.md).
 
-> **Unreleased working-tree changes:** overload/constructor correctness fixes and analysis-completeness reporting described [here](docs/analysis-completeness.md) are not included in the published 1.1.1 artifacts.
+> **GitHub source release `1.1.2`:** includes overload/constructor correctness fixes, local object lifecycle analysis, and analysis-completeness reporting. See the [release notes](docs/releases/1.1.2.md). Maven Central publication of `1.1.2` is pending; use a local build to try these changes.
 
 ## Developer guide
 
@@ -27,7 +27,7 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 - [CI adoption](#suggested-ci-adoption)
 - [Troubleshooting](#troubleshooting)
 
-Examples below target **1.1.1**, available from Maven Central. The previous signed standalone
+Registry installation examples below target **1.1.1**, available from Maven Central; source-build CLI commands target **1.1.2**. The previous signed standalone
 CLI downloads remain on the [1.1.0 GitHub release page](https://github.com/techbhaskar/null-guard/releases/tag/v1.1.0).
 For the authenticated GitHub Packages mirror of **1.1.0**, see [registry setup](docs/github-packages.md); a 1.1.1 mirror publication is not claimed.
 
@@ -158,12 +158,12 @@ mvn clean verify
 The build runs all module tests and creates the standalone CLI at:
 
 ```text
-nullguard-cli/target/nullguard-cli-1.1.1-jar-with-dependencies.jar
+nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar
 ```
 
-For development, install `1.1.1` into your local Maven repository. Use
-`com.arinits.nullguard:nullguard-maven-plugin:1.1.1:analyze` to try the
-unreleased changes from another project:
+For development, install `1.1.2` into your local Maven repository. Use
+`com.arinits.nullguard:nullguard-maven-plugin:1.1.2:analyze` to try the
+GitHub source release from another project (it is not yet on Maven Central):
 
 ```bash
 mvn clean install
@@ -268,7 +268,7 @@ JSON, including when an enabled hotspot gate fails after successful analysis.
 
 | Setting | Default | What it controls |
 | --- | --- | --- |
-| `toolVersion` | `1.1.1` | Analyzer version, independent of the Gradle plugin version |
+| `toolVersion` | `1.1.1` (Central) / `1.1.2` (source) | Analyzer version, independent of the Gradle plugin version |
 | `failBuild` | `false` | Fail on an architectural hotspot at the configured threshold |
 | `failThreshold` | `CRITICAL` | `LOW`, `MEDIUM`/`MODERATE`, `HIGH`, or `CRITICAL` |
 | `runOnCheck` | `false` | Make the existing Gradle `check` task depend on analysis |
@@ -416,13 +416,13 @@ Use the CLI for local exploration, scripts, or source trees that are not being i
 From the NullGuard repository:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.1.1-jar-with-dependencies.jar path/to/service/src/main/java
+java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar path/to/service/src/main/java
 ```
 
 Choose a report directory and enable a CI-style failure policy:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.1.1-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar \
   path/to/service/src/main/java \
   --output=build/nullguard \
   --fail-build \
@@ -432,7 +432,7 @@ java -jar nullguard-cli/target/nullguard-cli-1.1.1-jar-with-dependencies.jar \
 PowerShell uses a backtick for line continuation:
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.1.1-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   --output=C:\work\orders-service\target\nullguard `
   --fail-build `
@@ -444,13 +444,13 @@ java -jar nullguard-cli/target/nullguard-cli-1.1.1-jar-with-dependencies.jar `
 For best results, supply the service's compiled classes and dependency JARs with `--classpath`. Entries use the operating system's path separator: `;` on Windows and `:` on Linux/macOS.
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.1.1-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   "--classpath=C:\work\orders-service\target\classes;C:\libs\shared-contracts.jar"
 ```
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.1.1-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar \
   /work/orders-service/src/main/java \
   --classpath=/work/orders-service/target/classes:/work/libs/shared-contracts.jar
 ```
@@ -620,7 +620,7 @@ Use this review sequence on the first run:
 | `NG002` | Null-Safety | Unchecked nullable parameter | Callers, explicit contracts and framework-provided arguments |
 | `NG003` | Null-Safety | Non-null return contract violation | Return paths that may produce null despite the declaration |
 | `NG004` | Null-Safety | Caller argument contract violation | Potentially nullable argument passed to a required parameter |
-| `NG006` | Null-Safety (unreleased) | Local object lifecycle null field | Potential null field dereference on a tracked local allocation after construction or mutation |
+| `NG006` | Null-Safety (since 1.1.2) | Local object lifecycle null field | Potential null field dereference on a tracked local allocation after construction or mutation |
 | `NG005` | Null-Safety | Architectural hotspot | Risk, reachability and exposed API paths |
 | `NG101`–`NG105` | Remediation | Remediation recommendations | Suggested guard, contract, external validation, refactoring or risk-chain change |
 | `NG201` | Reliability & Arch | External or DB call inside loop (`N+1` / latency amplification) | Batch queries or hoist external/repository calls outside `for`/`while`/`do` loops |

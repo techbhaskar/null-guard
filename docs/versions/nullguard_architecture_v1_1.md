@@ -40,7 +40,7 @@ Method summaries expose parameter entry nullability and whether any return can b
 
 NG002 identifies an unannotated reference parameter dereferenced without a guard. NG004 checks caller arguments against declared non-null or inferred unguarded callee parameters using CFG state at the call. Caller checks require resolved source targets; they do not guess targets from call-graph names. Runtime dependency injection and dispatch precision are not guaranteed.
 
-Unreleased post-1.1.1 changes add resolved parameter/override matching, explicit constructor CFGs and argument checks, and source-analysis completeness metadata in the report/dashboard. See [the exact behavior and remaining limits](../analysis-completeness.md); these changes are not part of the published 1.1.1 artifact.
+The 1.1.2 GitHub source/tag release adds resolved parameter/override matching, constructor and initializer modeling, bounded local object lifecycle analysis, and source-analysis completeness metadata in the report/dashboard. See [the exact behavior and remaining limits](../analysis-completeness.md); these changes are not part of the published 1.1.1 Maven Central artifact.
 
 ## API analysis
 
@@ -88,7 +88,7 @@ JSON has `schemaVersion: "1.0"`, `summary`, `graph`, `findings`, `apiEndpoints`,
 | NG003 | Declared non-null return violation |
 | NG004 | Nullable caller argument violates callee requirements |
 | NG005 | Architectural hotspot |
-| NG006 | Bounded local allocation/field lifecycle warning (unreleased) |
+| NG006 | Bounded local allocation/field lifecycle warning (since 1.1.2) |
 | NG101 | Add null guard suggestion |
 | NG102 | Strengthen contract suggestion |
 | NG103 | Validate external return suggestion |

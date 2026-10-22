@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.arinits.nullguard</groupId>
         <artifactId>nullguard-parent</artifactId>
-        <version>1.1.1</version>
+        <version>1.1.2</version>
     </parent>
     <artifactId>nullguard-scoring</artifactId>
     <name>nullguard-scoring</name>
