@@ -871,7 +871,7 @@ Keep the README focused on how developers use the tool, and keep detailed archit
 
 ## Development workflow
 
-`mvn verify` generates JaCoCo HTML/XML coverage reports under each module's `target/site/jacoco/` and an aggregate report at `nullguard-coverage/target/site/jacoco-aggregate/index.html`. The aggregate includes coverage of upstream modules exercised by integration tests. GitHub Actions enforces at least 80% aggregate instruction coverage and 60% branch coverage, defines JDK 17 and 21 builds on Linux and Windows, tests the packaged CLI and Maven goal, validates SARIF against the OASIS schema, and archives reports. Local Maven builds measure coverage; run the Python coverage command with the same minimum flags to enforce the CI gate locally.
+`mvn verify` generates JaCoCo HTML/XML coverage reports under each module's `target/site/jacoco/` and an aggregate report at `nullguard-coverage/target/site/jacoco-aggregate/index.html`. The aggregate includes coverage of upstream modules exercised by integration tests. GitHub Actions enforces at least 85% fully covered source lines, 80% aggregate instruction coverage, and 60% branch coverage, defines JDK 17 and 21 builds on Linux and Windows, tests the packaged CLI and Maven goal, validates SARIF against the OASIS schema, and archives reports. A fully covered line has executed instructions with no missed instructions or branches; partially covered lines do not count toward the 85% gate. Local Maven builds measure coverage; run `python scripts/summarize_coverage.py --min-instruction=80 --min-branch=60 --min-full-line=85` to enforce the CI gate locally.
 
 After `mvn install`, run the process-level smoke tests and coverage summary locally:
 

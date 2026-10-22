@@ -30,6 +30,28 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class ScoringTest {
 
+    @Test void contributorExplanationsSummarizeFanoutAndLongSignatures() {
+        String longSignature = "load(String, String, String, String, String, String)";
+        var risks = new LinkedHashMap<String, Integer>();
+        risks.put("root()", 10);
+        risks.put(longSignature, 80);
+        risks.put("second()", 60);
+        risks.put("third()", 40);
+        risks.put("fourth()", 20);
+        var project = createProject(risks);
+        String root = methodId("root()");
+        var graph = createCallGraph(Map.of(root, Set.of(root, methodId(longSignature), methodId("second()"),
+                methodId("third()"), methodId("fourth()"))), Set.of());
+        var engine = new FixpointRiskPropagationEngine();
+        var results = engine.propagate(project, graph, ScoringConfig.builder().decayFactor(.5).build());
+        assertEquals(25.0, results.get(root).getPropagatedRisk(), .001);
+        var reasons = engine.getRiskContributors().get(root);
+        assertTrue(reasons.stream().anyMatch(r -> r.contains("load(") && r.contains("…")));
+        assertTrue(reasons.stream().anyMatch(r -> r.contains("1 more high-risk callees")));
+        assertTrue(reasons.stream().anyMatch(r -> r.contains("Cyclic self-call")));
+        assertEquals(3, reasons.stream().filter(r -> r.startsWith("← calls")).count());
+    }
+
     /**
      * Package = "test.pkg", class = "TestClass".
      * Canonical method ID used by FixpointRiskPropagationEngine:

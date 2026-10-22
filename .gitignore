@@ -23,6 +23,7 @@ __pycache__/
 .idea/**
 
 # Root reactor publishing bundles and signatures
+/.accuracy-work/
 **/target/**
 /nullguard-suggestions/target/**
 /nullguard-visualization/target/**

@@ -1,5 +1,9 @@
 # Broader-corpus source-only pilot — 2026-10-23
 
+Follow-up: [Commons Lang recovery and agent-assisted Gson review](accuracy-followup-2026-10-23.md).
+The original target-directory artifacts were removed by a concurrent clean build;
+the follow-up uses a replacement packet stored outside Maven build output.
+
 No independent human review has occurred. No precision, recall or false-positive
 rate is claimed. These runs exercise the current analyzer on two non-Spring
 libraries and prepare review material.

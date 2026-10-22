@@ -1,4 +1,4 @@
-"""Summarize JaCoCo XML instruction/branch coverage; no arbitrary threshold claim."""
+"""Summarize and optionally gate JaCoCo instruction, branch, and fully covered lines."""
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import argparse
@@ -6,17 +6,23 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--min-instruction", type=float)
 parser.add_argument("--min-branch", type=float)
+parser.add_argument("--min-full-line", type=float, help="Minimum fully covered source lines, excluding partial lines")
 args = parser.parse_args()
 
 totals = {"INSTRUCTION": [0, 0], "BRANCH": [0, 0]}
 aggregate = Path("nullguard-coverage/target/site/jacoco-aggregate/jacoco.xml")
-if (args.min_instruction is not None or args.min_branch is not None) and not aggregate.exists():
+if any(value is not None for value in (args.min_instruction, args.min_branch, args.min_full_line)) and not aggregate.exists():
     raise SystemExit("Aggregate report is required for coverage gating; run mvn verify first")
 if aggregate.exists():
     reports = [(group.attrib["name"], group) for group in ET.parse(aggregate).getroot().findall("group")]
 else:
     reports = [(report.parts[0], ET.parse(report).getroot()) for report in sorted(Path(".").glob("*/target/site/jacoco/jacoco.xml"))]
+full_lines = total_lines = 0
 for name, node in reports:
+    lines = node.findall("./package/sourcefile/line")
+    total_lines += len(lines)
+    full_lines += sum(int(line.attrib["ci"]) > 0 and int(line.attrib["mi"]) == 0
+                      and int(line.attrib["mb"]) == 0 for line in lines)
     counters = {item.attrib["type"]: item.attrib for item in node.findall("counter")}
     values = []
     for kind, total in totals.items():
@@ -33,3 +39,7 @@ for kind, (missed, covered) in totals.items():
     minimum = args.min_instruction if kind == "INSTRUCTION" else args.min_branch
     if minimum is not None and (not denominator or 100 * covered / denominator < minimum):
         raise SystemExit(f"{kind.lower()} coverage is below the required {minimum}%")
+full_line_percent = 100 * full_lines / total_lines if total_lines else 0.0
+print(f"Total fully covered lines: {full_lines}/{total_lines} ({full_line_percent:.2f}%)")
+if args.min_full_line is not None and (not total_lines or full_line_percent < args.min_full_line):
+    raise SystemExit(f"Fully covered line coverage is below the required {args.min_full_line}%")

@@ -1,4 +1,5 @@
 """Record provenance for the two source-only pilots; run after their CLI analyses."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -12,7 +13,11 @@ def git(*args):
 
 def main():
     root = Path(__file__).resolve().parent.parent
-    jar = root / "nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--work-dir", type=Path, help="Persistent evidence directory containing corpus/, reports/, analyzer.jar and NAME.log")
+    args = parser.parse_args()
+    work = args.work_dir.resolve() if args.work_dir else None
+    jar = work / "analyzer.jar" if work else root / "nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar"
     jar_hash = hashlib.sha256(jar.read_bytes()).hexdigest()
     runs = []
     summaries = []
@@ -20,10 +25,10 @@ def main():
         ("gson", "gson/src/main/java", "https://github.com/google/gson"),
         ("commons-lang", "src/main/java", "https://github.com/apache/commons-lang"),
     ):
-        checkout = root / "target/accuracy-corpus" / name
-        report = root / "target/accuracy" / name / "nullguard-report-latest.json"
+        checkout = (work / "corpus" if work else root / "target/accuracy-corpus") / name
+        report = (work / "reports" if work else root / "target/accuracy") / name / "nullguard-report-latest.json"
         command = (f"java -Xmx2g -jar {jar.relative_to(root).as_posix()} "
-                   f"target/accuracy-corpus/{name}/{source} --output=target/accuracy/{name}")
+                   f"{checkout.relative_to(root).as_posix()}/{source} --output={report.parent.relative_to(root).as_posix()}")
         run = dict(project=name, repository=repository,
                    commit=git("-C", str(checkout), "rev-parse", "HEAD"),
                    source_dirty=bool(git("-C", str(checkout), "status", "--porcelain")),
@@ -32,8 +37,8 @@ def main():
                    analyzer_jar_sha256=jar_hash, command=command,
                    java_version=subprocess.run(["java", "-version"], capture_output=True, text=True, check=True).stderr.strip(),
                    classpath="none; source-only pilot, dependency contracts may be unresolved",
-                   report=f"{name}/nullguard-report-latest.json")
-        log = root / "target" / f"accuracy-{name}.log"
+                   report=f"reports/{name}/nullguard-report-latest.json" if work else f"{name}/nullguard-report-latest.json")
+        log = work / f"{name}.log" if work else root / "target" / f"accuracy-{name}.log"
         log_text = log.read_text(encoding="utf-8", errors="replace")
         if not report.is_file():
             summaries.append(dict(project=name, commit=run["commit"], status="failed_no_report",
@@ -50,7 +55,7 @@ def main():
                               findings_by_rule=dict(Counter(f["ruleId"] for f in data["findings"])),
                               analysisCompleteness=data.get("analysisCompleteness"),
                               accuracy_status="unreviewed; no precision or recall measured"))
-    destination = root / "target/accuracy"
+    destination = work if work else root / "target/accuracy"
     (destination / "runs.json").write_text(json.dumps(dict(runs=runs), indent=2) + "\n", encoding="utf-8")
     (destination / "pilot-summary.json").write_text(json.dumps(summaries, indent=2) + "\n", encoding="utf-8")
     print(json.dumps([{k: v for k, v in row.items() if k != "analysisCompleteness"} for row in summaries], indent=2))

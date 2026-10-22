@@ -1,5 +1,8 @@
 # Accuracy evidence protocol
 
+Latest: [crash recovery and agent-assisted review](accuracy-followup-2026-10-23.md).
+Use `.accuracy-work/` for new raw evidence so Maven clean does not remove it.
+
 Status: tooling prepared; independent human accuracy review has not been completed.
 See [the initial pilot observations](accuracy-pilot-2026-10-23.md) for the completed
 Gson run and Commons Lang analysis failure.

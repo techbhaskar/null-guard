@@ -13,6 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DotGraphExporterTest {
 
+    @Test void escapesSourceIdentifiersWithoutBreakingDotStrings() {
+        org.junit.jupiter.api.Assertions.assertEquals("", DotGraphExporter.escape(null));
+        org.junit.jupiter.api.Assertions.assertEquals("a\\\\b\\\"c\\nd\\r", DotGraphExporter.escape("a\\b\"c\nd\r"));
+    }
+
     @Test
     void testDotColorMappingCorrectness() {
         LinkedHashMap<String, GraphNode> nodes = new LinkedHashMap<>();

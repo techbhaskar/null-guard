@@ -33,6 +33,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class DefaultSuggestionEngineTest {
 
+    @Test void unknownContractsAndHighFanoutProduceActionableSuggestions() {
+        var outgoing = new LinkedHashMap<String, LinkedHashSet<String>>();
+        outgoing.put(METHOD_ID, new LinkedHashSet<>(List.of("a", "b", "c", "d", "e", "f")));
+        var graph = new GlobalCallGraph(outgoing, new LinkedHashMap<>(), new LinkedHashSet<>());
+        var risks = riskMap(METHOD_ID, 75);
+        risks.put("missing", null);
+        var suggestions = new DefaultSuggestionEngine().generate(projectWithSummary(NullState.UNKNOWN), risks, graph);
+        assertTrue(suggestions.stream().anyMatch(s -> s.getSuggestionType() == SuggestionType.STRENGTHEN_CONTRACT));
+        assertTrue(suggestions.stream().anyMatch(s -> s.getSuggestionType() == SuggestionType.BREAK_RISK_CHAIN));
+        assertTrue(suggestions.stream().allMatch(s -> s.getFinalScore() >= 0 && s.getConfidence() > 0));
+        assertTrue(new com.nullguard.suggestions.rules.RiskIsolationRule(null)
+                .evaluate(METHOD_ID, null, risks.get(METHOD_ID)).isEmpty());
+    }
+
     private static final String PKG = "com.acme.svc";
     private static final String CLS = "UserService";
     private static final String SIG = "findByEmail(String)";

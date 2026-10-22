@@ -40,7 +40,9 @@ final class AnalysisCompleteness {
                 if (com.nullguard.callgraph.builder.BasicCallGraphBuilder.isGetterOrSetter(site.getWrittenName())) boundaries[1]++;
                 if (site.getResolvedTarget().isPresent()) calls[1]++;
                 else unresolved.add(Map.of("methodId", id, "call", site.getWrittenName(), "argumentCount", site.getArgumentCount(),
-                        "location", method.getSourceLocation().map(l -> (Object) l).orElse(Map.of())));
+                        "location", method.getSourceLocation().map(l -> (Object) l).orElse(Map.of()),
+                        "line", site.getLineNumber(), "expression", site.getExpression(),
+                        "resolutionFailure", site.getResolutionFailure()));
                 site.getResolvedTarget().ifPresent(target -> {
                     if (!owners.contains(target.declaringType())) boundaries[0]++;
                     else if (resolver.resolveAll(project, target).stream().map(methods::get).filter(Objects::nonNull)

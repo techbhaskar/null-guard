@@ -25,6 +25,14 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
       - run: mvn --batch-mode clean install
+      - name: Upload Maven test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: test_results
+          flags: maven,${{ matrix.os }},java-${{ matrix.java }}
+          name: maven-${{ matrix.os }}-java-${{ matrix.java }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -34,7 +42,8 @@ jobs:
       - run: python scripts/smoke_entrypoints.py
       - run: python scripts/validate_openapi.py nullguard-cli/target/ci-reports/nullguard-openapi.json
       - run: python scripts/validate_sarif.py nullguard-cli/target/ci-reports/nullguard-results.sarif
-      - run: python scripts/summarize_coverage.py --min-instruction=80 --min-branch=60
+      - run: python -m unittest discover -s scripts -p test_summarize_coverage.py -v
+      - run: python scripts/summarize_coverage.py --min-instruction=80 --min-branch=60 --min-full-line=85
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.java == '17'
         uses: codecov/codecov-action@v5
@@ -96,6 +105,15 @@ jobs:
       - name: Verify Gradle integration
         working-directory: nullguard-gradle-plugin
         run: ./gradlew check --no-daemon -PtestGradleVersion=${{ matrix.gradle }}
+      - name: Upload Gradle test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: test_results
+          directory: nullguard-gradle-plugin/build/test-results/test
+          flags: gradle,java-${{ matrix.java }},gradle-${{ matrix.gradle }}
+          name: gradle-${{ matrix.gradle }}-java-${{ matrix.java }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

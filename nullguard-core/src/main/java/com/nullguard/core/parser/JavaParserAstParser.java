@@ -267,7 +267,7 @@ public final class JavaParserAstParser implements AstParser {
                 .build();
     }
 
-    private List<SemanticCallSite> resolveCallSites(com.github.javaparser.ast.Node method) {
+    List<SemanticCallSite> resolveCallSites(com.github.javaparser.ast.Node method) {
         List<MethodCallExpr> calls = new ArrayList<>(method.findAll(MethodCallExpr.class));
         calls.sort(Comparator.comparing((MethodCallExpr call) -> sourcePosition(call))
                 .thenComparing(call -> call.toString()));
@@ -275,6 +275,7 @@ public final class JavaParserAstParser implements AstParser {
         List<SemanticCallSite> semanticCalls = new ArrayList<>();
         for (MethodCallExpr call : calls) {
             ResolvedCallTarget target = null;
+            String failure = "";
             try {
                 ResolvedMethodDeclaration resolved = call.resolve();
                 String signature = resolved.toAst(MethodDeclaration.class)
@@ -287,15 +288,21 @@ public final class JavaParserAstParser implements AstParser {
                         resolved.getNumberOfParams(), resolved.getSignature(), !resolved.isStatic()
                                 && resolved.accessSpecifier() != com.github.javaparser.ast.AccessSpecifier.PRIVATE
                                 && !call.getScope().map(s -> s.isSuperExpr()).orElse(false));
+            } catch (StackOverflowError resolutionFailure) {
+                // JavaParser can recurse through generic type bounds indefinitely.
+                // Keep this source call visible; never guess a replacement target.
+                failure = "StackOverflowError during symbol resolution";
+                LOG.warn("Symbol resolution overflow at line {}: {}", call.getBegin().map(p -> p.line).orElse(-1), call);
             } catch (RuntimeException | LinkageError resolutionFailure) {
                 LOG.debug("Could not resolve call {} in {}: {}",
                         call, sourcePosition(method), resolutionFailure.getMessage());
             }
             semanticCalls.add(new SemanticCallSite(
-                    writtenCallName(call), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1)));
+                    writtenCallName(call), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure));
         }
         for (ObjectCreationExpr call : method.findAll(ObjectCreationExpr.class)) {
             ResolvedCallTarget target = null;
+            String failure = "";
             try {
                 var resolved = call.resolve();
                 String signature = resolved.toAst(ConstructorDeclaration.class)
@@ -303,11 +310,14 @@ public final class JavaParserAstParser implements AstParser {
                         .orElseGet(() -> constructorSignature(resolved.getSignature()));
                 target = new ResolvedCallTarget(resolved.declaringType().getQualifiedName(), signature,
                         "<init>", resolved.getNumberOfParams(), constructorSignature(resolved.getSignature()));
+            } catch (StackOverflowError unavailable) {
+                failure = "StackOverflowError during constructor resolution";
             } catch (RuntimeException | LinkageError unavailable) { /* Reported as unresolved. */ }
-            semanticCalls.add(new SemanticCallSite("new:" + call.getType().asString(), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1)));
+            semanticCalls.add(new SemanticCallSite("new:" + call.getType().asString(), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure));
         }
         for (var call : method.findAll(com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt.class)) {
             ResolvedCallTarget target = null;
+            String failure = "";
             try {
                 var resolved = call.resolve();
                 String signature = resolved.toAst(ConstructorDeclaration.class)
@@ -315,8 +325,10 @@ public final class JavaParserAstParser implements AstParser {
                         .orElseGet(() -> constructorSignature(resolved.getSignature()));
                 target = new ResolvedCallTarget(resolved.declaringType().getQualifiedName(), signature,
                         "<init>", resolved.getNumberOfParams(), constructorSignature(resolved.getSignature()));
+            } catch (StackOverflowError unavailable) {
+                failure = "StackOverflowError during constructor resolution";
             } catch (RuntimeException | LinkageError unavailable) { /* Reported as unresolved. */ }
-            semanticCalls.add(new SemanticCallSite(call.isThis() ? "this:<init>" : "super:<init>", call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1)));
+            semanticCalls.add(new SemanticCallSite(call.isThis() ? "this:<init>" : "super:<init>", call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure));
         }
         return List.copyOf(semanticCalls);
     }

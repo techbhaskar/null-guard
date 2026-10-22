@@ -14,6 +14,38 @@ import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 
 class CallSiteExtractorTest {
 
+    @Test void argumentCountingHandlesNestedCallsLiteralsAndIncompleteInput() {
+        assertEquals(0, CallSiteExtractor.countArguments("send( )", "send"));
+        assertEquals(4, CallSiteExtractor.countArguments("send(nested(a,b), array[i], \"a,b\\\"c\", '\\'')", "send"));
+        for (String source : List.of("absent()", "send", "send(a", "send([a)")) {
+            assertEquals(CallSite.UNKNOWN_ARG_COUNT, CallSiteExtractor.countArguments(source, "send"), source);
+        }
+        assertEquals(CallSite.UNKNOWN_ARG_COUNT, CallSiteExtractor.countArguments(null, "send"));
+        assertEquals(CallSite.UNKNOWN_ARG_COUNT, CallSiteExtractor.countArguments("send()", null));
+        assertEquals(CallSite.UNKNOWN_ARG_COUNT, CallSiteExtractor.countArguments("send()", ""));
+    }
+
+    @Test void assignmentDetectionExcludesComparisonOperators() {
+        for (String source : List.of("a == b", "a != b", "a <= b", "a >= b", "value")) {
+            assertEquals(-1, CallSiteExtractor.indexOfAssignmentOperator(source));
+            assertEquals(null, CallSiteExtractor.rightHandSide(source));
+        }
+        assertEquals(-1, CallSiteExtractor.indexOfAssignmentOperator(null));
+        assertEquals(true, CallSiteExtractor.isAssignment("a = call()"));
+        assertEquals("call()", CallSiteExtractor.rightHandSide("a = call()"));
+        assertEquals(0, CallSiteExtractor.indexOfAssignmentOperator("=value"));
+        assertEquals(false, CallSiteExtractor.isAssignment("a == b"));
+    }
+
+    @Test void skipsInvalidNodesAndPreservesComplexReceivers() {
+        assertEquals(List.of(), new CallSiteExtractor().extract(cfg(NodeType.ENTRY, "ignored()")));
+        assertEquals(List.of(), new CallSiteExtractor().extract(cfg(NodeType.STATEMENT, "value")));
+        assertEquals(List.of(), new CallSiteExtractor().extract(cfg(NodeType.STATEMENT, "broken(;")));
+        var calls = new CallSiteExtractor().extract(cfg(NodeType.THROW, "throw failure(factory().load());"));
+        assertIterableEquals(List.of("failure", "factory", "load"), calls.stream().map(CallSite::calleeName).toList());
+        assertEquals("factory()", calls.get(2).receiver());
+    }
+
     @Test
     void extractsNestedCallsAndTheirExactArities() {
         ControlFlowModel cfg = cfg(NodeType.STATEMENT, "client.send(mapper.map(value), audit.id());");
