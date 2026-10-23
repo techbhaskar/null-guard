@@ -35,5 +35,6 @@ class MemoryInsightsTest {
         assertTrue(html.contains("id=\"memory\""));
         assertTrue(html.contains("Confirmed leaks: unmeasured"));
         assertTrue(html.contains("Source allocation site counts"));
+        assertTrue(html.contains("table.innerHTML = '<thead><tr><th style=\"width:16%%\">Review signal</th><th style=\"width:30%%\">Source</th>"));
     }
 }
