@@ -41,9 +41,9 @@ For the authenticated GitHub Packages mirror of **1.1.0**, see [registry setup](
 
 ## Why use NullGuard in microservices?
 
-Microservices often have shallow-looking controller methods that call several services, repositories, clients, mappers, and shared libraries. A null-safety problem deep in that chain can affect multiple endpoints while remaining hard to prioritize from isolated compiler or linter warnings.
+Microservices often look simple at the surface: a controller calls one or more services, repositories, clients, mappers, and shared utilities. A null-handling bug deep in that chain may not fail at compile time, but it can cascade across multiple endpoints and make the blast radius hard to reason about from local warnings alone.
 
-NullGuard adds a project-level view:
+NullGuard adds a project-level view that helps teams prioritize the real risk instead of chasing isolated nullability issues in isolation.
 
 | Capability | Developer benefit |
 | --- | --- |
@@ -590,6 +590,8 @@ HTML generation is automatic across Maven, Gradle, and the standalone CLI:
 | Standalone CLI | `java -jar … --output=nullguard-out` | `nullguard-out/nullguard-dashboard-latest.html` |
 
 Maven, Gradle, and the standalone CLI all generate the unified 8-tab interactive dashboard (`HtmlDashboardRenderer`), offering **Overview**, **API Flows**, **Swagger / OpenAPI**, **Code Quality & Arch**, **Reachable CVEs**, **Arch Hotspots**, **Method Explorer**, and **Raw JSON**.
+
+The **Memory & retention** tab includes a compact **Source locations & review guidance** table that lists the review signal, source location, enclosing symbol, and review guidance in a single readable layout. This is intended to help teams quickly assess whether a retention signal is a true leak candidate versus a static review note that still requires runtime confirmation.
 
 ### Embedded Swagger UI and OpenAPI configuration
 

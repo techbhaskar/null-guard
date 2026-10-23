@@ -182,10 +182,15 @@ public final class HtmlDashboardRenderer {
             /* Tables */
             .table-wrap { width: 100%%; overflow-x: auto; }
             table { width: 100%%; border-collapse: collapse; }
+            .memory-table { table-layout: fixed; }
+            .memory-table th:nth-child(1) { width: 16%%; }
+            .memory-table th:nth-child(2) { width: 30%%; }
+            .memory-table th:nth-child(3) { width: 22%%; }
+            .memory-table th:nth-child(4) { width: 32%%; }
             th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--border); background: var(--bg-elevated); font-weight: 600; }
             th:first-child { border-top-left-radius: 8px; }
             th:last-child { border-top-right-radius: 8px; }
-            td { padding: 0.85rem 0.9rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.86rem; vertical-align: top; color: var(--text-secondary); line-height: 1.45; }
+            td { padding: 0.85rem 0.9rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.86rem; vertical-align: top; color: var(--text-secondary); line-height: 1.45; overflow-wrap: anywhere; word-break: break-word; }
             tr:last-child td { border-bottom: none; }
             tbody tr:hover td { background: var(--bg-hover); }
 
@@ -1084,7 +1089,9 @@ public final class HtmlDashboardRenderer {
               document.getElementById('memoryMap').innerHTML = [...new Set(sites.map(s => s.kind))].map(kind => `<div style="padding:16px;margin:12px;border:1px solid var(--border);border-radius:8px"><strong>${esc(kind)}</strong><p>${esc(paths[kind])}</p><span>${sites.filter(s => s.kind === kind).length} candidate sites; no confirmed leak</span></div>`).join('') || '<p style="padding:16px">No supported signals found. Runtime leak status remains unmeasured.</p>';
               const query = (document.getElementById('gSearch').value || '').toLowerCase();
               const visible = sites.filter(s => Object.values(s).join(' ').toLowerCase().includes(query));
-              document.getElementById('memoryTable').innerHTML = '<thead><tr><th>Review signal</th><th>Symbol / enclosing method</th><th>Source</th><th>Review guidance</th></tr></thead><tbody>' + visible.map(s => `<tr><td>${esc(s.kind)}</td><td>${esc(s.symbol)}</td><td>${esc(s.location)}</td><td>${esc(s.guidance)}</td></tr>`).join('') + (visible.length ? '' : '<tr><td colspan="4">No matching source sites.</td></tr>') + '</tbody>';
+              const table = document.getElementById('memoryTable');
+              table.classList.add('memory-table');
+              table.innerHTML = '<thead><tr><th style="width:16%%">Review signal</th><th style="width:30%%">Source</th><th style="width:22%%">Symbol / enclosing method</th><th style="width:32%%">Review guidance</th></tr></thead><tbody>' + visible.map(s => `<tr><td>${esc(s.kind)}</td><td>${esc(s.location)}</td><td>${esc(s.symbol)}</td><td>${esc(s.guidance)}</td></tr>`).join('') + (visible.length ? '' : '<tr><td colspan="4">No matching source sites.</td></tr>') + '</tbody>';
             }
 
             function renderAllDynamic() {
