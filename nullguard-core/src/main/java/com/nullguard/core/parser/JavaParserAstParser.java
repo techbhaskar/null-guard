@@ -231,6 +231,8 @@ public final class JavaParserAstParser implements AstParser {
 
         String httpMethod = AstMetadataExtractor.extractHttpMethod(method);
         String httpPath = AstMetadataExtractor.extractHttpPath(method);
+        Set<String> establishedFields = new LinkedHashSet<>(fields);
+        if (constructor == null) establishedFields.addAll(ConstructorFieldFacts.forMethod(method));
 
         return MethodModel.builder()
                 .bodySource(method.getBody().map(Object::toString).orElse(""))
@@ -238,7 +240,7 @@ public final class JavaParserAstParser implements AstParser {
                         : method.containsData(ConstructorExpansion.ORIGIN) ? method.getData(ConstructorExpansion.ORIGIN) : "source")
                 .sourceLocation(method.getRange().map(r -> new com.nullguard.core.model.SourceLocation(
                         sourcePath.toString().replace('\\', '/'), r.begin.line, r.begin.column, r.end.line, r.end.column)).orElse(null))
-                .nonNullFields(fields)
+                .nonNullFields(establishedFields)
                 .parameters(method.getParameters().stream().map(p -> AstMetadataExtractor.buildParameterModel(
                         method,
                         p,

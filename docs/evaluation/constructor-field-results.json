@@ -1,0 +1,140 @@
+{
+  "baseline_jar_sha256": "f49db1ce2670d9aef38babfd14e446130e3a701ec7d9018de6a674de387994df",
+  "candidate_jar_sha256": "606f335b2adec1120c99a283e42c3a6c2a513be5730904b247f95566d3e48fb2",
+  "analyzer_revision": "b63b000d1ce12dafd1494fbefada092341e5c5dd",
+  "working_tree_status_at_evidence_collection": " M README.md\n M nullguard-core/src/main/java/com/nullguard/core/parser/JavaParserAstParser.java\n?? docs/evaluation/constructor-field-fix.md\n?? nullguard-core/src/main/java/com/nullguard/core/parser/ConstructorFieldFacts.java\n?? nullguard-engine/src/test/java/com/nullguard/bootstrap/ConstructorFieldInvariantTest.java\n",
+  "java_version": "java version \"21.0.9\" 2025-10-21 LTS\nJava(TM) SE Runtime Environment (build 21.0.9+7-LTS-338)\nJava HotSpot(TM) 64-Bit Server VM (build 21.0.9+7-LTS-338, mixed mode, sharing)",
+  "classpath": "none; source-only evaluation",
+  "projects": [
+    {
+      "name": "gson",
+      "source_commit": "e2292f9c9f2e07a4791827e8eea34aa7d80545d6",
+      "source_dirty": false,
+      "baseline_report_sha256": "7e17eb4fc1b5fa65bbe4ad2484b10957ed3e062e0b434c2efbab3f4133edb28d",
+      "candidate_report_sha256": "451a9629798187df68b4b4ff39847af36e05d2b2be6f57d317b0c16b11272659",
+      "baseline_by_rule": {
+        "NG001": 590,
+        "NG205": 56,
+        "NG002": 157,
+        "NG004": 140,
+        "NG101": 109,
+        "NG104": 132,
+        "NG105": 95,
+        "NG006": 10
+      },
+      "candidate_by_rule": {
+        "NG205": 56,
+        "NG002": 157,
+        "NG004": 135,
+        "NG001": 535,
+        "NG101": 108,
+        "NG104": 128,
+        "NG105": 93,
+        "NG006": 10
+      },
+      "removed_by_rule": {
+        "NG001": 55,
+        "NG004": 5,
+        "NG101": 1,
+        "NG104": 4,
+        "NG105": 2
+      },
+      "added_by_rule": {},
+      "baseline_completeness": {
+        "status": "INCOMPLETE",
+        "sourceFilesDiscovered": 86,
+        "sourceFilesParsed": 86,
+        "declaredBodies": 817,
+        "analyzedBodies": 817,
+        "totalCallSites": 3174,
+        "symbolResolvedCallSites": 3151
+      },
+      "candidate_completeness": {
+        "status": "INCOMPLETE",
+        "sourceFilesDiscovered": 86,
+        "sourceFilesParsed": 86,
+        "declaredBodies": 817,
+        "analyzedBodies": 817,
+        "totalCallSites": 3174,
+        "symbolResolvedCallSites": 3151
+      },
+      "recovered_overflows": 0,
+      "candidate_command": "java -Xmx2g -jar .accuracy-work/constructor-fields/analyzer.jar .accuracy-work/corpus/gson/gson/src/main/java --output=.accuracy-work/constructor-fields/reports/gson",
+      "reviewed_ng001": {
+        "false_positive": {
+          "reviewed": 15,
+          "removed_ids": [
+            "54fcac91219e4e4c677488baa2d99044a3d4a3989688d3429ecdcb52dbd8720b",
+            "8dd25b7d462e793d2ce56503b9af6913bb981ee349debdd34e71ea7627c66f73",
+            "1a0a300060c6aa9928fd91d74130e1fb97b11fbb639df8dda268969f4319c729",
+            "f9d908861b47e463ba4fa8497e427ef77dc735872f8fa4239274b411e3d0a145",
+            "889cab1cb96cacdaf91880caea973cfcaa60e8f55ef0f292812ce0ab8b11b91b"
+          ]
+        },
+        "context_dependent": {
+          "reviewed": 41,
+          "removed_ids": [
+            "6802594d522604047d3a755f4945e60bd4dbcf5a2847b6eb4c6f68c813d0ad11"
+          ]
+        }
+      }
+    },
+    {
+      "name": "commons-lang",
+      "source_commit": "b9b30efb01e861a16503232bb96b684107e73199",
+      "source_dirty": false,
+      "baseline_report_sha256": "c27e2a0fa732fb87d7257e164ce7be50a65f82c1c98e9d7597be05a00f231f75",
+      "candidate_report_sha256": "9beca2ee844d3383b2f5d32bdff67973ac40cd880e988050a07d7584b845e208",
+      "baseline_by_rule": {
+        "NG001": 1553,
+        "NG004": 502,
+        "NG205": 67,
+        "NG104": 156,
+        "NG002": 495,
+        "NG105": 155,
+        "NG101": 211,
+        "NG006": 58,
+        "NG202": 1
+      },
+      "candidate_by_rule": {
+        "NG001": 1530,
+        "NG004": 499,
+        "NG205": 67,
+        "NG104": 156,
+        "NG002": 495,
+        "NG105": 153,
+        "NG101": 208,
+        "NG006": 58,
+        "NG202": 1
+      },
+      "removed_by_rule": {
+        "NG001": 23,
+        "NG004": 3,
+        "NG101": 3,
+        "NG105": 2
+      },
+      "added_by_rule": {},
+      "baseline_completeness": {
+        "status": "INCOMPLETE",
+        "sourceFilesDiscovered": 264,
+        "sourceFilesParsed": 264,
+        "declaredBodies": 4517,
+        "analyzedBodies": 4517,
+        "totalCallSites": 10932,
+        "symbolResolvedCallSites": 10376
+      },
+      "candidate_completeness": {
+        "status": "INCOMPLETE",
+        "sourceFilesDiscovered": 264,
+        "sourceFilesParsed": 264,
+        "declaredBodies": 4517,
+        "analyzedBodies": 4517,
+        "totalCallSites": 10932,
+        "symbolResolvedCallSites": 10377
+      },
+      "recovered_overflows": 71,
+      "candidate_command": "java -Xmx2g -jar .accuracy-work/constructor-fields/analyzer.jar .accuracy-work/corpus/commons-lang/src/main/java --output=.accuracy-work/constructor-fields/reports/commons-lang"
+    }
+  ],
+  "note": "Bounded constructor-field regression evidence; no independent accuracy, precision or recall claim."
+}
