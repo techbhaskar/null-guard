@@ -7,7 +7,7 @@ group = "com.arinits.nullguard"
 version = "1.1.2"
 repositories { mavenCentral() }
 java {
-    toolchain { languageVersion.set(JavaLanguageVersion.of(17)) }
+    toolchain { languageVersion.set(JavaLanguageVersion.of(21)) }
     withSourcesJar()
     withJavadocJar()
 }

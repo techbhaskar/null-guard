@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        java: ['17', '21']
+        java: ['21']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
       - run: python -m unittest discover -s scripts -p test_summarize_coverage.py -v
       - run: python scripts/summarize_coverage.py --min-instruction=80 --min-branch=60 --min-full-line=85
       - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest' && matrix.java == '17'
+        if: matrix.os == 'ubuntu-latest' && matrix.java == '21'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -71,7 +71,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: maven
       - name: Benchmark (smoke by default, 50k on manual request)
         env:
@@ -93,7 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: ['17', '21']
+        java: ['21']
         gradle: ['8.14.4', '9.7.1']
     steps:
       - uses: actions/checkout@v4
