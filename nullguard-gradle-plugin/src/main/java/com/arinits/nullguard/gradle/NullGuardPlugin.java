@@ -41,6 +41,7 @@ public final class NullGuardPlugin implements Plugin<Project> {
                 task.getJavaLauncher().convention(toolchains.launcherFor(java.getToolchain()));
                 task.getSourceFiles().from(main.getAllJava());
                 task.getAnalysisClasspath().from(main.getCompileClasspath());
+                task.getSastClassDirectories().from(main.getOutput().getClassesDirs().getFiles());
                 task.getReportDirectory().convention(extension.getReportDirectory());
                 task.getFailBuild().convention(extension.getFailBuild());
                 task.getFailThreshold().convention(extension.getFailThreshold());

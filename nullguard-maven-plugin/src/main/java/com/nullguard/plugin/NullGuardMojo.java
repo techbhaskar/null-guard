@@ -118,6 +118,7 @@ public class NullGuardMojo extends AbstractMojo {
                     .classpathEntries(project.getCompileClasspathElements().stream()
                             .map(Paths::get)
                             .toList())
+                    .sastClassDirectories(java.util.List.of(Paths.get(project.getBuild().getOutputDirectory())))
                     .build();
 
             // ── 2. Run pipeline via bootstrap ───────────────────────────────

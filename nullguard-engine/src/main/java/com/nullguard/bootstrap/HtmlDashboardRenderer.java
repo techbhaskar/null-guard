@@ -3,7 +3,7 @@ package com.nullguard.bootstrap;
 /**
  * Renders the self-contained, offline interactive HTML dashboard from a {@link FinalAnalysisResult}.
  * Shared across Maven, Gradle, and the standalone CLI so every entry point produces the same
- * clean, modern 8-tab engineering intelligence experience.
+ * clean, modern 10-tab engineering intelligence experience.
  */
 public final class HtmlDashboardRenderer {
     private HtmlDashboardRenderer() {}
@@ -27,7 +27,7 @@ public final class HtmlDashboardRenderer {
 
     /**
      * Streams the dashboard. The report (which already carries findings, API endpoints,
-     * hotspots, suggestions, openApiSpec, architectureSummary, and cveSummary) is embedded
+     * hotspots, suggestions, openApiSpec, architectureSummary, cveSummary, and sastSummary) is embedded
      * exactly once, as script-safe JSON.
      */
     public static void write(java.io.Writer out, FinalAnalysisResult result, String timestamp, String projectName)
@@ -257,6 +257,10 @@ public final class HtmlDashboardRenderer {
                   <span>Reachable CVEs</span>
                   <span class="nav-count" id="cnt-cves">0</span>
                 </a>
+                <a onclick="show('sast')" class="nav-item" id="nav-sast">
+                  <span>SAST Scan</span>
+                  <span class="nav-count" id="cnt-sast">0</span>
+                </a>
               </nav>
 
               <div class="nav-group-label">API &amp; Contracts</div>
@@ -427,6 +431,21 @@ public final class HtmlDashboardRenderer {
                   </div>
                 </section>
 
+                <!-- 6. DEDICATED SAST -->
+                <section id="sast" class="content">
+                  <div class="kpi-grid" id="sastGrid"></div>
+                  <div class="card">
+                    <div class="card-header">
+                      <div>
+                        <h3 class="card-title">SpotBugs + FindSecBugs Static Application Security Testing</h3>
+                        <p class="card-subtitle">Bytecode-based security findings. Review each result; a clean scan is not proof of security.</p>
+                      </div>
+                    </div>
+                    <div id="sastStatus" class="card-subtitle" style="padding:0 20px 16px"></div>
+                    <div class="table-wrap"><table id="sastTable"></table></div>
+                  </div>
+                </section>
+
                 <!-- 6. ARCHITECTURAL HOTSPOTS -->
                 <section id="hotspots" class="content">
                   <div class="card">
@@ -495,6 +514,7 @@ public final class HtmlDashboardRenderer {
             const oas = data.openApiSpec || {};
             const arch = data.architectureSummary || {};
             const cve = data.cveSummary || {};
+            const sast = data.sastSummary || { status: 'NOT_RUN', reason: 'No SAST scan result is present in this report.', findings: [] };
             const inDegree = {};
             edges.forEach(e => inDegree[e.to] = (inDegree[e.to] || 0) + 1);
 
@@ -634,6 +654,7 @@ public final class HtmlDashboardRenderer {
             document.getElementById('cnt-overview').textContent = (data.findings || []).length;
             document.getElementById('cnt-quality').textContent = ((arch && arch.findings) || []).length;
             document.getElementById('cnt-cves').textContent = ((cve && cve.vulnerabilities) || []).length;
+            document.getElementById('cnt-sast').textContent = ((sast && sast.findings) || []).length;
             document.getElementById('cnt-swagger').textContent = pathEntries.length;
             document.getElementById('cnt-apis').textContent = (data.apiEndpoints || []).length;
             document.getElementById('cnt-hotspots').textContent = (data.hotspots || []).length;
@@ -1012,6 +1033,38 @@ public final class HtmlDashboardRenderer {
               });
             }
 
+            /* 6. Render dedicated SpotBugs + FindSecBugs results */
+            function renderSast() {
+              panel('sastTable', () => {
+                const findings = sast.findings || [];
+                const q = searchQuery.toLowerCase();
+                const visible = findings.filter(f => !q || [
+                  f.type, f.category, f.severity, f.message, f.path, f.line
+                ].join(' ').toLowerCase().includes(q));
+                const counts = sast.severityCounts || {};
+                const completed = sast.status === 'COMPLETED';
+                const partial = sast.status === 'PARTIAL';
+                const scanAvailable = completed || partial;
+                const missingClassCount = Number(sast.missingClassCount || 0);
+                document.getElementById('sastGrid').innerHTML = `
+                  <div class="kpi-box"><span class="kpi-label">Scan Status</span><span class="kpi-val">${completed ? 'Completed' : partial ? 'Partial' : 'Not run'}</span><span class="kpi-sub">${esc(sast.tool || 'SpotBugs + FindSecBugs')}</span></div>
+                  <div class="kpi-box"><span class="kpi-label">Compiled Classes</span><span class="kpi-val">${esc(sast.scannedClassCount ?? 0)}</span><span class="kpi-sub">Bytecode analyzed</span></div>
+                  <div class="kpi-box"><span class="kpi-label">Total Findings</span><span class="kpi-val">${esc(sast.findingCount ?? findings.length)}</span><span class="kpi-sub">Requires review; not all are exploitable</span></div>
+                  <div class="kpi-box"><span class="kpi-label">High / Medium / Low</span><span class="kpi-val">${counts.HIGH ?? 0} / ${counts.MEDIUM ?? 0} / ${counts.LOW ?? 0}</span><span class="kpi-sub">SpotBugs priority mapped to severity</span></div>`;
+                document.getElementById('sastStatus').textContent = scanAvailable
+                  ? `${partial ? 'Scan partially completed; results may be incomplete. ' : 'Scan completed. '}${missingClassCount ? `${missingClassCount} dependency classes could not be resolved. ` : ''}Findings are candidates for manual validation; absence of findings does not establish that the code is safe.`
+                  : (sast.reason || 'SAST scan was not run.');
+                document.getElementById('sastTable').innerHTML = `
+                  <thead><tr><th>Rule / Category</th><th>Severity</th><th>Source</th><th>Finding</th></tr></thead>
+                  <tbody>${visible.length ? visible.map(f => `<tr>
+                    <td><div class="method-title mono">${esc(f.type)}</div><div class="loc-tag">${esc(f.category)}</div></td>
+                    <td><span class="badge badge-${esc(f.severity)}">${esc(f.severity)} · Priority ${esc(f.priority)}</span></td>
+                    <td><div class="mono">${esc(f.path || 'Location unavailable')}${f.line ? `:${esc(f.line)}` : ''}</div></td>
+                    <td>${esc(f.message)}</td>
+                  </tr>`).join('') : `<tr><td colspan="4" class="empty-state">${scanAvailable ? 'No SAST findings match the current filter.' : esc(sast.reason || 'SAST scan was not run.')}</td></tr>`}</tbody>`;
+              });
+            }
+
             /* 6. Render Hotspots */
             function renderHotspots() {
               panel('hsTable', () => {
@@ -1102,6 +1155,7 @@ public final class HtmlDashboardRenderer {
               renderApis();
               renderQuality();
               renderCves();
+              renderSast();
               renderHotspots();
               renderMethods();
             }

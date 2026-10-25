@@ -548,6 +548,16 @@ java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar \
   --classpath=/work/orders-service/target/classes:/work/libs/shared-contracts.jar
 ```
 
+The dashboard's dedicated SAST section runs SpotBugs with FindSecBugs against compiled classes. The Maven integration scans its main output after compilation. Gradle supplies its main output directory when it exists but does not compile the application just to run NullGuard; run `classes` before `nullguard` for a SAST result. For the standalone CLI, compiled Maven outputs (`target/classes`) are discovered recursively beneath the supplied project path. You can use `--sast-classes` to explicitly select directories instead; this is separate from `--classpath`, which supplies types for source analysis:
+
+```powershell
+java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar `
+  C:\work\orders-service\src\main\java `
+  "--sast-classes=C:\work\orders-service\target\classes"
+```
+
+If no compiled classes are discovered or configured, the dashboard marks SAST as **Not run** and explains why; it does not report that as a clean scan. Provide dependency JARs on `--classpath` as well when analyzing applications that rely on external libraries.
+
 If a call cannot be resolved semantically, NullGuard keeps it external rather than guessing an internal target by name and arity. Supplying a complete classpath reduces unresolved calls; dependency bodies are not source-analyzed merely because their symbols resolve.
 
 ### CLI options
@@ -556,6 +566,7 @@ If a call cannot be resolved semantically, NullGuard keeps it external rather th
 | --- | ---: | --- |
 | `--output=<dir>` | `./nullguard-out` | Directory for generated HTML, JSON, OpenAPI, SARIF and DOT reports. |
 | `--classpath=<paths>` | empty | Dependency JARs and class directories separated by the platform path separator. |
+| `--sast-classes=<paths>` | auto-discover | Explicit compiled class directories to scan with SpotBugs + FindSecBugs, separated by the platform path separator; overrides recursive `target/classes` discovery. |
 | `--cve-input=<file>` | none | Optional external OSV or Trivy JSON vulnerability report for 3-tier reachability classification (`NG401`–`NG403`). |
 | `--cve-online` | disabled | Query the OSV.dev batch API (`https://api.osv.dev/v1/querybatch`) in addition to the built-in Maven CVE catalog. |
 | `--fail-build` | disabled | Return exit code `1` when the severity threshold is breached or an API-reachable CVE (`NG401`) is found. |
@@ -589,7 +600,9 @@ HTML generation is automatic across Maven, Gradle, and the standalone CLI:
 | Gradle, `runOnCheck=true` | `./gradlew check` | `build/reports/nullguard/nullguard-dashboard-latest.html` |
 | Standalone CLI | `java -jar … --output=nullguard-out` | `nullguard-out/nullguard-dashboard-latest.html` |
 
-Maven, Gradle, and the standalone CLI all generate the unified 8-tab interactive dashboard (`HtmlDashboardRenderer`), offering **Overview**, **API Flows**, **Swagger / OpenAPI**, **Code Quality & Arch**, **Reachable CVEs**, **Arch Hotspots**, **Method Explorer**, and **Raw JSON**.
+Maven, Gradle, and the standalone CLI all generate the unified 10-tab interactive dashboard (`HtmlDashboardRenderer`), offering **Overview**, **Memory & retention**, **Code Quality & Arch**, **Reachable CVEs**, **SAST Scan**, **Swagger / OpenAPI**, **API Flow Mapping**, **Arch Hotspots**, **Method Explorer**, and **Raw JSON**.
+
+The **SAST Scan** tab reports SpotBugs and FindSecBugs findings on compiled application classes, with SpotBugs priority mapped to High/Medium/Low for display. Findings are static-analysis candidates and require manual validation; a completed scan with no findings is not proof of security. Maven scans compiled main classes during `verify`. Gradle scans already-compiled main classes without triggering compilation; use `./gradlew classes nullguard` to ensure they are available. The CLI recursively discovers Maven `target/classes` directories beneath the supplied project path, or accepts explicit `--sast-classes=<paths>`; if no classes are found, it records an explicit **Not run** status.
 
 The **Memory & retention** tab includes a compact **Source locations & review guidance** table that lists the review signal, source location, enclosing symbol, and review guidance in a single readable layout. This is intended to help teams quickly assess whether a retention signal is a true leak candidate versus a static review note that still requires runtime confirmation.
 
@@ -680,9 +693,9 @@ build/reports/nullguard/
 └── nullguard-results.sarif
 ```
 
-- **HTML:** 8-tab offline interactive dashboard (`Overview`, `API Flows`, `Swagger / OpenAPI`, `Code Quality & Arch`, `Reachable CVEs`, `Arch Hotspots`, `Method Explorer`, `Raw JSON`).
+- **HTML:** 10-tab offline interactive dashboard (`Overview`, `Memory & retention`, `Code Quality & Arch`, `Reachable CVEs`, `SAST Scan`, `Swagger / OpenAPI`, `API Flow Mapping`, `Arch Hotspots`, `Method Explorer`, `Raw JSON`).
 - **OpenAPI (`nullguard-openapi.json`):** OpenAPI `3.0.3` specification extracted statically from Spring MVC and JAX-RS annotations (`@RequestMapping`, `@GetMapping`, `@PostMapping`, `@PathVariable`, `@RequestParam`, `@RequestHeader`, `@RequestBody`, DTO schemas) enriched with `x-nullguard-*` risk and blast-radius extensions.
-- **JSON (`nullguard-report-latest.json`):** schema version `1.0`; summary, call graph, findings, API endpoints, hotspots, suggestions, `openApiSpec`, `architectureSummary`, and `cveSummary`, suitable for custom automation.
+- **JSON (`nullguard-report-latest.json`):** schema version `1.0`; summary, call graph, findings, API endpoints, hotspots, suggestions, `openApiSpec`, `architectureSummary`, `cveSummary`, and `sastSummary`, suitable for custom automation.
 - **SARIF (`nullguard-results.sarif`):** version `2.1.0`; stable rule IDs (`NG001`–`NG403`) and file/line locations for compatible editor/CI consumers. Producing SARIF does not upload it to a code-scanning service.
 - **DOT (`nullguard-graph-latest.dot`):** visualize the call/risk graph. External methods are boxes; node colors correspond to modeled risk. Rendering to SVG requires Graphviz:
 
@@ -1026,7 +1039,7 @@ The current release focuses on source-based Java service analysis.
 - Dependency JARs and class directories improve symbol resolution, but only project source methods receive full source-level analysis.
 - Reflection, dynamic proxies, runtime dependency injection choices, and generated methods may create call paths that static analysis cannot resolve.
 - API discovery and static OpenAPI 3.0 generation target common Spring MVC and JAX-RS conventions (`@RequestMapping`, `@GetMapping`, `@PostMapping`, `@Path`, etc.) with class + method path composition.
-- Maven, Gradle, and the standalone CLI all emit the 8-tab interactive HTML dashboard (`nullguard-dashboard-latest.html`), `nullguard-openapi.json`, `nullguard-report-latest.json`, `nullguard-results.sarif`, and `nullguard-graph-latest.dot`.
+- Maven, Gradle, and the standalone CLI all emit the interactive HTML dashboard (`nullguard-dashboard-latest.html`), `nullguard-openapi.json`, `nullguard-report-latest.json`, `nullguard-results.sarif`, and `nullguard-graph-latest.dot`.
 - SARIF and source-linked findings are available. Dedicated IDE integration, incremental analysis, and automatic source rewriting are not implemented yet.
 - Reachable CVE classification (`NG401`–`NG403`) combines dependency discovery (`pom.xml`, `build.gradle`, `gradle.lockfile`, classpath JARs), built-in Maven CVE signatures, external OSV/Trivy imports (`--cve-input`), and optional OSV.dev queries (`--cve-online`) with call-graph reachability. It complements — rather than replaces — full SBOM/container scanners, tests, and runtime observability.
 
@@ -1188,4 +1201,3 @@ High-value next steps include:
 - Multi-module aggregation and cross-service contract modeling
 - IDE integrations and source-linked navigation
 - Incremental analysis and caching for large repositories
-
