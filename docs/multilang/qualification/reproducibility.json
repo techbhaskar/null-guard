@@ -1,0 +1,12 @@
+{
+  "platform": "macos-arm64",
+  "version": "2.0.0-preview.1",
+  "archiveHashesMatch": {
+    "python": true,
+    "ecmascript": true,
+    "csharp": true,
+    "go": true,
+    "rust": true
+  },
+  "note": "Two local builds using the documented toolchain. Detached signatures are excluded from hash comparison. Cross-host reproducibility not claimed. C# build paths are canonicalized before applying PathMap."
+}

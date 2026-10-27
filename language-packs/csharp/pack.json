@@ -1,0 +1,1 @@
+{"id":"csharp","version":"2.0.0-preview.1","protocolVersion":"1.0","languages":["csharp"],"command":["dotnet","${pack}/bin/nullguard-csharp.dll"],"runtimes":{"dotnet":">=10"},"limitations":["SDK-style C# only; no MSBuild target evaluation, restores or source generators","Missing generated source and project references are coverage gaps","VB.NET and F# are not supported"]}

@@ -1,0 +1,1 @@
+{"id":"ecmascript","version":"2.0.0-preview.1","protocolVersion":"1.0","languages":["javascript","typescript"],"command":["node","${pack}/analyzer.cjs"],"runtimes":{"node":">=22"},"limitations":["Angular HTML templates and generated source are excluded","No browser lifecycle or dynamic dispatch verification","Project strict-null settings are preserved"]}

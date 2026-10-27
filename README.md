@@ -19,6 +19,14 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 
 > **GitHub source release `1.1.2`:** includes overload/constructor correctness fixes, local object lifecycle analysis, and analysis-completeness reporting. See the [release notes](docs/releases/1.1.2.md). Maven Central publication of `1.1.2` is pending; use a local build to try these changes.
 
+## Multi-language preview in development
+
+The `2.0.0-preview.1` source adds optional Python, JavaScript/TypeScript, C#, Go
+and Rust packs. They are opt-in and experimental; release qualification is
+pending. See the [installation, language examples, report guide and capability
+limits](docs/multilang/README.md). Existing Maven/Gradle commands remain Java-only.
+
+
 ## Developer guide
 
 Accuracy evaluation: see the [review protocol and corpus](docs/evaluation/accuracy-protocol.md)

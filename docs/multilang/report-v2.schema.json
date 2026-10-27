@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NullGuard multi-language report 2.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "analyzerVersion",
+    "preview",
+    "status",
+    "projects",
+    "diagnostics"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "2.0"
+    },
+    "preview": {
+      "const": true
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "failed"
+      ]
+    },
+    "analyzerVersion": {
+      "type": "string"
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "$ref": "protocol-v1.schema.json"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

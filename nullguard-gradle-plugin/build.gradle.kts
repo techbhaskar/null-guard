@@ -4,7 +4,7 @@ plugins {
     signing
 }
 group = "com.arinits.nullguard"
-version = "1.1.2"
+version = "2.0.0-preview.1"
 repositories { mavenCentral() }
 java {
     toolchain { languageVersion.set(JavaLanguageVersion.of(21)) }

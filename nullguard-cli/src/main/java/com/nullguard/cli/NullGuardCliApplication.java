@@ -71,6 +71,7 @@ public final class NullGuardCliApplication {
      * @return exit code
      */
     public int run(String[] args) {
+        if (MultiLanguageCli.handles(args)) return MultiLanguageCli.run(args);
         try { return runValidated(args); }
         catch (IllegalArgumentException invalid) {
             System.err.println("[NullGuard] Invalid arguments: " + invalid.getMessage());
@@ -286,6 +287,7 @@ public final class NullGuardCliApplication {
     }
 
     private void printUsage() {
+        System.out.println("Multi-language preview: <path> --languages=auto | packs list/install/remove");
         System.out.println("Usage: nullguard-cli.jar <source-path> [options]");
         System.out.println("Options:");
         System.out.println("  --fail-build                  Fail with exit 1 if threshold breached");

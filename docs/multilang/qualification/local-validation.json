@@ -1,0 +1,29 @@
+{
+  "platform": "macos-arm64",
+  "java": "21",
+  "version": "2.0.0-preview.1",
+  "maven": {
+    "tests": 236,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "skipReason": "Opt-in performance benchmark"
+  },
+  "gradle": "passed",
+  "nativeBehavioralAndReviewTests": 20,
+  "signedCleanInstallMixedScanRemove": "passed",
+  "legacyCliMavenSmoke": "passed",
+  "jsonSchema2": "passed",
+  "sarifSchema": "passed",
+  "dashboardSyntaxAndVisualInspection": "passed",
+  "coverage": {
+    "instructionPercent": 92.6,
+    "branchPercent": 79.0,
+    "fullyCoveredLinePercent": 85.13
+  },
+  "releaseQualified": false,
+  "remaining": [
+    "Evidence-labeled real-application review",
+    "Linux and Windows installation of signed published assets"
+  ]
+}

@@ -32,3 +32,11 @@ __pycache__/
 **/.gradle/
 /nullguard-gradle-plugin/build/**
 /nullguard-suggestions/target/**
+
+# Optional language pack build outputs and local runtimes
+language-packs/**/node_modules/
+language-packs/**/bin/
+language-packs/**/obj/
+language-packs/**/target/
+**/__pycache__/
+/dist-packs/

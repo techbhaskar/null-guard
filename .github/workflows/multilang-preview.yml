@@ -1,0 +1,47 @@
+name: Qualify multi-language preview
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['language-packs/**', '**/multilang/**', 'scripts/*language*', 'scripts/tests/**']
+permissions:
+  contents: read
+jobs:
+  packs:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: language-packs/go/go.mod
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: mvn --batch-mode clean package
+      - run: npm --prefix language-packs/ecmascript ci --ignore-scripts --no-audit --no-fund
+      - run: go build -o bin/nullguard-go${{ runner.os == 'Windows' && '.exe' || '' }} .
+        working-directory: language-packs/go
+      - run: cargo build --locked --manifest-path language-packs/rust/Cargo.toml
+      - run: dotnet build language-packs/csharp/NullGuard.CSharp.csproj -p:RestoreLockedMode=true -o language-packs/csharp/bin
+      - run: python -m unittest discover -s scripts/tests -v
+      - run: python scripts/build_language_packs.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-preview-packs-${{ matrix.os }}
+          path: dist-packs/
+# Unsigned CI artifacts intentionally cannot be installed by the production
+# installer. Signed release-asset installation remains a release qualification gate.

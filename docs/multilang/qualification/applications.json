@@ -1,0 +1,57 @@
+[
+  {
+    "id": "pywal",
+    "url": "https://github.com/dylanaraps/pywal",
+    "commit": "236aa48e741ff8d65c4c3826db2813bf2ee6f352"
+  },
+  {
+    "id": "shot-scraper",
+    "url": "https://github.com/simonw/shot-scraper",
+    "commit": "63104b051124b9bad15339262cbef6e628e63917"
+  },
+  {
+    "id": "trash-cli",
+    "url": "https://github.com/sindresorhus/trash-cli",
+    "commit": "aa34e93727b2cc1fec5aa37761fd37f5aea11544"
+  },
+  {
+    "id": "pageres-cli",
+    "url": "https://github.com/sindresorhus/pageres-cli",
+    "commit": "46e474a33a9d4ecf6d3fab927db0e10cee604fa4"
+  },
+  {
+    "id": "serve",
+    "url": "https://github.com/vercel/serve",
+    "commit": "37b3a743fa90d0e11d7f5b5efe88c27017b7ee13"
+  },
+  {
+    "id": "np",
+    "url": "https://github.com/sindresorhus/np",
+    "commit": "5ca53e9a04158b2fa544fb9523ecb7e6b2db7ddc"
+  },
+  {
+    "id": "diagnostics",
+    "url": "https://github.com/dotnet/diagnostics",
+    "commit": "0bcf621149f9b519a29f99f68f417a96c2b49cfe"
+  },
+  {
+    "id": "assetfinder",
+    "url": "https://github.com/tomnomnom/assetfinder",
+    "commit": "4e95d8701aae8cff1c27af2626eb22ba110ad583"
+  },
+  {
+    "id": "httprobe",
+    "url": "https://github.com/tomnomnom/httprobe",
+    "commit": "0745f649beb01c3cf712e0c52f9760d8a92cfdc2"
+  },
+  {
+    "id": "hexyl",
+    "url": "https://github.com/sharkdp/hexyl",
+    "commit": "6ecc29b9c8c84d08a7e860f7f69c22b113b480ea"
+  },
+  {
+    "id": "fd",
+    "url": "https://github.com/sharkdp/fd",
+    "commit": "c44735ec0f130c2486afe9c976937c03b57a8c62"
+  }
+]
