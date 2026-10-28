@@ -156,12 +156,14 @@ public final class PackManager {
     Process importer =
         new ProcessBuilder(
                 "gpg",
+                "--homedir",
+                work.toString().replace('\\', '/'),
                 "--batch",
                 "--yes",
                 "--dearmor",
                 "--output",
-                keyring.toString(),
-                pub.toString())
+                keyring.toString().replace('\\', '/'),
+                pub.toString().replace('\\', '/'))
             .redirectErrorStream(true)
             .redirectOutput(log.toFile())
             .start();
@@ -172,12 +174,14 @@ public final class PackManager {
     Process verify =
         new ProcessBuilder(
                 "gpgv",
+                "--homedir",
+                work.toString().replace('\\', '/'),
                 "--status-fd",
                 "1",
                 "--keyring",
-                keyring.toString(),
-                sig.toString(),
-                zip.toString())
+                keyring.toString().replace('\\', '/'),
+                sig.toString().replace('\\', '/'),
+                zip.toString().replace('\\', '/'))
             .redirectErrorStream(true)
             .redirectOutput(log.toFile())
             .start();
@@ -185,7 +189,9 @@ public final class PackManager {
         || verify.exitValue() != 0
         || !Files.readString(log).contains("VALIDSIG " + SIGNER)) {
       verify.destroyForcibly();
-      throw new IOException("Pack signature is not valid for the trusted release key");
+      String detail = Files.readString(log);
+      throw new IOException("Pack signature is not valid for the trusted release key: "
+          + detail.substring(0, Math.min(detail.length(), 4096)));
     }
   }
 
