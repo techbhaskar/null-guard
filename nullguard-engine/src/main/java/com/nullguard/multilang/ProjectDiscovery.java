@@ -78,6 +78,22 @@ public final class ProjectDiscovery {
     manifests.forEach(
         (path, packs) ->
             packs.forEach(pack -> groups.putIfAbsent(new Key(path, pack), new ArrayList<>())));
+    // Virtual workspace/aggregator manifests have no executable source of their
+    // own. Keep genuinely empty projects visible, including malformed metadata.
+    Set<Key> aggregates = new HashSet<>();
+    for (var entry : groups.entrySet()) {
+      var key = entry.getKey();
+      if (entry.getValue().isEmpty()
+          && groups.entrySet().stream()
+              .anyMatch(
+                  child ->
+                      !child.getKey().equals(key)
+                          && child.getKey().pack().equals(key.pack())
+                          && child.getKey().root().startsWith(key.root())
+                          && !child.getValue().isEmpty())
+          && WorkspaceMetadata.aggregate(key.root(), key.pack())) aggregates.add(key);
+    }
+    aggregates.forEach(groups::remove);
     List<ProjectSpec> result = new ArrayList<>();
     groups.forEach(
         (key, files) -> {
