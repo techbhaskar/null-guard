@@ -3,27 +3,42 @@
   "java": "21",
   "version": "2.0.0-preview.1",
   "maven": {
-    "tests": 236,
+    "tests": 243,
     "failures": 0,
     "errors": 0,
     "skipped": 1,
     "skipReason": "Opt-in performance benchmark"
   },
   "gradle": "passed",
-  "nativeBehavioralAndReviewTests": 20,
+  "nativeBehavioralAndReviewTests": 40,
   "signedCleanInstallMixedScanRemove": "passed",
   "legacyCliMavenSmoke": "passed",
   "jsonSchema2": "passed",
   "sarifSchema": "passed",
   "dashboardSyntaxAndVisualInspection": "passed",
   "coverage": {
-    "instructionPercent": 92.6,
-    "branchPercent": 79.0,
-    "fullyCoveredLinePercent": 85.13
+    "instructionPercent": 92.7,
+    "branchPercent": 79.1,
+    "fullyCoveredLinePercent": 85.19
   },
   "releaseQualified": false,
   "remaining": [
-    "Evidence-labeled real-application review",
-    "Linux and Windows installation of signed published assets"
-  ]
+    "Post-fix source-evidence review",
+    "Windows execution and signed installation",
+    "Clean installation from published signed assets on all three platforms"
+  ],
+  "implementationCommit": "e4038b1",
+  "signedCleanInstallPlatforms": [
+    "macos-arm64",
+    "linux-arm64"
+  ],
+  "sourceReview": {
+    "scope": "frozen baseline and supplemental Rust sample",
+    "reviewed": 271,
+    "falsePositive": 128,
+    "uncertain": 143,
+    "truePositive": 0,
+    "independentHumanReview": false,
+    "postFixAccuracyClaim": false
+  }
 }

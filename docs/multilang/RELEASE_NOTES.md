@@ -18,11 +18,12 @@ macro/generated-code expansion, new framework OpenAPI generation and advisory
 reachability are unavailable. Missing packs, failed parsing and unsupported
 configurations produce analysis-error status rather than a clean scan.
 
-Local validation covers Java 21, macOS arm64 signed installs, mixed examples,
-compiler-backed fixtures, report schemas and archive reproducibility. The pinned
-application scans have explicit coverage gaps and have not completed the required
-source-evidence accuracy review. Linux/Windows signed-asset verification remains
-pending; the checked-in CI workflow prepares that platform matrix.
+Local validation covers Java 21, macOS/Linux arm64 signed local installs, mixed
+examples, 40 compiler-backed/review tests, report schemas and archive reproducibility.
+The frozen 271-finding source review exposed false positives and uncertain contracts;
+no rules have earned high-confidence status. Corrected findings still need source
+review. Windows execution and clean installation from published signed assets remain
+pending; the checked-in CI workflow builds the platform matrix.
 
 Do not publish this draft as a qualified release until the gates in
 `qualification/README.md` are satisfied.

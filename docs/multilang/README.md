@@ -76,13 +76,14 @@ Maven and Gradle integrations remain Java-only and preserve schema 1.0 behavior.
 |---|---|---|
 | Python | Python >=3.11; host `ast` and `symtable` | No module imports, dynamic attributes or decorator execution |
 | ECMAScript | Node >=22; TypeScript 6.0.3 compiler API | Host project null settings preserved; no Angular HTML templates or browser lifecycle checks |
-| C# | .NET 10; Roslyn 5.0.0 | SDK-style C# only; missing restore/generated/framework assets produce gaps; no VB/F# |
-| Go | Compatible installed Go; x/tools v0.52.0 | Module/build-tag/platform dependent; no automatic module download; unresolved calls remain unknown |
-| Rust | Stable compatible Cargo; locked syn/cargo_metadata | No macro expansion, unresolved trait dispatch, raw-pointer/borrow verification; standard Option/Result identity required |
+| C# | .NET 10; Roslyn 5.0.0 | SDK-style C# only; missing restore/generated/framework assets produce gaps; local/lambda CFG bodies unsupported; no VB/F# |
+| Go | Compatible installed Go; x/tools v0.52.0 | Module/build-tag/platform dependent; test files excluded; no automatic module download; unresolved calls remain unknown |
+| Rust | Stable compatible Cargo; locked syn/cargo_metadata | No macro expansion, unresolved trait dispatch, raw-pointer/borrow verification; standard Option/Result identity required; ambiguous imports and aliases remain unknown |
 
 Tested locally: macOS arm64, Java 21, Python 3.13, Node 22.22.0,
-Go 1.27.2, Rust 1.99.0 and .NET SDK 10.0.401. Linux and Windows execution must
-be verified by the qualification workflow before publishing. This is not a claim
+Go 1.27.2, Rust 1.99.0 and .NET SDK 10.0.401. Signed local assets also pass
+clean installation and behavioral tests in a Linux arm64 container. Windows execution
+and signed published-asset installation on all three platforms remain release gates. This is not a claim
 that every version above each runtime minimum has been tested.
 
 Dependency inputs: npm/pnpm/Yarn locks, pinned requirements/Poetry/uv, NuGet

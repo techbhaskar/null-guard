@@ -1,11 +1,13 @@
 [
   {
     "application": "pywal",
+    "repository": "pywal",
     "language": "python",
-    "scope": "pywal",
+    "scope": ".",
+    "commit": "236aa48e741ff8d65c4c3826db2813bf2ee6f352",
     "status": "complete",
     "exitCode": 0,
-    "findingCount": 657,
+    "findingCount": 500,
     "projects": [
       {
         "project": ".:python",
@@ -17,24 +19,26 @@
             "discoveredFiles": 26,
             "failedFiles": 0,
             "missingDependencies": [],
-            "unresolvedSymbols": 556,
+            "unresolvedSymbols": 559,
             "unsupportedFiles": 0
           }
         },
+        "diagnosticCount": 1,
         "diagnostics": [
           "Dynamic imports, decorators and runtime attribute contracts are not executed or inferred"
-        ],
-        "diagnosticCount": 1
+        ]
       }
     ]
   },
   {
     "application": "shot-scraper",
+    "repository": "shot-scraper",
     "language": "python",
-    "scope": "shot-scraper",
+    "scope": ".",
+    "commit": "63104b051124b9bad15339262cbef6e628e63917",
     "status": "partial",
     "exitCode": 3,
-    "findingCount": 904,
+    "findingCount": 749,
     "projects": [
       {
         "project": ".:python",
@@ -48,14 +52,14 @@
             "missingDependencies": [
               "No resolved dependency versions were available for .:python"
             ],
-            "unresolvedSymbols": 935,
+            "unresolvedSymbols": 971,
             "unsupportedFiles": 0
           }
         },
+        "diagnosticCount": 1,
         "diagnostics": [
           "Dynamic imports, decorators and runtime attribute contracts are not executed or inferred"
-        ],
-        "diagnosticCount": 1
+        ]
       },
       {
         "project": "docs:python",
@@ -71,86 +75,107 @@
             "unsupportedFiles": 0
           }
         },
+        "diagnosticCount": 5,
         "diagnostics": [
           "Dynamic imports, decorators and runtime attribute contracts are not executed or inferred",
           "Unresolved requirements entry: sphinx-autobuild",
           "Unresolved requirements entry: sphinx-copybutton",
           "Unresolved requirements entry: myst-parser",
           "Unresolved requirements entry: cogapp"
-        ],
-        "diagnosticCount": 5
+        ]
       }
     ]
   },
   {
-    "application": "trash-cli",
+    "application": "http-server",
+    "repository": "http-server",
     "language": "javascript",
-    "scope": "trash-cli",
-    "status": "partial",
-    "exitCode": 3,
-    "findingCount": 47,
+    "scope": ".",
+    "commit": "0d3b7bb5b6e8a59fd450ae2dca65870009cfcd8b",
+    "status": "complete",
+    "exitCode": 0,
+    "findingCount": 3613,
     "projects": [
       {
         "project": ".:ecmascript",
-        "status": "partial",
+        "status": "complete",
+        "coverage": {
+          "javascript": {
+            "discoveredFiles": 63,
+            "analyzedFiles": 63,
+            "failedFiles": 0,
+            "unsupportedFiles": 0,
+            "unresolvedSymbols": 1858,
+            "budgetExhausted": false,
+            "missingDependencies": []
+          }
+        },
+        "diagnosticCount": 1,
+        "diagnostics": [
+          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "husky",
+    "repository": "husky",
+    "language": "javascript",
+    "scope": ".",
+    "commit": "3f0023dc10d7003d70f2e31aa56300eab80e76d6",
+    "status": "complete",
+    "exitCode": 0,
+    "findingCount": 36,
+    "projects": [
+      {
+        "project": ".:ecmascript",
+        "status": "complete",
         "coverage": {
           "javascript": {
             "discoveredFiles": 2,
             "analyzedFiles": 2,
             "failedFiles": 0,
             "unsupportedFiles": 0,
-            "unresolvedSymbols": 43,
+            "unresolvedSymbols": 19,
             "budgetExhausted": false,
-            "missingDependencies": [
-              "No resolved dependency versions were available for .:ecmascript"
-            ]
+            "missingDependencies": []
           }
         },
+        "diagnosticCount": 1,
         "diagnostics": [
           "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
-        ],
-        "diagnosticCount": 1
-      }
-    ]
-  },
-  {
-    "application": "pageres-cli",
-    "language": "javascript",
-    "scope": "pageres-cli",
-    "status": "partial",
-    "exitCode": 3,
-    "findingCount": 82,
-    "projects": [
+        ]
+      },
       {
-        "project": ".:ecmascript",
-        "status": "partial",
+        "project": "docs:ecmascript",
+        "status": "complete",
         "coverage": {
           "javascript": {
-            "discoveredFiles": 2,
-            "analyzedFiles": 2,
+            "discoveredFiles": 1,
+            "analyzedFiles": 1,
             "failedFiles": 0,
             "unsupportedFiles": 0,
-            "unresolvedSymbols": 60,
+            "unresolvedSymbols": 2,
             "budgetExhausted": false,
-            "missingDependencies": [
-              "No resolved dependency versions were available for .:ecmascript"
-            ]
+            "missingDependencies": []
           }
         },
+        "diagnosticCount": 1,
         "diagnostics": [
           "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
-        ],
-        "diagnosticCount": 1
+        ]
       }
     ]
   },
   {
     "application": "serve",
+    "repository": "serve",
     "language": "typescript",
-    "scope": "serve",
+    "scope": ".",
+    "commit": "37b3a743fa90d0e11d7f5b5efe88c27017b7ee13",
     "status": "partial",
     "exitCode": 3,
-    "findingCount": 102,
+    "findingCount": 145,
     "projects": [
       {
         "project": ".:ecmascript",
@@ -177,12 +202,12 @@
             ]
           }
         },
+        "diagnosticCount": 3,
         "diagnostics": [
           "File '@vercel/style-guide/typescript' not found.",
           "Files outside project configuration or disabled by allowJs are unsupported: config/vitest.ts, tests/cli.test.ts, tests/config.test.ts, tests/server.ssl.test.ts, tests/server.test.ts",
           "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
-        ],
-        "diagnosticCount": 3
+        ]
       },
       {
         "project": "tests/__fixtures__/config/deprecated:ecmascript",
@@ -198,438 +223,69 @@
             "missingDependencies": []
           }
         },
+        "diagnosticCount": 1,
         "diagnostics": [
           "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
+        ]
       }
     ]
   },
   {
-    "application": "np",
+    "application": "json-server",
+    "repository": "json-server",
     "language": "typescript",
-    "scope": "np",
+    "scope": ".",
+    "commit": "89a34a44b7a6a5311dc84f3b8a1b8b45c0905aea",
     "status": "partial",
     "exitCode": 3,
-    "findingCount": 4,
+    "findingCount": 196,
     "projects": [
       {
         "project": ".:ecmascript",
         "status": "partial",
         "coverage": {
           "typescript": {
-            "discoveredFiles": 4,
-            "analyzedFiles": 4,
+            "discoveredFiles": 16,
+            "analyzedFiles": 10,
             "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
+            "unsupportedFiles": 6,
+            "unresolvedSymbols": 107,
             "budgetExhausted": false,
             "missingDependencies": [
-              "Cannot find module 'execa' or its corresponding type declarations.",
-              "No resolved dependency versions were available for .:ecmascript"
+              "Cannot find module '@tinyhttp/app' or its corresponding type declarations.",
+              "Cannot find module '@tinyhttp/cors' or its corresponding type declarations.",
+              "Cannot find module 'chalk' or its corresponding type declarations.",
+              "Cannot find module 'chokidar' or its corresponding type declarations.",
+              "Cannot find module 'dot-prop' or its corresponding type declarations.",
+              "Cannot find module 'eta' or its corresponding type declarations.",
+              "Cannot find module 'inflection' or its corresponding type declarations.",
+              "Cannot find module 'json5' or its corresponding type declarations.",
+              "Cannot find module 'lowdb' or its corresponding type declarations.",
+              "Cannot find module 'lowdb/node' or its corresponding type declarations.",
+              "Cannot find module 'milliparsec' or its corresponding type declarations.",
+              "Cannot find module 'sirv' or its corresponding type declarations.",
+              "Cannot find module 'sort-on' or its corresponding type declarations.",
+              "Cannot find module 'type-fest' or its corresponding type declarations."
             ]
           }
         },
+        "diagnosticCount": 2,
         "diagnostics": [
+          "Files outside project configuration or disabled by allowJs are unsupported: src/adapters/normalized-adapter.test.ts, src/app.test.ts, src/matches-where.test.ts, src/paginate.test.ts, src/parse-where.test.ts, src/service.test.ts",
           "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/config/flag-precedence:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/config/local4:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/config/pkg-dir:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/config:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/dot-github:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/failing-prepack-script:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/files-and-npmignore:ecmascript",
-        "status": "partial",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 2,
-            "analyzedFiles": 2,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 2,
-            "budgetExhausted": false,
-            "missingDependencies": [
-              "Cannot find module 'tsd' or its corresponding type declarations."
-            ]
-          }
-        },
-        "diagnostics": [
-          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/files-slash:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/gitignore:ecmascript",
-        "status": "partial",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 2,
-            "analyzedFiles": 2,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 1,
-            "budgetExhausted": false,
-            "missingDependencies": [
-              "Cannot find module 'tsd' or its corresponding type declarations."
-            ]
-          }
-        },
-        "diagnostics": [
-          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/has-readme-and-license:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/main:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/missing-bin:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/missing-main:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/npmignore-and-gitignore:ecmascript",
-        "status": "complete",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 1,
-            "analyzedFiles": 1,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/npmignore:ecmascript",
-        "status": "partial",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 2,
-            "analyzedFiles": 2,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 1,
-            "budgetExhausted": false,
-            "missingDependencies": [
-              "Cannot find module 'tsd' or its corresponding type declarations."
-            ]
-          }
-        },
-        "diagnostics": [
-          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/one-file:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/prepack-generated-entry-point:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/prepare-script:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/source-and-dist-dir:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
-      },
-      {
-        "project": "test/fixtures/files/source-dir:ecmascript",
-        "status": "failed",
-        "coverage": {
-          "typescript": {
-            "discoveredFiles": 0,
-            "analyzedFiles": 0,
-            "failedFiles": 0,
-            "unsupportedFiles": 0,
-            "unresolvedSymbols": 0,
-            "budgetExhausted": false,
-            "missingDependencies": []
-          }
-        },
-        "diagnostics": [
-          "IllegalStateException: No selected-language source files in this project"
-        ],
-        "diagnosticCount": 1
+        ]
       }
     ]
   },
   {
     "application": "dotnet-counters",
+    "repository": "diagnostics",
     "language": "csharp",
-    "scope": "diagnostics/src/Tools/dotnet-counters",
+    "scope": "src/Tools/dotnet-counters",
+    "commit": "0bcf621149f9b519a29f99f68f417a96c2b49cfe",
     "status": "partial",
     "exitCode": 3,
-    "findingCount": 197,
+    "findingCount": 153,
     "projects": [
       {
         "project": ".:csharp",
@@ -640,7 +296,7 @@
             "analyzedFiles": 8,
             "failedFiles": 0,
             "unsupportedFiles": 0,
-            "unresolvedSymbols": 172,
+            "unresolvedSymbols": 201,
             "budgetExhausted": false,
             "missingDependencies": [
               "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(105,42): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
@@ -794,21 +450,23 @@
             ]
           }
         },
+        "diagnosticCount": 2,
         "diagnostics": [
           "Local function/lambda CFGs not yet lowered: 21",
           "No MSBuild execution, source generators, dynamic dispatch or generated source analysis"
-        ],
-        "diagnosticCount": 2
+        ]
       }
     ]
   },
   {
     "application": "dotnet-trace",
+    "repository": "diagnostics",
     "language": "csharp",
-    "scope": "diagnostics/src/Tools/dotnet-trace",
+    "scope": "src/Tools/dotnet-trace",
+    "commit": "0bcf621149f9b519a29f99f68f417a96c2b49cfe",
     "status": "partial",
     "exitCode": 3,
-    "findingCount": 193,
+    "findingCount": 145,
     "projects": [
       {
         "project": ".:csharp",
@@ -819,7 +477,7 @@
             "analyzedFiles": 12,
             "failedFiles": 0,
             "unsupportedFiles": 0,
-            "unresolvedSymbols": 258,
+            "unresolvedSymbols": 317,
             "budgetExhausted": false,
             "missingDependencies": [
               "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(108,37): error CS0103: The name 'ReturnCode' does not exist in the current context",
@@ -1089,52 +747,23 @@
             ]
           }
         },
+        "diagnosticCount": 2,
         "diagnostics": [
           "Local function/lambda CFGs not yet lowered: 31",
           "No MSBuild execution, source generators, dynamic dispatch or generated source analysis"
-        ],
-        "diagnosticCount": 2
-      }
-    ]
-  },
-  {
-    "application": "assetfinder",
-    "language": "go",
-    "scope": "assetfinder",
-    "status": "partial",
-    "exitCode": 3,
-    "findingCount": 0,
-    "projects": [
-      {
-        "project": ".:go",
-        "status": "partial",
-        "coverage": {
-          "go": {
-            "analyzedFiles": 0,
-            "budgetExhausted": false,
-            "discoveredFiles": 12,
-            "failedFiles": 12,
-            "missingDependencies": [
-              "pattern ./...: directory prefix . does not contain main module or its selected dependencies"
-            ],
-            "unresolvedSymbols": 0,
-            "unsupportedFiles": 0
-          }
-        },
-        "diagnostics": [
-          "-: pattern ./...: directory prefix . does not contain main module or its selected dependencies"
-        ],
-        "diagnosticCount": 1
+        ]
       }
     ]
   },
   {
     "application": "httprobe",
+    "repository": "httprobe",
     "language": "go",
-    "scope": "httprobe",
+    "scope": ".",
+    "commit": "0745f649beb01c3cf712e0c52f9760d8a92cfdc2",
     "status": "complete",
     "exitCode": 0,
-    "findingCount": 29,
+    "findingCount": 2,
     "projects": [
       {
         "project": ".:go",
@@ -1150,18 +779,49 @@
             "unsupportedFiles": 0
           }
         },
-        "diagnostics": [],
-        "diagnosticCount": 0
+        "diagnosticCount": 0,
+        "diagnostics": []
+      }
+    ]
+  },
+  {
+    "application": "qsreplace",
+    "repository": "qsreplace",
+    "language": "go",
+    "scope": ".",
+    "commit": "320475befaf66d986400aa8c3ed9b43e0b6b5a02",
+    "status": "complete",
+    "exitCode": 0,
+    "findingCount": 0,
+    "projects": [
+      {
+        "project": ".:go",
+        "status": "complete",
+        "coverage": {
+          "go": {
+            "analyzedFiles": 1,
+            "budgetExhausted": false,
+            "discoveredFiles": 1,
+            "failedFiles": 0,
+            "missingDependencies": [],
+            "unresolvedSymbols": 0,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 0,
+        "diagnostics": []
       }
     ]
   },
   {
     "application": "hexyl",
+    "repository": "hexyl",
     "language": "rust",
-    "scope": "hexyl",
+    "scope": ".",
+    "commit": "6ecc29b9c8c84d08a7e860f7f69c22b113b480ea",
     "status": "partial",
     "exitCode": 3,
-    "findingCount": 6,
+    "findingCount": 4,
     "projects": [
       {
         "project": ".:rust",
@@ -1169,31 +829,33 @@
         "coverage": {
           "rust": {
             "analyzedFiles": 7,
-            "budgetExhausted": false,
+            "budgetExhausted": true,
             "discoveredFiles": 7,
             "failedFiles": 0,
             "missingDependencies": [
               "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `anyhow` found\nlocation searched: crates.io index\nrequired by package `hexyl v0.17.0 (<applications>/hexyl)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
             ],
-            "unresolvedSymbols": 488,
-            "unsupportedExpressionVisits": 352,
+            "unresolvedSymbols": 532,
+            "unsupportedExpressionVisits": 372,
             "unsupportedFiles": 0
           }
         },
+        "diagnosticCount": 4,
         "diagnostics": [
           "Closure bodies are not yet lowered",
           "Inline/external module dispatch is not semantically expanded",
           "Macro bodies are not expanded; expressions inside macros are not analyzed",
           "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `anyhow` found\nlocation searched: crates.io index\nrequired by package `hexyl v0.17.0 (<applications>/hexyl)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
-        ],
-        "diagnosticCount": 4
+        ]
       }
     ]
   },
   {
     "application": "fd",
+    "repository": "fd",
     "language": "rust",
-    "scope": "fd",
+    "scope": ".",
+    "commit": "c44735ec0f130c2486afe9c976937c03b57a8c62",
     "status": "partial",
     "exitCode": 3,
     "findingCount": 5,
@@ -1210,18 +872,106 @@
             "missingDependencies": [
               "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `aho-corasick` found\nlocation searched: crates.io index\nrequired by package `fd-find v10.5.0 (<applications>/fd)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
             ],
-            "unresolvedSymbols": 1601,
-            "unsupportedExpressionVisits": 738,
+            "unresolvedSymbols": 1592,
+            "unsupportedExpressionVisits": 744,
             "unsupportedFiles": 0
           }
         },
+        "diagnosticCount": 4,
         "diagnostics": [
           "Closure bodies are not yet lowered",
           "Inline/external module dispatch is not semantically expanded",
           "Macro bodies are not expanded; expressions inside macros are not analyzed",
           "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `aho-corasick` found\nlocation searched: crates.io index\nrequired by package `fd-find v10.5.0 (<applications>/fd)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
-        ],
-        "diagnosticCount": 4
+        ]
+      }
+    ]
+  },
+  {
+    "application": "just",
+    "repository": "just",
+    "language": "rust",
+    "scope": ".",
+    "commit": "c7317c85c21ebd83ea4bb8de26f8afec44c7e597",
+    "status": "partial",
+    "exitCode": 3,
+    "findingCount": 34,
+    "projects": [
+      {
+        "project": ".:rust",
+        "status": "partial",
+        "coverage": {
+          "rust": {
+            "analyzedFiles": 269,
+            "budgetExhausted": false,
+            "discoveredFiles": 269,
+            "failedFiles": 0,
+            "missingDependencies": [
+              "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+            ],
+            "unresolvedSymbols": 17603,
+            "unsupportedExpressionVisits": 2847,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 4,
+        "diagnostics": [
+          "Closure bodies are not yet lowered",
+          "Inline/external module dispatch is not semantically expanded",
+          "Macro bodies are not expanded; expressions inside macros are not analyzed",
+          "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+        ]
+      },
+      {
+        "project": "crates/action-versions:rust",
+        "status": "partial",
+        "coverage": {
+          "rust": {
+            "analyzedFiles": 2,
+            "budgetExhausted": false,
+            "discoveredFiles": 2,
+            "failedFiles": 0,
+            "missingDependencies": [
+              "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n",
+              "No resolved dependency versions were available for crates/action-versions:rust"
+            ],
+            "unresolvedSymbols": 56,
+            "unsupportedExpressionVisits": 29,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 4,
+        "diagnostics": [
+          "Closure bodies are not yet lowered",
+          "Inline/external module dispatch is not semantically expanded",
+          "Macro bodies are not expanded; expressions inside macros are not analyzed",
+          "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+        ]
+      },
+      {
+        "project": "crates/generate-book:rust",
+        "status": "partial",
+        "coverage": {
+          "rust": {
+            "analyzedFiles": 1,
+            "budgetExhausted": false,
+            "discoveredFiles": 1,
+            "failedFiles": 0,
+            "missingDependencies": [
+              "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n",
+              "No resolved dependency versions were available for crates/generate-book:rust"
+            ],
+            "unresolvedSymbols": 67,
+            "unsupportedExpressionVisits": 124,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 3,
+        "diagnostics": [
+          "Closure bodies are not yet lowered",
+          "Macro bodies are not expanded; expressions inside macros are not analyzed",
+          "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+        ]
       }
     ]
   }
