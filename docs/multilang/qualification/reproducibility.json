@@ -1,0 +1,20 @@
+{
+  "platform": "macos-arm64",
+  "version": "2.0.0-preview.1",
+  "archiveHashesMatch": {
+    "python": true,
+    "ecmascript": true,
+    "csharp": true,
+    "go": true,
+    "rust": true
+  },
+  "note": "Two local builds using the documented toolchain. Detached signatures are excluded from hash comparison. Cross-host reproducibility not claimed. C# build paths are canonicalized before applying PathMap.",
+  "implementationCommit": "e4038b1",
+  "sha256": {
+    "python": "b14a1aa46a13e1630543af3c8818fe02d8bfc6fb30deb9201db17ecc33eff15f",
+    "ecmascript": "857b9bcbb72cc636ca7d740e0571f0643c6a8ee99b491c8e4cba6c8990f8cf09",
+    "csharp": "58a5e4092425f067546b2ee80851005c5bde77703164b8f1a01ec503ce2012e3",
+    "go": "3b4e6a9ca15187ebad84d40d8ea5e121968d95be711d7a84b62c936dfdf26edd",
+    "rust": "04c7a4adb28d7fe9b6a5e2183ef0b72d30b2c37bb04402b9406c8152a04f2d60"
+  }
+}

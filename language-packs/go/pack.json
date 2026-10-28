@@ -1,0 +1,1 @@
+{"id":"go","version":"2.0.0-preview.1","protocolVersion":"1.0","languages":["go"],"command":["${pack}/bin/nullguard-go"],"runtimes":{"go":">=1.26, local toolchain only"},"limitations":["Only the selected Go target and build tags are analyzed","Dependencies must already exist locally","Dynamic function values and unresolved interface dispatch remain unknown"]}

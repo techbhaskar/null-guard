@@ -1,0 +1,91 @@
+{
+  "platform": "macos-arm64",
+  "java": "21",
+  "version": "2.0.0-preview.1",
+  "maven": {
+    "tests": 243,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "skipReason": "Opt-in performance benchmark"
+  },
+  "gradle": "passed",
+  "nativeBehavioralAndReviewTests": 40,
+  "signedCleanInstallMixedScanRemove": "passed",
+  "legacyCliMavenSmoke": "passed",
+  "jsonSchema2": "passed",
+  "sarifSchema": "passed",
+  "dashboardSyntaxAndVisualInspection": "passed",
+  "coverage": {
+    "instructionPercent": 92.7,
+    "branchPercent": 79.1,
+    "fullyCoveredLinePercent": 85.2
+  },
+  "releaseQualified": false,
+  "remaining": [
+    "Post-fix source-evidence review",
+    "Windows signed installation of all five packs",
+    "Clean installation from published signed assets on all three platforms"
+  ],
+  "implementationCommit": "6330a5275abfe652365897659e6443030272c48a",
+  "signedCleanInstallPlatforms": [
+    "macos-arm64",
+    "linux-arm64"
+  ],
+  "sourceReview": {
+    "scope": "frozen baseline and supplemental Rust sample",
+    "reviewed": 271,
+    "falsePositive": 128,
+    "uncertain": 143,
+    "truePositive": 0,
+    "independentHumanReview": false,
+    "postFixAccuracyClaim": false
+  },
+  "testHarnessCommit": "d5be39f5fd516dfcea94360da1ce254a6bc285fb",
+  "testedLocalRuntimes": [
+    {
+      "platform": "Darwin-arm64",
+      "versions": {
+        "python": "Python 3.13.13",
+        "node": "v26.8.1",
+        "go": "go version go1.27.2 darwin/arm64",
+        "rust": "rustc 1.99.0 (b940084d7 2026-09-28) (Homebrew)",
+        "dotnet": "10.0.401",
+        "java": "java version \"21.0.9\" 2025-10-21 LTS"
+      }
+    },
+    {
+      "platform": "Linux-aarch64",
+      "versions": {
+        "python": "Python 3.12.3",
+        "node": "v22.23.4",
+        "go": "go version go1.27.2 linux/arm64",
+        "rust": "rustc 1.99.0 (b940084d7 2026-09-28)",
+        "dotnet": "10.0.403",
+        "java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS"
+      }
+    }
+  ],
+  "ci": {
+    "commit": "d5be39f5fd516dfcea94360da1ce254a6bc285fb",
+    "packs": {
+      "url": "https://github.com/techbhaskar/null-guard/actions/runs/40641075666",
+      "jobs": {
+        "packs (ubuntu-latest)": "success",
+        "packs (windows-latest)": "success",
+        "packs (macos-latest)": "success"
+      },
+      "assetSigning": "unsigned CI build artifacts; not production signed-install evidence"
+    },
+    "javaAndGradle": {
+      "url": "https://github.com/techbhaskar/null-guard/actions/runs/40641075702",
+      "jobs": {
+        "verify (ubuntu-latest, 21)": "success",
+        "benchmark": "success",
+        "verify (windows-latest, 21)": "success",
+        "gradle-integration (21, 9.7.1)": "success",
+        "gradle-integration (21, 8.14.4)": "success"
+      }
+    }
+  }
+}

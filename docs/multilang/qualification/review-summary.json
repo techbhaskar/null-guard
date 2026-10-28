@@ -1,0 +1,89 @@
+{
+  "reviewer": "Codex source inspection",
+  "candidateSha256": "605bc1e51b213e9439b1e55caf79d354fc719bbfe16a7b4a6912dde6b0b97ed9",
+  "reviewed": 271,
+  "falsePositive": 128,
+  "uncertain": 143,
+  "truePositive": 0,
+  "generalPrecisionOrRecallClaim": false,
+  "notes": [
+    "Labels refer to the frozen baseline, not a post-fix accuracy claim.",
+    "Uncertain labels are not treated as correct findings.",
+    "No rules are promoted to high confidence."
+  ],
+  "byLanguage": {
+    "csharp": {
+      "reviewed": 50,
+      "applications": [
+        "dotnet-counters",
+        "dotnet-trace"
+      ],
+      "rules": [
+        "NG-CS-001",
+        "NG-CS-003",
+        "NG-CS-004"
+      ]
+    },
+    "go": {
+      "reviewed": 28,
+      "applications": [
+        "httprobe",
+        "qsreplace"
+      ],
+      "rules": [
+        "NG-GO-001",
+        "NG-GO-002"
+      ]
+    },
+    "javascript": {
+      "reviewed": 50,
+      "applications": [
+        "http-server",
+        "husky"
+      ],
+      "rules": [
+        "NG-ECMA-001",
+        "NG-ECMA-003",
+        "NG-ECMA-004"
+      ]
+    },
+    "python": {
+      "reviewed": 50,
+      "applications": [
+        "pywal",
+        "shot-scraper"
+      ],
+      "rules": [
+        "NG-PY-001",
+        "NG-PY-002",
+        "NG-PY-003",
+        "NG-PY-004"
+      ]
+    },
+    "rust": {
+      "reviewed": 43,
+      "applications": [
+        "fd",
+        "hexyl",
+        "just"
+      ],
+      "rules": [
+        "NG-RS-001",
+        "NG-RS-002"
+      ]
+    },
+    "typescript": {
+      "reviewed": 50,
+      "applications": [
+        "json-server",
+        "serve"
+      ],
+      "rules": [
+        "NG-ECMA-001",
+        "NG-ECMA-003",
+        "NG-ECMA-004"
+      ]
+    }
+  },
+  "supplementalRustReportSha256": "a88ef0ec590efb408a77dfd9e6bd967814d1a9767f7b42a93a9baee8c8b0a76c"
+}

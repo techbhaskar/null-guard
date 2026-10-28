@@ -1,0 +1,978 @@
+[
+  {
+    "application": "pywal",
+    "repository": "pywal",
+    "language": "python",
+    "scope": ".",
+    "commit": "236aa48e741ff8d65c4c3826db2813bf2ee6f352",
+    "status": "complete",
+    "exitCode": 0,
+    "findingCount": 500,
+    "projects": [
+      {
+        "project": ".:python",
+        "status": "complete",
+        "coverage": {
+          "python": {
+            "analyzedFiles": 26,
+            "budgetExhausted": false,
+            "discoveredFiles": 26,
+            "failedFiles": 0,
+            "missingDependencies": [],
+            "unresolvedSymbols": 559,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 1,
+        "diagnostics": [
+          "Dynamic imports, decorators and runtime attribute contracts are not executed or inferred"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "shot-scraper",
+    "repository": "shot-scraper",
+    "language": "python",
+    "scope": ".",
+    "commit": "63104b051124b9bad15339262cbef6e628e63917",
+    "status": "partial",
+    "exitCode": 3,
+    "findingCount": 749,
+    "projects": [
+      {
+        "project": ".:python",
+        "status": "partial",
+        "coverage": {
+          "python": {
+            "analyzedFiles": 9,
+            "budgetExhausted": false,
+            "discoveredFiles": 9,
+            "failedFiles": 0,
+            "missingDependencies": [
+              "No resolved dependency versions were available for .:python"
+            ],
+            "unresolvedSymbols": 971,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 1,
+        "diagnostics": [
+          "Dynamic imports, decorators and runtime attribute contracts are not executed or inferred"
+        ]
+      },
+      {
+        "project": "docs:python",
+        "status": "complete",
+        "coverage": {
+          "python": {
+            "analyzedFiles": 1,
+            "budgetExhausted": false,
+            "discoveredFiles": 1,
+            "failedFiles": 0,
+            "missingDependencies": [],
+            "unresolvedSymbols": 4,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 5,
+        "diagnostics": [
+          "Dynamic imports, decorators and runtime attribute contracts are not executed or inferred",
+          "Unresolved requirements entry: sphinx-autobuild",
+          "Unresolved requirements entry: sphinx-copybutton",
+          "Unresolved requirements entry: myst-parser",
+          "Unresolved requirements entry: cogapp"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "http-server",
+    "repository": "http-server",
+    "language": "javascript",
+    "scope": ".",
+    "commit": "0d3b7bb5b6e8a59fd450ae2dca65870009cfcd8b",
+    "status": "complete",
+    "exitCode": 0,
+    "findingCount": 3613,
+    "projects": [
+      {
+        "project": ".:ecmascript",
+        "status": "complete",
+        "coverage": {
+          "javascript": {
+            "discoveredFiles": 63,
+            "analyzedFiles": 63,
+            "failedFiles": 0,
+            "unsupportedFiles": 0,
+            "unresolvedSymbols": 1858,
+            "budgetExhausted": false,
+            "missingDependencies": []
+          }
+        },
+        "diagnosticCount": 1,
+        "diagnostics": [
+          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "husky",
+    "repository": "husky",
+    "language": "javascript",
+    "scope": ".",
+    "commit": "3f0023dc10d7003d70f2e31aa56300eab80e76d6",
+    "status": "complete",
+    "exitCode": 0,
+    "findingCount": 36,
+    "projects": [
+      {
+        "project": ".:ecmascript",
+        "status": "complete",
+        "coverage": {
+          "javascript": {
+            "discoveredFiles": 2,
+            "analyzedFiles": 2,
+            "failedFiles": 0,
+            "unsupportedFiles": 0,
+            "unresolvedSymbols": 19,
+            "budgetExhausted": false,
+            "missingDependencies": []
+          }
+        },
+        "diagnosticCount": 1,
+        "diagnostics": [
+          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
+        ]
+      },
+      {
+        "project": "docs:ecmascript",
+        "status": "complete",
+        "coverage": {
+          "javascript": {
+            "discoveredFiles": 1,
+            "analyzedFiles": 1,
+            "failedFiles": 0,
+            "unsupportedFiles": 0,
+            "unresolvedSymbols": 2,
+            "budgetExhausted": false,
+            "missingDependencies": []
+          }
+        },
+        "diagnosticCount": 1,
+        "diagnostics": [
+          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "serve",
+    "repository": "serve",
+    "language": "typescript",
+    "scope": ".",
+    "commit": "37b3a743fa90d0e11d7f5b5efe88c27017b7ee13",
+    "status": "partial",
+    "exitCode": 3,
+    "findingCount": 145,
+    "projects": [
+      {
+        "project": ".:ecmascript",
+        "status": "partial",
+        "coverage": {
+          "typescript": {
+            "discoveredFiles": 13,
+            "analyzedFiles": 8,
+            "failedFiles": 0,
+            "unsupportedFiles": 5,
+            "unresolvedSymbols": 70,
+            "budgetExhausted": false,
+            "missingDependencies": [
+              "Cannot find module 'ajv' or its corresponding type declarations.",
+              "Cannot find module 'arg' or its corresponding type declarations.",
+              "Cannot find module 'boxen' or its corresponding type declarations.",
+              "Cannot find module 'chalk' or its corresponding type declarations.",
+              "Cannot find module 'chalk-template' or its corresponding type declarations.",
+              "Cannot find module 'compression' or its corresponding type declarations.",
+              "Cannot find module 'is-port-reachable' or its corresponding type declarations.",
+              "Cannot find module 'serve-handler' or its corresponding type declarations.",
+              "Cannot find module 'tinyclip' or its corresponding type declarations.",
+              "Cannot find module 'update-check' or its corresponding type declarations."
+            ]
+          }
+        },
+        "diagnosticCount": 3,
+        "diagnostics": [
+          "File '@vercel/style-guide/typescript' not found.",
+          "Files outside project configuration or disabled by allowJs are unsupported: config/vitest.ts, tests/cli.test.ts, tests/config.test.ts, tests/server.ssl.test.ts, tests/server.test.ts",
+          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
+        ]
+      },
+      {
+        "project": "tests/__fixtures__/config/deprecated:ecmascript",
+        "status": "failed",
+        "coverage": {
+          "typescript": {
+            "discoveredFiles": 0,
+            "analyzedFiles": 0,
+            "failedFiles": 0,
+            "unsupportedFiles": 0,
+            "unresolvedSymbols": 0,
+            "budgetExhausted": false,
+            "missingDependencies": []
+          }
+        },
+        "diagnosticCount": 1,
+        "diagnostics": [
+          "IllegalStateException: No selected-language source files in this project"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "json-server",
+    "repository": "json-server",
+    "language": "typescript",
+    "scope": ".",
+    "commit": "89a34a44b7a6a5311dc84f3b8a1b8b45c0905aea",
+    "status": "partial",
+    "exitCode": 3,
+    "findingCount": 196,
+    "projects": [
+      {
+        "project": ".:ecmascript",
+        "status": "partial",
+        "coverage": {
+          "typescript": {
+            "discoveredFiles": 16,
+            "analyzedFiles": 10,
+            "failedFiles": 0,
+            "unsupportedFiles": 6,
+            "unresolvedSymbols": 107,
+            "budgetExhausted": false,
+            "missingDependencies": [
+              "Cannot find module '@tinyhttp/app' or its corresponding type declarations.",
+              "Cannot find module '@tinyhttp/cors' or its corresponding type declarations.",
+              "Cannot find module 'chalk' or its corresponding type declarations.",
+              "Cannot find module 'chokidar' or its corresponding type declarations.",
+              "Cannot find module 'dot-prop' or its corresponding type declarations.",
+              "Cannot find module 'eta' or its corresponding type declarations.",
+              "Cannot find module 'inflection' or its corresponding type declarations.",
+              "Cannot find module 'json5' or its corresponding type declarations.",
+              "Cannot find module 'lowdb' or its corresponding type declarations.",
+              "Cannot find module 'lowdb/node' or its corresponding type declarations.",
+              "Cannot find module 'milliparsec' or its corresponding type declarations.",
+              "Cannot find module 'sirv' or its corresponding type declarations.",
+              "Cannot find module 'sort-on' or its corresponding type declarations.",
+              "Cannot find module 'type-fest' or its corresponding type declarations."
+            ]
+          }
+        },
+        "diagnosticCount": 2,
+        "diagnostics": [
+          "Files outside project configuration or disabled by allowJs are unsupported: src/adapters/normalized-adapter.test.ts, src/app.test.ts, src/matches-where.test.ts, src/paginate.test.ts, src/parse-where.test.ts, src/service.test.ts",
+          "Angular templates, generated source, browser lifecycle and dynamic dispatch are not analyzed"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "dotnet-counters",
+    "repository": "diagnostics",
+    "language": "csharp",
+    "scope": "src/Tools/dotnet-counters",
+    "commit": "0bcf621149f9b519a29f99f68f417a96c2b49cfe",
+    "status": "partial",
+    "exitCode": 3,
+    "findingCount": 153,
+    "projects": [
+      {
+        "project": ".:csharp",
+        "status": "partial",
+        "coverage": {
+          "csharp": {
+            "discoveredFiles": 8,
+            "analyzedFiles": 8,
+            "failedFiles": 0,
+            "unsupportedFiles": 0,
+            "unresolvedSymbols": 201,
+            "budgetExhausted": false,
+            "missingDependencies": [
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(105,42): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(109,41): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(113,45): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(115,28): error CS0246: The type or namespace name 'AggregatePercentilePayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(117,26): error CS0246: The type or namespace name 'Quantile' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(120,21): error CS0246: The type or namespace name 'PercentilePayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(14,29): error CS0234: The type or namespace name 'Monitoring' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(143,21): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(15,29): error CS0234: The type or namespace name 'Monitoring' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(152,49): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(16,29): error CS0234: The type or namespace name 'NETCore' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(166,27): error CS0246: The type or namespace name 'ReturnCode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(17,35): error CS0234: The type or namespace name 'Common' does not exist in the namespace 'Microsoft.Diagnostics.Tools' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(189,22): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(19,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(191,21): error CS0103: The name 'CommandUtils' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(193,65): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(195,17): error CS0246: The type or namespace name 'DiagnosticsClientBuilder' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(196,24): error CS0246: The type or namespace name 'DiagnosticsClientHolder' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(197,24): error CS0246: The type or namespace name 'VirtualTerminalMode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(197,52): error CS0103: The name 'VirtualTerminalMode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(202,32): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(209,59): error CS0246: The type or namespace name 'DefaultConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(211,41): error CS0246: The type or namespace name 'MetricsPipelineSettings' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(227,25): error CS0246: The type or namespace name 'ReturnCode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(228,25): error CS0246: The type or namespace name 'MetricsPipeline' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(23,37): error CS0246: The type or namespace name 'ICountersLogger' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(233,25): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(241,32): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(245,20): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(252,17): error CS0103: The name 'DsRouterProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(255,27): error CS0246: The type or namespace name 'ReturnCode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(278,22): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(28,17): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(280,21): error CS0103: The name 'CommandUtils' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(282,65): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(284,17): error CS0246: The type or namespace name 'DiagnosticsClientBuilder' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(285,24): error CS0246: The type or namespace name 'DiagnosticsClientHolder' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(289,37): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(29,22): error CS0246: The type or namespace name 'EventPipeCounterGroup' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(297,41): error CS0246: The type or namespace name 'MetricsPipelineSettings' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(309,36): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(321,37): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(323,50): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(33,47): error CS0246: The type or namespace name 'ReturnCode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(333,36): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(336,25): error CS0246: The type or namespace name 'ReturnCode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(337,25): error CS0246: The type or namespace name 'MetricsPipeline' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(34,17): error CS0246: The type or namespace name 'DiagnosticsClient' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(348,32): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(35,17): error CS0246: The type or namespace name 'MetricsPipelineSettings' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(352,20): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(359,17): error CS0103: The name 'DsRouterProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(367,27): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(371,23): error CS0246: The type or namespace name 'EventPipeCounterGroup' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(373,18): error CS0246: The type or namespace name 'EventPipeCounterGroup' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(385,27): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(397,30): error CS0246: The type or namespace name 'EventPipeCounterGroup' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(399,18): error CS0246: The type or namespace name 'EventPipeCounterGroup' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(405,78): error CS0246: The type or namespace name 'EventPipeCounterGroup' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(43,32): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(45,31): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(457,76): error CS0246: The type or namespace name 'EventPipeCounterGroup' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(470,13): error CS0246: The type or namespace name 'CounterGroupType' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(470,42): error CS0103: The name 'CounterGroupType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(475,29): error CS0103: The name 'CounterGroupType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(48,52): error CS0246: The type or namespace name 'ReturnCode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(480,13): error CS0246: The type or namespace name 'EventPipeCounterGroup' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(49,39): error CS0246: The type or namespace name 'DefaultConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(505,34): error CS0246: The type or namespace name 'EventPipeCounterGroup' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(528,28): error CS0246: The type or namespace name 'ReturnCode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(528,46): error CS0246: The type or namespace name 'MetricsPipeline' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(537,24): error CS0246: The type or namespace name 'DiagnosticsClientException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(547,51): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(581,20): error CS0246: The type or namespace name 'PipelineException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(588,14): error CS0246: The type or namespace name 'ICountersLogger' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(588,14): error CS0538: 'ICountersLogger' in explicit interface declaration is not an interface",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(588,34): error CS0246: The type or namespace name 'ICounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(6,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(600,32): error CS0246: The type or namespace name 'ErrorPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(608,30): error CS0103: The name 'EventType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(612,30): error CS0103: The name 'EventType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(616,30): error CS0103: The name 'EventType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(617,30): error CS0103: The name 'EventType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(618,30): error CS0103: The name 'EventType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(619,30): error CS0103: The name 'EventType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(629,50): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(633,50): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(641,50): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(644,37): error CS0246: The type or namespace name 'CounterEndedPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(653,49): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(69,46): error CS0246: The type or namespace name 'ICounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(7,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(72,121): error CS0103: The name 'CounterGroupType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/CounterMonitor.cs(74,41): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/DotnetCountersCounterPayloadExtensions.cs(10,46): error CS0246: The type or namespace name 'ICounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/DotnetCountersCounterPayloadExtensions.cs(15,51): error CS0103: The name 'CounterType' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/DotnetCountersCounterPayloadExtensions.cs(4,29): error CS0234: The type or namespace name 'Monitoring' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/ConsoleWriter.cs(332,44): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/ConsoleWriter.cs(418,36): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/ConsoleWriter.cs(78,17): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/ConsoleWriter.cs(8,29): error CS0234: The type or namespace name 'Monitoring' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/ConsoleWriter.cs(81,30): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/ConsoleWriter.cs(9,35): error CS0234: The type or namespace name 'Common' does not exist in the namespace 'Microsoft.Diagnostics.Tools' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/CSVExporter.cs(62,44): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/CSVExporter.cs(8,29): error CS0234: The type or namespace name 'Monitoring' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/CSVExporter.cs(88,36): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/ICounterRenderer.cs(13,37): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/ICounterRenderer.cs(14,29): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/ICounterRenderer.cs(4,29): error CS0234: The type or namespace name 'Monitoring' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/JSONExporter.cs(65,44): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/JSONExporter.cs(8,29): error CS0234: The type or namespace name 'Monitoring' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Exporters/JSONExporter.cs(86,36): error CS0246: The type or namespace name 'CounterPayload' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(103,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(109,24): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(115,24): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(12,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(122,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(129,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(13,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(136,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(14,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(147,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(153,24): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(155,13): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(167,24): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(174,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(180,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(187,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(195,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(203,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(209,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(216,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(22,24): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(233,13): error CS0246: The type or namespace name 'RootCommand' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(238,17): error CS0103: The name 'ProcessStatusCommandHandler' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(24,13): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(240,38): error CS0246: The type or namespace name 'HelpAction' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(242,13): error CS0246: The type or namespace name 'ParseResult' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(250,21): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(6,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(63,24): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(65,13): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(7,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-counters/Program.cs(8,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "Explicit Compile/ProjectReference metadata requires resolution; no MSBuild targets are executed",
+              "Target reference assemblies not resolved for $(NetCoreAppMinTargetFramework); current runtime references used as partial fallback",
+              "No resolved dependency versions were available for .:csharp"
+            ]
+          }
+        },
+        "diagnosticCount": 2,
+        "diagnostics": [
+          "Local function/lambda CFGs not yet lowered: 21",
+          "No MSBuild execution, source generators, dynamic dispatch or generated source analysis"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "dotnet-trace",
+    "repository": "diagnostics",
+    "language": "csharp",
+    "scope": "src/Tools/dotnet-trace",
+    "commit": "0bcf621149f9b519a29f99f68f417a96c2b49cfe",
+    "status": "partial",
+    "exitCode": 3,
+    "findingCount": 145,
+    "projects": [
+      {
+        "project": ".:csharp",
+        "status": "partial",
+        "coverage": {
+          "csharp": {
+            "discoveredFiles": 12,
+            "analyzedFiles": 12,
+            "failedFiles": 0,
+            "unsupportedFiles": 0,
+            "unresolvedSymbols": 317,
+            "budgetExhausted": false,
+            "missingDependencies": [
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(108,37): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(110,21): error CS0103: The name 'CommandUtils' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(115,21): error CS0103: The name 'CommandUtils' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(124,22): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(128,33): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(14,29): error CS0234: The type or namespace name 'Monitoring' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(147,38): error CS0103: The name 'EventPipeSession' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(15,29): error CS0234: The type or namespace name 'NETCore' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(153,43): error CS0103: The name 'EventPipeSession' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(154,60): error CS0103: The name 'EventPipeSession' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(16,35): error CS0234: The type or namespace name 'Common' does not exist in the namespace 'Microsoft.Diagnostics.Tools' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(17,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(171,33): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(176,33): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(18,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(189,41): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(196,17): error CS0246: The type or namespace name 'DiagnosticsClient' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(198,17): error CS0246: The type or namespace name 'DiagnosticsClientBuilder' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(201,24): error CS0246: The type or namespace name 'DiagnosticsClientHolder' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(208,37): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(215,30): error CS0103: The name 'IpcEndpointConfig' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(215,77): error CS0246: The type or namespace name 'IpcEndpointConfig' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(257,28): error CS0246: The type or namespace name 'VirtualTerminalMode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(257,82): error CS0103: The name 'VirtualTerminalMode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(26,38): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(262,29): error CS0246: The type or namespace name 'EventPipeSessionConfiguration' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(265,32): error CS0246: The type or namespace name 'UnsupportedCommandException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(267,50): error CS0103: The name 'EventPipeBufferingMode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(270,45): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(28,38): error CS0246: The type or namespace name 'DefaultConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(285,129): error CS0103: The name 'EventPipeSession' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(285,33): error CS0246: The type or namespace name 'EventPipeSessionConfiguration' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(301,33): error CS0246: The type or namespace name 'EventPipeSessionConfiguration' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(307,45): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(313,41): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(32,37): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(321,36): error CS0246: The type or namespace name 'UnsupportedCommandException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(329,41): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(343,25): error CS0246: The type or namespace name 'LineRewriter' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(355,29): error CS0246: The type or namespace name 'EventMonitor' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(369,54): error CS0246: The type or namespace name 'PassthroughStream' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(386,48): error CS0246: The type or namespace name 'LineRewriter' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(469,29): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(469,70): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(471,35): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(478,20): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(489,28): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(495,28): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(507,21): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(511,36): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(514,17): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(515,17): error CS0103: The name 'DsRouterProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(540,23): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(542,13): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(6,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(602,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(609,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(615,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(621,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(628,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(634,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(640,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(646,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(652,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(652,40): error CS0246: The type or namespace name 'EventPipeBufferingMode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(659,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(675,30): error CS0246: The type or namespace name 'EventPipeSession' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(676,35): error CS0246: The type or namespace name 'EventPipeSession' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(68,476): error CS0246: The type or namespace name 'EventPipeBufferingMode' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(68,64): error CS0246: The type or namespace name 'CommandLineConfiguration' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(682,23): error CS0246: The type or namespace name 'DiagnosticsClient' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(682,42): error CS0246: The type or namespace name 'EventPipeSessionConfiguration' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(683,23): error CS0246: The type or namespace name 'DiagnosticsClient' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(685,18): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(7,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectCommand.cs(74,28): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(116,20): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(125,28): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(13,29): error CS0234: The type or namespace name 'NETCore' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(130,28): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(14,35): error CS0234: The type or namespace name 'Common' does not exist in the namespace 'Microsoft.Diagnostics.Tools' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(15,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(154,23): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(156,13): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(211,21): error CS0103: The name 'CommandUtils' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(276,28): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(278,20): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(281,28): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(286,28): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(316,17): error CS0246: The type or namespace name 'DiagnosticsClient' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(317,17): error CS0122: 'ProcessInfo' is inaccessible due to its protection level",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(327,20): error CS0246: The type or namespace name 'ServerNotAvailableException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(336,20): error CS0246: The type or namespace name 'UnsupportedCommandException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(350,37): error CS0103: The name 'DiagnosticsClient' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(41,43): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(424,18): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(425,22): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(43,38): error CS0246: The type or namespace name 'DefaultConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(467,31): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(5,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(501,31): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(583,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(589,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(595,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(630,36): error CS8795: Partial method 'CollectLinuxCommandHandler.RunRecordTrace(byte[], nuint, CollectLinuxCommandHandler.recordTraceCallback)' must have an implementation part because it has accessibility modifiers.",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(643,30): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(647,21): error CS0246: The type or namespace name 'LineRewriter' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(650,35): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(699,17): error CS0246: The type or namespace name 'LineRewriter' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(714,101): error CS0762: Cannot create delegate from method 'CollectLinuxCommandHandler.RunRecordTrace(byte[], nuint, CollectLinuxCommandHandler.recordTraceCallback)' because it is a partial method without an implementing declaration",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(715,18): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(75,29): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(78,28): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(90,21): error CS0103: The name 'CommandUtils' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(96,41): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/CollectLinuxCommand.cs(99,41): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(10,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(11,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(117,33): error CS0246: The type or namespace name 'Argument<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(118,17): error CS0246: The type or namespace name 'Argument<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(124,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(25,29): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(30,29): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(6,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(87,33): error CS0103: The name 'ReturnCode' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(94,23): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ConvertCommand.cs(96,13): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(10,29): error CS0234: The type or namespace name 'NETCore' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(101,94): error CS0103: The name 'ClrTraceEventParser' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(104,21): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(108,41): error CS0103: The name 'TplEtwProviderTraceEventParser' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(11,29): error CS0234: The type or namespace name 'Tracing' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(129,40): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(133,40): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(52,23): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(54,13): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(6,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(65,21): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(7,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(71,21): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(77,21): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(81,41): error CS0103: The name 'ClrTraceEventParser' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(82,41): error CS0103: The name 'ClrTraceEventParser' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(83,41): error CS0103: The name 'ClrTraceEventParser' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(89,21): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(93,41): error CS0103: The name 'ClrTraceEventParser' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ListProfilesCommandHandler.cs(98,41): error CS0103: The name 'ClrTraceEventParser' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(102,23): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(104,13): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(11,7): error CS0246: The type or namespace name 'Diagnostics' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(12,29): error CS0234: The type or namespace name 'Symbols' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(120,13): error CS0246: The type or namespace name 'Command' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(132,33): error CS0246: The type or namespace name 'Argument<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(136,29): error CS0246: The type or namespace name 'ArgumentArity' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(139,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(14,29): error CS0234: The type or namespace name 'Tracing' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(146,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(15,29): error CS0234: The type or namespace name 'Tracing' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(152,33): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(16,29): error CS0234: The type or namespace name 'Tracing' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(17,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(26,28): error CS0246: The type or namespace name 'CallTreeNodeBase' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(26,77): error CS0246: The type or namespace name 'CallTree' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(28,18): error CS0246: The type or namespace name 'CallTreeNodeBase' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(44,43): error CS0103: The name 'TraceLog' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(47,22): error CS0246: The type or namespace name 'CallTreeNodeBase' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(48,24): error CS0246: The type or namespace name 'SymbolReader' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(48,98): error CS0103: The name 'SymbolPath' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(49,24): error CS0246: The type or namespace name 'TraceLog' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(51,21): error CS0246: The type or namespace name 'MutableTraceEventStackSource' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(56,21): error CS0246: The type or namespace name 'SampleProfilerThreadTimeComputer' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(6,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(60,21): error CS0246: The type or namespace name 'FilterParams' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(64,21): error CS0246: The type or namespace name 'FilterStackSource' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(64,84): error CS0103: The name 'ScalingPolicyKind' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(65,21): error CS0246: The type or namespace name 'CallTree' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(65,45): error CS0103: The name 'ScalingPolicyKind' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(68,26): error CS0246: The type or namespace name 'CallTreeNodeBase' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Commands/ReportCommand.cs(82,25): error CS0246: The type or namespace name 'CallTreeNodeBase' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(12,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(25,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(31,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(37,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(45,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(5,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(54,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(61,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(67,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(73,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/Options/CommonOptions.cs(79,32): error CS0246: The type or namespace name 'Option<>' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/PrintReportHelper.cs(125,17): error CS0246: The type or namespace name 'CallTreeNodeBase' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/PrintReportHelper.cs(165,38): error CS8795: Partial method 'PrintReportHelper.GetNameRegex()' must have an implementation part because it has accessibility modifiers.",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/PrintReportHelper.cs(8,29): error CS0234: The type or namespace name 'Tracing' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/CommandLine/PrintReportHelper.cs(84,53): error CS0246: The type or namespace name 'CallTreeNodeBase' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Profile.cs(12,49): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Profile.cs(15,62): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Profile.cs(15,94): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Profile.cs(21,28): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Profile.cs(25,52): error CS0103: The name 'EventPipeSession' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Profile.cs(6,29): error CS0234: The type or namespace name 'NETCore' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(10,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(11,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(19,13): error CS0246: The type or namespace name 'RootCommand' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(23,17): error CS0103: The name 'ProcessStatusCommandHandler' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(28,38): error CS0246: The type or namespace name 'HelpAction' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(30,13): error CS0246: The type or namespace name 'ParseResult' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(38,21): error CS0103: The name 'ProcessLauncher' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(42,20): error CS0103: The name 'ProcessTerminationHandler' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(5,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(6,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(7,14): error CS0234: The type or namespace name 'CommandLine' does not exist in the namespace 'System' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/Program.cs(9,17): error CS0234: The type or namespace name 'Internal' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(104,31): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(11,29): error CS0234: The type or namespace name 'NETCore' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(111,31): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(114,29): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(115,26): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(127,17): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(13,35): error CS0234: The type or namespace name 'Common' does not exist in the namespace 'Microsoft.Diagnostics.Tools' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(130,64): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(142,18): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(151,24): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(151,63): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(151,98): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(161,27): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(164,24): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(167,123): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(167,58): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(179,22): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(201,56): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(204,23): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(221,31): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(232,24): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(259,35): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(264,24): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(264,70): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(284,27): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(298,24): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(77,220): error CS0246: The type or namespace name 'IConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(77,28): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(79,29): error CS0246: The type or namespace name 'DefaultConsole' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(80,32): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(85,17): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/ProviderUtils.cs(86,60): error CS0246: The type or namespace name 'EventPipeProvider' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(10,29): error CS0234: The type or namespace name 'Tracing' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(11,29): error CS0234: The type or namespace name 'Tracing' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(65,31): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(7,29): error CS0234: The type or namespace name 'Symbols' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(72,35): error CS0103: The name 'TraceLog' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(72,97): error CS0246: The type or namespace name 'TraceLogOptions' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(73,20): error CS0246: The type or namespace name 'SymbolReader' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(73,84): error CS0103: The name 'SymbolPath' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(74,20): error CS0246: The type or namespace name 'TraceLog' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(76,17): error CS0246: The type or namespace name 'MutableTraceEventStackSource' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(8,29): error CS0234: The type or namespace name 'Tracing' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(81,17): error CS0246: The type or namespace name 'SampleProfilerThreadTimeComputer' could not be found (are you missing a using directive or an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(9,29): error CS0234: The type or namespace name 'Tracing' does not exist in the namespace 'Microsoft.Diagnostics' (are you missing an assembly reference?)",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(90,25): error CS0103: The name 'SpeedScopeStackSourceWriter' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(93,25): error CS0103: The name 'ChromiumStackSourceWriter' does not exist in the current context",
+              "<applications>/diagnostics/src/Tools/dotnet-trace/TraceFileFormatConverter.cs(97,35): error CS0246: The type or namespace name 'DiagnosticToolException' could not be found (are you missing a using directive or an assembly reference?)",
+              "Conditional MSBuild configuration is not evaluated",
+              "Explicit Compile/ProjectReference metadata requires resolution; no MSBuild targets are executed",
+              "Target reference assemblies not resolved for $(NetCoreAppMinTargetFramework); current runtime references used as partial fallback",
+              "No resolved dependency versions were available for .:csharp"
+            ]
+          }
+        },
+        "diagnosticCount": 2,
+        "diagnostics": [
+          "Local function/lambda CFGs not yet lowered: 31",
+          "No MSBuild execution, source generators, dynamic dispatch or generated source analysis"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "httprobe",
+    "repository": "httprobe",
+    "language": "go",
+    "scope": ".",
+    "commit": "0745f649beb01c3cf712e0c52f9760d8a92cfdc2",
+    "status": "complete",
+    "exitCode": 0,
+    "findingCount": 2,
+    "projects": [
+      {
+        "project": ".:go",
+        "status": "complete",
+        "coverage": {
+          "go": {
+            "analyzedFiles": 1,
+            "budgetExhausted": false,
+            "discoveredFiles": 1,
+            "failedFiles": 0,
+            "missingDependencies": [],
+            "unresolvedSymbols": 0,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 0,
+        "diagnostics": []
+      }
+    ]
+  },
+  {
+    "application": "qsreplace",
+    "repository": "qsreplace",
+    "language": "go",
+    "scope": ".",
+    "commit": "320475befaf66d986400aa8c3ed9b43e0b6b5a02",
+    "status": "complete",
+    "exitCode": 0,
+    "findingCount": 0,
+    "projects": [
+      {
+        "project": ".:go",
+        "status": "complete",
+        "coverage": {
+          "go": {
+            "analyzedFiles": 1,
+            "budgetExhausted": false,
+            "discoveredFiles": 1,
+            "failedFiles": 0,
+            "missingDependencies": [],
+            "unresolvedSymbols": 0,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 0,
+        "diagnostics": []
+      }
+    ]
+  },
+  {
+    "application": "hexyl",
+    "repository": "hexyl",
+    "language": "rust",
+    "scope": ".",
+    "commit": "6ecc29b9c8c84d08a7e860f7f69c22b113b480ea",
+    "status": "partial",
+    "exitCode": 3,
+    "findingCount": 4,
+    "projects": [
+      {
+        "project": ".:rust",
+        "status": "partial",
+        "coverage": {
+          "rust": {
+            "analyzedFiles": 7,
+            "budgetExhausted": true,
+            "discoveredFiles": 7,
+            "failedFiles": 0,
+            "missingDependencies": [
+              "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `anyhow` found\nlocation searched: crates.io index\nrequired by package `hexyl v0.17.0 (<applications>/hexyl)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+            ],
+            "unresolvedSymbols": 532,
+            "unsupportedExpressionVisits": 372,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 4,
+        "diagnostics": [
+          "Closure bodies are not yet lowered",
+          "Inline/external module dispatch is not semantically expanded",
+          "Macro bodies are not expanded; expressions inside macros are not analyzed",
+          "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `anyhow` found\nlocation searched: crates.io index\nrequired by package `hexyl v0.17.0 (<applications>/hexyl)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "fd",
+    "repository": "fd",
+    "language": "rust",
+    "scope": ".",
+    "commit": "c44735ec0f130c2486afe9c976937c03b57a8c62",
+    "status": "partial",
+    "exitCode": 3,
+    "findingCount": 5,
+    "projects": [
+      {
+        "project": ".:rust",
+        "status": "partial",
+        "coverage": {
+          "rust": {
+            "analyzedFiles": 24,
+            "budgetExhausted": false,
+            "discoveredFiles": 24,
+            "failedFiles": 0,
+            "missingDependencies": [
+              "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `aho-corasick` found\nlocation searched: crates.io index\nrequired by package `fd-find v10.5.0 (<applications>/fd)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+            ],
+            "unresolvedSymbols": 1592,
+            "unsupportedExpressionVisits": 744,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 4,
+        "diagnostics": [
+          "Closure bodies are not yet lowered",
+          "Inline/external module dispatch is not semantically expanded",
+          "Macro bodies are not expanded; expressions inside macros are not analyzed",
+          "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `aho-corasick` found\nlocation searched: crates.io index\nrequired by package `fd-find v10.5.0 (<applications>/fd)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+        ]
+      }
+    ]
+  },
+  {
+    "application": "just",
+    "repository": "just",
+    "language": "rust",
+    "scope": ".",
+    "commit": "c7317c85c21ebd83ea4bb8de26f8afec44c7e597",
+    "status": "partial",
+    "exitCode": 3,
+    "findingCount": 34,
+    "projects": [
+      {
+        "project": ".:rust",
+        "status": "partial",
+        "coverage": {
+          "rust": {
+            "analyzedFiles": 269,
+            "budgetExhausted": false,
+            "discoveredFiles": 269,
+            "failedFiles": 0,
+            "missingDependencies": [
+              "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+            ],
+            "unresolvedSymbols": 17603,
+            "unsupportedExpressionVisits": 2847,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 4,
+        "diagnostics": [
+          "Closure bodies are not yet lowered",
+          "Inline/external module dispatch is not semantically expanded",
+          "Macro bodies are not expanded; expressions inside macros are not analyzed",
+          "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+        ]
+      },
+      {
+        "project": "crates/action-versions:rust",
+        "status": "partial",
+        "coverage": {
+          "rust": {
+            "analyzedFiles": 2,
+            "budgetExhausted": false,
+            "discoveredFiles": 2,
+            "failedFiles": 0,
+            "missingDependencies": [
+              "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n",
+              "No resolved dependency versions were available for crates/action-versions:rust"
+            ],
+            "unresolvedSymbols": 56,
+            "unsupportedExpressionVisits": 29,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 4,
+        "diagnostics": [
+          "Closure bodies are not yet lowered",
+          "Inline/external module dispatch is not semantically expanded",
+          "Macro bodies are not expanded; expressions inside macros are not analyzed",
+          "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+        ]
+      },
+      {
+        "project": "crates/generate-book:rust",
+        "status": "partial",
+        "coverage": {
+          "rust": {
+            "analyzedFiles": 1,
+            "budgetExhausted": false,
+            "discoveredFiles": 1,
+            "failedFiles": 0,
+            "missingDependencies": [
+              "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n",
+              "No resolved dependency versions were available for crates/generate-book:rust"
+            ],
+            "unresolvedSymbols": 67,
+            "unsupportedExpressionVisits": 124,
+            "unsupportedFiles": 0
+          }
+        },
+        "diagnosticCount": 3,
+        "diagnostics": [
+          "Closure bodies are not yet lowered",
+          "Macro bodies are not expanded; expressions inside macros are not analyzed",
+          "Offline Cargo metadata unavailable: `cargo metadata` exited with an error: error: no matching package named `blake3` found\nlocation searched: crates.io index\nrequired by package `just v1.59.0 (<applications>/just)`\nnote: offline mode (via `--offline`) can sometimes cause surprising resolution failures\nhelp: if this error is too confusing you may wish to retry without `--offline`\n"
+        ]
+      }
+    ]
+  }
+]

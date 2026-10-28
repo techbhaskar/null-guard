@@ -1,0 +1,36 @@
+{
+  "implementationCommit": "e4038b10d4155f865f02cc1ba34d5664ba561610",
+  "implementationDiffSha256": "48caa9022c35ef9040d4f9f99902eed3b9165c4d53a6c7c9c0d7e4e547015fcf",
+  "installedPacks": {
+    "python": {
+      "version": "2.0.0-preview.1",
+      "entrypointSha256": {
+        "analyzer.py": "9e0557ecf624b5c4a2103ccfa69b5a403cd4b77cf9905bc48ef59b629daca60a"
+      }
+    },
+    "ecmascript": {
+      "version": "2.0.0-preview.1",
+      "entrypointSha256": {
+        "analyzer.cjs": "d02bee791f8e4a3ab7a1588e306d258dea6e673f2267f99cbb2b753915be321f"
+      }
+    },
+    "csharp": {
+      "version": "2.0.0-preview.1",
+      "entrypointSha256": {
+        "bin/nullguard-csharp.dll": "7f53b1d3970019e468b57cd56abb98ba551ecdb09d0649101e98629d2430b363"
+      }
+    },
+    "go": {
+      "version": "2.0.0-preview.1",
+      "entrypointSha256": {
+        "bin/nullguard-go": "85c4c37941d5d916d5e55ec1e41bf073d25028d8ff2a638e6eb87bd8c2000a6f"
+      }
+    },
+    "rust": {
+      "version": "2.0.0-preview.1",
+      "entrypointSha256": {
+        "bin/nullguard-rust": "33de5c4ede53b9c2d51ce9ed6c34c032e0158d1662f0937ce034bda191816be9"
+      }
+    }
+  }
+}

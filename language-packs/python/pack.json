@@ -1,0 +1,21 @@
+{
+  "id": "python",
+  "version": "2.0.0-preview.1",
+  "protocolVersion": "1.0",
+  "languages": [
+    "python"
+  ],
+  "command": [
+    "python3",
+    "-I",
+    "${pack}/analyzer.py"
+  ],
+  "runtimes": {
+    "python": ">=3.11"
+  },
+  "limitations": [
+    "Syntax is limited to the installed Python parser",
+    "No imports, decorator execution or dynamic attribute resolution",
+    "Local and directly resolved source functions only"
+  ]
+}

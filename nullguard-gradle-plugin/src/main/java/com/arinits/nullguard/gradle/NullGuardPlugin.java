@@ -14,7 +14,7 @@ public final class NullGuardPlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
         NullGuardExtension extension = project.getExtensions().create("nullguard", NullGuardExtension.class);
-        extension.getToolVersion().convention("1.1.2");
+        extension.getToolVersion().convention("2.0.0-preview.1");
         extension.getFailBuild().convention(false);
         extension.getFailThreshold().convention("CRITICAL");
         extension.getRunOnCheck().convention(false);
