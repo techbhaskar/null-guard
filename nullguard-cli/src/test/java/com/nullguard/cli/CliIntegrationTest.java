@@ -56,6 +56,35 @@ class CliIntegrationTest {
         assertEquals(2, report.path("sastSummary").path("scannedClassCount").asInt());
     }
 
+    @Test void explicitSastPathsWorkThroughCliAndSystemProperty() throws Exception {
+        Path source = Files.createDirectories(output.resolve("explicit-source"));
+        Files.writeString(source.resolve("Safe.java"), "class Safe {}");
+        Path first = Files.createDirectories(output.resolve("first compiled classes"));
+        Path second = Files.createDirectories(output.resolve("second compiled classes"));
+        copyFixtureClass(SastFixtureOne.class, first);
+        copyFixtureClass(SastFixtureTwo.class, second);
+        String paths = first + java.io.File.pathSeparator + java.io.File.pathSeparator + second;
+        String previous = System.getProperty("nullguard.sast.classes");
+        try {
+            for (boolean systemProperty : new boolean[] {false, true}) {
+                System.clearProperty("nullguard.sast.classes");
+                Path reports = output.resolve(systemProperty ? "property-reports" : "option-reports");
+                var arguments = new java.util.ArrayList<>(List.of(source.toString(), "--output=" + reports));
+                if (systemProperty) System.setProperty("nullguard.sast.classes", paths);
+                else arguments.add("--sast-classes=" + paths);
+                assertEquals(0, new NullGuardCliApplication().run(arguments.toArray(String[]::new)));
+                var report = new com.fasterxml.jackson.databind.ObjectMapper()
+                        .readTree(reports.resolve("nullguard-report-latest.json").toFile());
+                assertTrue(List.of("COMPLETED", "PARTIAL")
+                        .contains(report.path("sastSummary").path("status").asText()));
+                assertEquals(2, report.path("sastSummary").path("scannedClassCount").asInt());
+            }
+        } finally {
+            if (previous == null) System.clearProperty("nullguard.sast.classes");
+            else System.setProperty("nullguard.sast.classes", previous);
+        }
+    }
+
     private static void copyFixtureClass(Class<?> fixture, Path classesDirectory) throws Exception {
         Path classFile = classesDirectory.resolve(fixture.getName().replace('.', '/') + ".class");
         Files.createDirectories(classFile.getParent());

@@ -9,7 +9,10 @@
         <dependency>
           <groupId>com.fasterxml.jackson.dataformat</groupId>
           <artifactId>jackson-dataformat-yaml</artifactId>
-          <version>2.16.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-toml</artifactId>
         </dependency>
         <dependency>
             <groupId>com.github.spotbugs</groupId>
@@ -23,7 +26,7 @@
         </dependency>
         <dependency><groupId>org.webjars</groupId><artifactId>swagger-ui</artifactId><version>5.33.2</version></dependency>
         <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.10.0</version><scope>test</scope></dependency>
-        <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>2.18.11</version></dependency>
+        <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId></dependency>
         <dependency><groupId>com.arinits.nullguard</groupId><artifactId>nullguard-core</artifactId><version>${project.version}</version></dependency>
         <dependency><groupId>com.arinits.nullguard</groupId><artifactId>nullguard-analysis</artifactId><version>${project.version}</version></dependency>
         <dependency><groupId>com.arinits.nullguard</groupId><artifactId>nullguard-callgraph</artifactId><version>${project.version}</version></dependency>
