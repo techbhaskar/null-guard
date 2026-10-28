@@ -27,12 +27,12 @@ if os.environ.get('NULLGUARD_TEST_PACK_HOME'):
 
 def analyze(pack,source,extension,extra=None,selected=None):
  with tempfile.TemporaryDirectory(prefix='nullguard-fixture-') as directory:
-  root=Path(directory);file='example.'+extension;(root/file).write_text(source)
+  root=Path(directory);file='example.'+extension;(root/file).write_text(source,encoding="utf-8")
   for name,text in (extra or {}).items():
-   p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text)
+   p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text,encoding="utf-8")
   request={'protocolVersion':'1.0','project':'fixture:'+pack,'root':str(root),'files':[file]+(selected or []),'languages':[{'ecmascript':'typescript' if extension in ('ts','tsx') else 'javascript','csharp':'csharp'}.get(pack,pack)],'maxIterations':64}
   env=dict(os.environ,PATH='/opt/homebrew/bin:'+os.environ['PATH'],GOPROXY='off',GOSUMDB='off',GOTOOLCHAIN='local',CARGO_NET_OFFLINE='true',DOTNET_CLI_TELEMETRY_OPTOUT='1')
-  result=subprocess.run(COMMANDS[pack],input=json.dumps(request),capture_output=True,text=True,env=env,timeout=120)
+  result=subprocess.run(COMMANDS[pack],input=json.dumps(request),capture_output=True,text=True,encoding="utf-8",env=env,timeout=120)
   if result.returncode:raise AssertionError(result.stderr)
   data=json.loads(result.stdout)
   if data['protocolVersion']!='1.0' or data['project']!=request['project']:raise AssertionError('Protocol mismatch')
