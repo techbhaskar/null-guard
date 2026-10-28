@@ -24,6 +24,7 @@ class MemoryInsightsTest {
         var result = new EngineBootstrap(NullGuardConfig.defaults().build()).run(dir);
         var report = new ObjectMapper().readTree(result.getVisualizations().getJsonGraph());
         var memory = report.path("memoryInsights");
+        assertEquals("NOT_RUN", report.path("sastSummary").path("status").asText());
         assertFalse(memory.path("runtimeObserved").asBoolean(true));
         assertEquals(1, memory.path("loopAllocationSites").asInt());
         assertEquals(1, memory.path("arrayAllocationSites").asInt());
@@ -33,6 +34,8 @@ class MemoryInsightsTest {
         assertTrue(sites.contains("MemoryExample.java"));
         String html = HtmlDashboardRenderer.render(result, "test", "", "memory example");
         assertTrue(html.contains("id=\"memory\""));
+        assertTrue(html.contains("id=\"sast\""));
+        assertTrue(html.contains("SpotBugs + FindSecBugs Static Application Security Testing"));
         assertTrue(html.contains("Confirmed leaks: unmeasured"));
         assertTrue(html.contains("Source allocation site counts"));
         assertTrue(html.contains("table.innerHTML = '<thead><tr><th style=\"width:16%%\">Review signal</th><th style=\"width:30%%\">Source</th>"));

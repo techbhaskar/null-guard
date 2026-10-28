@@ -49,6 +49,8 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javaparser.version>3.25.8</javaparser.version>
+        <spotbugs.version>4.10.5</spotbugs.version>
+        <findsecbugs.version>1.14.0</findsecbugs.version>
         <!--
             Surefire MUST be pinned. The version inherited from the default lifecycle
             bindings on Maven 3.8.x is 2.12.4, which only knows the JUnit 3/4 providers

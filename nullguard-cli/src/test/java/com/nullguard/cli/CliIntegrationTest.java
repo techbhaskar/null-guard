@@ -3,6 +3,7 @@ package com.nullguard.cli;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.*;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CliIntegrationTest {
@@ -31,6 +32,42 @@ class CliIntegrationTest {
         assertEquals(0, new NullGuardCliApplication().run(new String[] {source.toString(), "--output=" + output.resolve("reports")}));
         assertTrue(Files.exists(output.resolve("reports/nullguard-report-latest.json")));
     }
+
+    @Test void cliDiscoversCompiledClassesInNestedMavenModules() throws Exception {
+        Path workspace = Files.createDirectories(output.resolve("workspace"));
+        Path firstModuleClasses = Files.createDirectories(workspace.resolve("module-one/target/classes"));
+        Path secondModuleClasses = Files.createDirectories(workspace.resolve("nested/module-two/target/classes"));
+        Files.createDirectories(workspace.resolve("module-one/src/main/java"));
+        Files.createDirectories(workspace.resolve("nested/module-two/src/main/java"));
+        Files.writeString(workspace.resolve("module-one/src/main/java/First.java"), "class First {}");
+        Files.writeString(workspace.resolve("nested/module-two/src/main/java/Second.java"), "class Second {}");
+        copyFixtureClass(SastFixtureOne.class, firstModuleClasses);
+        copyFixtureClass(SastFixtureTwo.class, secondModuleClasses);
+        Path reports = output.resolve("nested-sast-reports");
+
+        assertEquals(0, new NullGuardCliApplication().run(new String[] {
+                workspace.toString(), "--output=" + reports
+        }));
+
+        var report = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(reports.resolve("nullguard-report-latest.json").toFile());
+        assertTrue(List.of("COMPLETED", "PARTIAL")
+                .contains(report.path("sastSummary").path("status").asText()));
+        assertEquals(2, report.path("sastSummary").path("scannedClassCount").asInt());
+    }
+
+    private static void copyFixtureClass(Class<?> fixture, Path classesDirectory) throws Exception {
+        Path classFile = classesDirectory.resolve(fixture.getName().replace('.', '/') + ".class");
+        Files.createDirectories(classFile.getParent());
+        try (var input = CliIntegrationTest.class.getResourceAsStream(
+                "/" + fixture.getName().replace('.', '/') + ".class")) {
+            assertNotNull(input);
+            Files.copy(input, classFile);
+        }
+    }
+
+    private static final class SastFixtureOne {}
+    private static final class SastFixtureTwo {}
 
     @Test void reportWriteFailureReturnsAnalysisError() throws Exception {
         Path source = Files.createDirectories(output.resolve("src"));

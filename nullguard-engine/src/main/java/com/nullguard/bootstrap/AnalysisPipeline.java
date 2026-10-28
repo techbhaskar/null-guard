@@ -190,6 +190,7 @@ public final class AnalysisPipeline {
             Map<String, Object> archSummary = StaticCodeAnalyzer.buildSummary(staticFindings);
             ReachableCveScanner.ScanOutcome cveOutcome = ReachableCveScanner.scan(
                     projectRoot, config, projectModel, callGraph, apiEndpoints);
+            Map<String, Object> sastSummary = SastScanner.scan(config);
 
             List<Finding> additionalFindings = new ArrayList<>(staticFindings.size() + cveOutcome.findings().size());
             additionalFindings.addAll(staticFindings);
@@ -211,6 +212,7 @@ public final class AnalysisPipeline {
             report.put("architectureSummary", archSummary);
             report.put("memoryInsights", MemoryInsights.describe(projectModel));
             report.put("cveSummary", cveOutcome.cveSummary());
+            report.put("sastSummary", sastSummary);
             return new VisualizationBundle(report, jsonGraphExporter, dot, exporter.sarif(findings, projectRoot), findings);
         });
         ctx.setVisualizationBundle(vizBundle);

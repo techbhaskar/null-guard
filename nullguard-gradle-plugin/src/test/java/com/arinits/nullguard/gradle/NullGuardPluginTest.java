@@ -29,6 +29,7 @@ class NullGuardPluginTest {
                         Path output = Path.of(Arrays.stream(args).filter(a -> a.startsWith("--output=")).findFirst().orElseThrow().substring(9));
                         Files.createDirectories(output);
                         List<String> lines = new ArrayList<>(Arrays.asList(args));
+                        lines.add("SAST_CLASSES:" + System.getProperty("nullguard.sast.classes", ""));
                         try (var paths = Files.walk(root)) {
                             paths.filter(p -> p.toString().endsWith(".java")).forEach(p -> lines.add("SOURCE:" + root.relativize(p).toString().replace('\\\\', '/')));
                         }
@@ -75,6 +76,7 @@ class NullGuardPluginTest {
         String classpath = invocation.lines().filter(line -> line.startsWith("--classpath=")).findFirst().orElseThrow().substring(12);
         assertTrue(java.util.Arrays.stream(classpath.split(java.util.regex.Pattern.quote(java.io.File.pathSeparator)))
                 .anyMatch(path -> Path.of(path).toAbsolutePath().normalize().toString().endsWith("analyzer.jar")), invocation);
+        assertTrue(invocation.contains("SAST_CLASSES:"), invocation);
         assertTrue(invocation.contains("--fail-threshold=MODERATE"));
         assertFalse(invocation.contains("--fail-build"));
         assertTrue(runner("nullguard", "--configuration-cache", "--rerun-tasks").build().getOutput().contains("Reusing configuration cache"));
@@ -98,6 +100,16 @@ class NullGuardPluginTest {
         String invocation = Files.readString(project.resolve("build/reports/nullguard/invocation.txt"));
         String configured = invocation.lines().filter(line -> line.startsWith("--openapi-config=")).findFirst().orElseThrow().substring(17);
         assertEquals(project.resolve("api-docs.json").toRealPath(), Path.of(configured).toRealPath());
+    }
+    @Test void forwardsExistingCompiledClassesForSastWithoutCompilingTheProject() throws Exception {
+        source("src/main/java/demo/Main.java");
+        Path classes = Files.createDirectories(project.resolve("build/classes/java/main"));
+        Files.writeString(classes.resolve("Main.class"), "compiled fixture");
+        Files.writeString(project.resolve("build.gradle"), groovy());
+
+        assertEquals(TaskOutcome.SUCCESS, runner("nullguard").build().task(":nullguard").getOutcome());
+        String invocation = Files.readString(project.resolve("build/reports/nullguard/invocation.txt"));
+        assertTrue(invocation.contains("SAST_CLASSES:" + classes), invocation);
     }
     @Test void failuresPropagateWhenOptingIntoCheck() throws Exception {
         source("src/main/java/demo/Main.java");

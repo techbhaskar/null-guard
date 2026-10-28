@@ -21,6 +21,8 @@ public abstract class NullGuardTask extends JavaExec {
     @InputFiles @SkipWhenEmpty @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getSourceFiles();
     @Classpath public abstract ConfigurableFileCollection getAnalysisClasspath();
+    @InputFiles @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getSastClassDirectories();
     @Input public abstract Property<Boolean> getFailBuild();
     @Input public abstract Property<String> getFailThreshold();
     @Input public abstract ListProperty<String> getExcludes();
@@ -49,11 +51,18 @@ public abstract class NullGuardTask extends JavaExec {
         List<String> arguments = new ArrayList<>();
         arguments.add(staged.getAbsolutePath());
         arguments.add("--classpath=" + getAnalysisClasspath().getAsPath());
+        String sastClassPath = getSastClassDirectories().getFiles().stream()
+                .filter(File::isDirectory)
+                .map(File::getAbsolutePath)
+                .collect(java.util.stream.Collectors.joining(File.pathSeparator));
         arguments.add("--output=" + getReportDirectory().get().getAsFile().getAbsolutePath());
         arguments.add("--fail-threshold=" + threshold);
         if (getOpenApiConfig().isPresent()) arguments.add("--openapi-config=" + getOpenApiConfig().get().getAsFile().getAbsolutePath());
         if (getFailBuild().get()) arguments.add("--fail-build");
         setArgs(arguments);
+        java.util.Map<String, Object> systemProperties = new java.util.HashMap<>(getSystemProperties());
+        systemProperties.put("nullguard.sast.classes", sastClassPath);
+        setSystemProperties(systemProperties);
         setMaxHeapSize(getAnalyzerHeapSize().get());
         File reports = getReportDirectory().get().getAsFile();
         // Remove only known analyzer outputs so a failed run cannot appear to be a fresh clean report.

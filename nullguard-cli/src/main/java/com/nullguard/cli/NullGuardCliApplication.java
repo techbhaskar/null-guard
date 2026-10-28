@@ -7,12 +7,18 @@ import com.nullguard.bootstrap.NullGuardConfig;
 import com.nullguard.analysis.model.ArchitecturalHotspot;
 import com.nullguard.suggestions.model.Suggestion;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.File;
+import java.nio.file.FileVisitResult;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * NullGuardCliApplication – standalone CLI entry point for the NullGuard engine.
@@ -98,6 +104,14 @@ public final class NullGuardCliApplication {
         int     highRiskThresh  = com.nullguard.core.risk.RiskLevel.HIGH.getMin();
         Path    outputDir       = Paths.get("nullguard-out");
         List<Path> classpathEntries = new ArrayList<>();
+        List<Path> sastClassDirectories = new ArrayList<>();
+        String systemSastClasses = System.getProperty("nullguard.sast.classes", "");
+        if (!systemSastClasses.isBlank()) {
+            for (String entry : systemSastClasses.split(
+                    java.util.regex.Pattern.quote(File.pathSeparator))) {
+                if (!entry.isBlank()) sastClassDirectories.add(Paths.get(entry));
+            }
+        }
         Path    cveInputFile    = null;
         boolean osvOnline       = false;
         Path openApiConfigFile = null;
@@ -132,6 +146,12 @@ public final class NullGuardCliApplication {
                             java.util.regex.Pattern.quote(File.pathSeparator))) {
                         if (!entry.isBlank()) classpathEntries.add(Paths.get(entry));
                     }
+                } else if (arg.startsWith("--sast-classes=")) {
+                    String rawDirectories = arg.substring("--sast-classes=".length());
+                    for (String entry : rawDirectories.split(
+                            java.util.regex.Pattern.quote(File.pathSeparator))) {
+                        if (!entry.isBlank()) sastClassDirectories.add(Paths.get(entry));
+                    }
                 } else {
                     System.err.println("[NullGuard] Unknown option: " + arg);
                     return EXIT_BAD_ARGS;
@@ -155,6 +175,17 @@ public final class NullGuardCliApplication {
             return EXIT_BAD_ARGS;
         }
 
+        if (sastClassDirectories.isEmpty()) {
+            try {
+                sastClassDirectories.addAll(discoverSastClassDirectories(sourcePath));
+                System.out.println("SAST class directories discovered: " + sastClassDirectories.size());
+            } catch (IOException e) {
+                System.err.println("[NullGuard] ERROR: Could not discover compiled classes under "
+                        + sourcePath.toAbsolutePath() + ": " + e.getMessage());
+                return EXIT_ANALYSIS_ERROR;
+            }
+        }
+
         // ── Build configuration ───────────────────────────────────────────────
         NullGuardConfig config = NullGuardConfig.defaults()
                 .failBuild(failBuild)
@@ -167,6 +198,7 @@ public final class NullGuardCliApplication {
                 .outputDirectory(outputDir)
                 .sourceRoots(List.of(sourcePath))
                 .classpathEntries(classpathEntries)
+                .sastClassDirectories(sastClassDirectories)
                 .cveInputFile(cveInputFile)
                 .osvOnlineLookup(osvOnline)
                 .openApiConfigFile(openApiConfigFile)
@@ -200,6 +232,33 @@ public final class NullGuardCliApplication {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static List<Path> discoverSastClassDirectories(Path root) throws IOException {
+        Set<Path> classDirectories = new LinkedHashSet<>();
+        Files.walkFileTree(root, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes) {
+                Path name = directory.getFileName();
+                if (name != null && Set.of(".git", ".gradle", "node_modules").contains(name.toString())) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+                if (name != null && name.toString().equals("target")) {
+                    Path classes = directory.resolve("classes");
+                    if (Files.isDirectory(classes)) {
+                        classDirectories.add(classes.toAbsolutePath().normalize());
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path file, IOException failure) throws IOException {
+                throw failure;
+            }
+        });
+        return new ArrayList<>(classDirectories);
+    }
 
     private void printSummary(FinalAnalysisResult result) {
         var s = result.getRiskSummary();
@@ -299,6 +358,7 @@ public final class NullGuardCliApplication {
         System.out.println("  --high-risk-threshold=<int>   High-risk score (0-100)      (default: 60)");
         System.out.println("  --output=<dir>                Output directory             (default: ./nullguard-out)");
         System.out.println("  --classpath=<paths>           Dependency classpath (" + File.pathSeparator + " separated)");
+        System.out.println("  --sast-classes=<paths>        Compiled class directories for SpotBugs + FindSecBugs");
         System.out.println("  --cve-input=<file>            External OSV/Trivy CVE JSON report to enrich with reachability");
         System.out.println("  --cve-online                  Query OSV.dev REST API for project dependencies");
         System.out.println("  --openapi-config=<file>        OpenAPI title/version, servers, security schemes and opt-in live requests");

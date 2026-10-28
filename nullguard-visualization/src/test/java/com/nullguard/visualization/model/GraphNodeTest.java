@@ -21,6 +21,17 @@ class GraphNodeTest {
         assertEquals(3, new HashSet<>(List.of(base, same, exposure, contract)).size());
         assertTrue(base.getImpactMap().isEmpty());
     }
+
+    @Test void equalityChecksEveryRiskAndIdentityField() {
+        var base = node(10, 5);
+        assertNotEquals(base, new GraphNode("demo.Api#load()", 21, 5, 10, 5, 40, RiskLevel.from(40), false, null));
+        assertNotEquals(base, new GraphNode("demo.Api#load()", 20, 6, 10, 5, 40, RiskLevel.from(40), false, null));
+        assertNotEquals(base, new GraphNode("demo.Api#load()", 20, 5, 10, 5, 41, RiskLevel.from(40), false, null));
+        assertNotEquals(base, new GraphNode("demo.Api#load()", 20, 5, 10, 5, 40, RiskLevel.from(40), true, null));
+        assertNotEquals(base, new GraphNode("other.Api#load()", 20, 5, 10, 5, 40, RiskLevel.from(40), false, null));
+        assertNotEquals(base, new GraphNode("demo.Api#load()", 20, 5, 10, 5, 40, RiskLevel.LOW, false, null));
+    }
+
     private static GraphNode node(double exposure, double contract) {
         return new GraphNode("demo.Api#load()", 20, 5, exposure, contract, 40, RiskLevel.from(40), false, null);
     }

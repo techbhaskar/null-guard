@@ -77,9 +77,9 @@
                             <mainClass>com.nullguard.cli.NullGuardCliApplication</mainClass>
                         </manifest>
                     </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
+                    <descriptors>
+                        <descriptor>src/assembly/cli.xml</descriptor>
+                    </descriptors>
                     <appendAssemblyId>true</appendAssemblyId>
                 </configuration>
                 <executions>

@@ -1,5 +1,7 @@
 # Accuracy evidence protocol
 
+Targeted correction: [NG001 constructor-established final fields](constructor-field-fix.md).
+
 Targeted correction: [NG004 primitive arguments and class literals](primitive-argument-fix.md).
 
 Targeted correction: [NG006 static qualifier classification](static-qualifier-fix.md).

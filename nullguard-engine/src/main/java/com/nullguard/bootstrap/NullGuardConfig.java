@@ -35,6 +35,7 @@ public final class NullGuardConfig {
     private final Path outputDirectory;
     private final List<Path> sourceRoots;
     private final List<Path> classpathEntries;
+    private final List<Path> sastClassDirectories;
     private final Path cveInputFile;
     private final boolean osvOnlineLookup;
     private final OpenApiOptions openApiOptions;
@@ -55,6 +56,7 @@ public final class NullGuardConfig {
         this.outputDirectory         = builder.outputDirectory;
         this.sourceRoots             = List.copyOf(builder.sourceRoots);
         this.classpathEntries        = List.copyOf(builder.classpathEntries);
+        this.sastClassDirectories   = List.copyOf(builder.sastClassDirectories);
         this.cveInputFile            = builder.cveInputFile;
         this.osvOnlineLookup         = builder.osvOnlineLookup;
         this.openApiOptions = OpenApiOptions.load(builder.openApiConfigFile);
@@ -99,6 +101,7 @@ public final class NullGuardConfig {
     public Path getOutputDirectory()   { return outputDirectory; }
     public List<Path> getSourceRoots() { return sourceRoots; }
     public List<Path> getClasspathEntries() { return classpathEntries; }
+    public List<Path> getSastClassDirectories() { return sastClassDirectories; }
     public Path getCveInputFile()      { return cveInputFile; }
     public boolean isOsvOnlineLookup() { return osvOnlineLookup; }
     public OpenApiOptions getOpenApiOptions() { return openApiOptions; }
@@ -138,6 +141,7 @@ public final class NullGuardConfig {
         private Path outputDirectory = null;
         private List<Path> sourceRoots = List.of();
         private List<Path> classpathEntries = List.of();
+        private List<Path> sastClassDirectories = List.of();
         private Path cveInputFile = null;
         private boolean osvOnlineLookup = false;
         private Path openApiConfigFile;
@@ -161,6 +165,10 @@ public final class NullGuardConfig {
         }
         public Builder classpathEntries(List<Path> v) {
             this.classpathEntries = v == null ? List.of() : List.copyOf(v);
+            return this;
+        }
+        public Builder sastClassDirectories(List<Path> v) {
+            this.sastClassDirectories = v == null ? List.of() : List.copyOf(v);
             return this;
         }
         public Builder cveInputFile(Path v)            { this.cveInputFile            = v; return this; }
