@@ -41,6 +41,31 @@ def analyze(pack,source,extension,extra=None,selected=None):
 class LanguagePackTests(unittest.TestCase):
  def methods(self,result):return [(f['methodId'],f['ruleId'],f['message']) for f in result['findings']]
  def has(self,result,name,rule=None):return any(name in f['methodId'] and (rule is None or f['ruleId'].endswith(rule)) for f in result['findings'])
+ def test_conditional_assignment_effects(self):
+  ecma = analyze('ecmascript', '\n'.join([
+   'function logical(flag:boolean){let x:any="ok";flag&&(x=null);return x.length;}',
+   'function ternary(flag:boolean){let x:any="ok";flag?(x=null):(x="ok");return x.length;}',
+   'function coalesce(){let x:any=null;1??(x="ok");return x.length;}',
+   'function optionalCall(){let x:any=null;const f:any=null;f?.(x="ok");return x.length;}',
+   'function optionalKey(){let x:any=null;const f:any=null;f?.[x="ok"];return x.length;}',
+   'function caught(){let x:any="ok";try{x=null;throw 1;}catch(e){return x.length;}}',
+   'function final(){try{return 1;}finally{return (null as any).length;}}',
+   'function safe(){let x:any="ok";false&&(x=null);return x.length;}',
+   'function safeTernary(){let x:any="ok";true?(x="yes"):(x=null);return x.length;}'
+  ]), 'ts')
+  for name in ['logical','ternary','coalesce','optionalCall','optionalKey','caught','final']: self.assertTrue(self.has(ecma,'#'+name),self.methods(ecma))
+  for name in ['safe','safeTernary']: self.assertFalse(self.has(ecma,'#'+name),self.methods(ecma))
+  py = analyze('python', '\n'.join([
+   'def logical(flag):','    x="ok"','    flag and (x:=None)','    return x.strip()',
+   'def ternary(flag):','    x="ok"','    (x:=None) if flag else (x:="ok")','    return x.strip()',
+   'def loop_exit():','    x="ok"','    for i in [1]:','        x=None','        break','        x="unreachable"','    return x.strip()',
+   'def loop_continue():','    x="ok"','    for i in [1]:','        x=None','        continue','        x="unreachable"','    return x.strip()',
+   'def caught():','    x="ok"','    try:','        x=None','        raise ValueError()','    except ValueError:','        return x.strip()',
+   'def final():','    try: return "ok"','    finally: return None.value',
+   'def safe():','    x="ok"','    False and (x:=None)','    return x.strip()'
+  ]), 'py')
+  for name in ['logical','ternary','loop_exit','loop_continue','caught','final']: self.assertTrue(self.has(py,'#'+name),self.methods(py))
+  self.assertFalse(self.has(py,'#safe'),self.methods(py))
  def test_python_branches_calls_and_contracts(self):
   data=analyze('python','''def bad(value: str | None):
     return value.strip()

@@ -58,6 +58,7 @@ class Analyzer:
         self.returns = []
         self.current = "<module>"
         self.module = ""
+        self.loop_exits = []
         self.budget = max(1, min(64, int(request.get("maxIterations", 64))))
 
     def finding(self, node, value, rule="001", message=None):
@@ -74,6 +75,7 @@ class Analyzer:
         self.findings[(self.file, line, col, item["ruleId"], message)] = item
 
     def evaluate(self, node, state):
+        if state is None: return UNKNOWN_VALUE
         if node is None: return Value(NULL, "Implicit None", 1)
         line = getattr(node, "lineno", 1)
         if isinstance(node, ast.Constant): return Value(NULL if node.value is None else NONNULL, "Literal "+repr(node.value), line)
@@ -128,15 +130,28 @@ class Analyzer:
             return Value(UNKNOWN, "Unresolved call return: "+ast.unparse(node.func), line)
         if isinstance(node, ast.IfExp):
             self.evaluate(node.test, state)
-            return merge(self.evaluate(node.body, self.refine(node.test, state, True)), self.evaluate(node.orelse, self.refine(node.test, state, False)))
+            branches = [(node.body, self.refine(node.test, state, True)), (node.orelse, self.refine(node.test, state, False))]
+            results = [(self.evaluate(expr, branch), branch) for expr, branch in branches if branch is not None]
+            out = None
+            for _, branch in results: out = join(out, branch)
+            if out is not None: state.clear(); state.update(out)
+            result = results[0][0] if results else UNKNOWN_VALUE
+            for other, _ in results[1:]: result = merge(result, other)
+            return result
         if isinstance(node, ast.BoolOp):
-            active = dict(state); values = []
-            for child in node.values:
-                values.append(self.evaluate(child, active))
+            active = dict(state); exits = None; values = []
+            for index, child in enumerate(node.values):
+                if active is None: break
+                item = self.evaluate(child, active)
+                if index == len(node.values)-1:
+                    exits = join(exits, active); values.append(item); break
+                stop = self.refine(child, active, not isinstance(node.op, ast.And))
+                if stop is not None: exits = join(exits, stop); values.append(item)
                 active = self.refine(child, active, isinstance(node.op, ast.And))
-            value = values[0]
-            for other in values[1:]: value = merge(value, other)
-            return value
+            if exits is not None: state.clear(); state.update(exits)
+            result = values[0] if values else UNKNOWN_VALUE
+            for other in values[1:]: result = merge(result, other)
+            return result
         if isinstance(node, ast.NamedExpr):
             value = self.evaluate(node.value, state); self.assign(node.target, value, state); return value
         if isinstance(node, (ast.BinOp, ast.UnaryOp, ast.Compare, ast.JoinedStr, ast.FormattedValue)):
@@ -149,6 +164,9 @@ class Analyzer:
         return Value(UNKNOWN, "Unsupported expression: "+type(node).__name__, line)
 
     def refine(self, test, state, truth):
+        if state is None: return None
+        if isinstance(test, ast.Constant) and bool(test.value) != truth: return None
+        if isinstance(test, ast.Name) and state.get(test.id, UNKNOWN_VALUE).state == NULL and truth: return None
         result = dict(state)
         if isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not): return self.refine(test.operand, state, not truth)
         if isinstance(test, ast.BoolOp):
@@ -203,11 +221,14 @@ class Analyzer:
                 if isinstance(statement, ast.While): self.evaluate(statement.test, head)
                 else: self.evaluate(statement.iter, head); self.assign(statement.target, UNKNOWN_VALUE, head)
                 previous = head
+                exits = {"break": None, "continue": None}
+                self.loop_exits.append(exits)
                 reporting = self.report
                 self.report = False
                 for _ in range(self.budget):
                     entry = self.refine(statement.test, previous, True) if isinstance(statement, ast.While) else previous
                     body = self.block(statement.body, entry)
+                    body = join(body, exits["continue"])
                     next_state = join(head, body)
                     # Compare the lattice, not ever-growing explanation strings.
                     if {k:v.state for k,v in next_state.items()} == {k:v.state for k,v in previous.items()}: break
@@ -218,16 +239,26 @@ class Analyzer:
                     entry = self.refine(statement.test, previous, True) if isinstance(statement, ast.While) else previous
                     self.block(statement.body, entry)
                 # Retain a conservative exit; break paths cannot be assumed to satisfy test=false.
-                state = join(state, previous)
-                state = self.block(statement.orelse, state)
+                self.loop_exits.pop()
+                state = join(self.block(statement.orelse, join(state, previous)), exits["break"])
             elif isinstance(statement, (ast.Try, getattr(ast, "TryStar", ast.Try))):
+                exceptional = dict(state)
+                for item in ast.walk(ast.Module(body=statement.body, type_ignores=[])):
+                    if isinstance(item, ast.Name) and isinstance(item.ctx, ast.Store): exceptional[item.id] = UNKNOWN_VALUE
                 branches = self.block(statement.body, state)
                 branches = self.block(statement.orelse, branches)
                 for handler in statement.handlers:
-                    entry = dict(state)
+                    entry = dict(exceptional)
                     if handler.name: entry[handler.name] = Value(NONNULL, "Caught exception instance", handler.lineno)
                     branches = join(branches, self.block(handler.body, entry))
-                state = self.block(statement.finalbody, branches)
+                final = self.block(statement.finalbody, branches if branches is not None else exceptional)
+                state = final if branches is not None else None
+                # Finally also executes on abrupt loop exits. Invalidate overwritten facts.
+                for item in ast.walk(ast.Module(body=statement.finalbody, type_ignores=[])):
+                    if isinstance(item, ast.Name) and isinstance(item.ctx, ast.Store):
+                        for frame in self.loop_exits:
+                            for exit_state in frame.values():
+                                if exit_state is not None: exit_state[item.id] = UNKNOWN_VALUE
             elif isinstance(statement, ast.Assert):
                 self.evaluate(statement.test, state)
                 # Assertions can be disabled with -O; they are not unconditional contracts.
@@ -237,8 +268,10 @@ class Analyzer:
                     if item.optional_vars: self.assign(item.optional_vars, UNKNOWN_VALUE, state)
                 state = self.block(statement.body, state)
             elif isinstance(statement, (ast.Break, ast.Continue)):
-                # Loop exit handling is conservatively joined by the loop visitor.
-                return state
+                if self.loop_exits:
+                    kind = "break" if isinstance(statement, ast.Break) else "continue"
+                    self.loop_exits[-1][kind] = join(self.loop_exits[-1][kind], state)
+                return None
             elif isinstance(statement, ast.Delete):
                 for target in statement.targets:
                     if isinstance(target, ast.Name): state.pop(target.id, None)

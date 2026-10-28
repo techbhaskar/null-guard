@@ -4,6 +4,7 @@ const N=1,U=2,V=4,ANY=7, VERSION='2.0.0-preview.1';
 const value=(mask=ANY,origin='No resolved nullability contract',line=1)=>({mask,origin,line});
 const merge=(a,b)=>value(a.mask|b.mask,a.origin===b.origin?a.origin:('Joined paths: '+a.origin+'; '+b.origin).slice(0,500),Math.min(a.line,b.line));
 function sameState(a,b){return a.size===b.size&&[...a].every(([key,v])=>b.has(key)&&b.get(key).mask===v.mask);}
+function adopt(target,source){target.clear();if(source)for(const [key,v] of source)target.set(key,v);}
 function join(a,b){if(!a)return b&&new Map(b);if(!b)return new Map(a);const out=new Map();for(const key of new Set([...a.keys(),...b.keys()]))out.set(key,merge(a.get(key)||value(),b.get(key)||value()));return out;}
 class Analyzer {
  constructor(request){this.r=request;this.findings=new Map();this.diagnostics=[];this.missing=new Set();this.unresolved=new Set();this.failed=new Set();this.unsupported=new Set();this.budgetExhausted=false;this.functions=new Map();this.summaries=new Map();this.reporting=true;this.returns=[];this.budget=Math.min(64,Math.max(1,request.maxIterations||64));}
@@ -14,7 +15,7 @@ class Analyzer {
  typeValue(node){try{let type=this.checker.getTypeAtLocation(node);const parts=type.isUnion()?type.types:[type];let mask=0;for(const t of parts){if(t.flags&ts.TypeFlags.Null)mask|=N;else if(t.flags&(ts.TypeFlags.Undefined|ts.TypeFlags.Void))mask|=U;else if(t.flags&(ts.TypeFlags.Any|ts.TypeFlags.Unknown|ts.TypeFlags.TypeParameter))mask|=ANY;else mask|=V;}return value(mask||ANY,'Compiler type: '+this.checker.typeToString(type),this.line(node));}catch{return value();}}
  key(decl){return path.resolve(decl.getSourceFile().fileName)+':'+decl.pos;}
  declared(node){let mask=this.typeValue(node).mask;if(node.questionToken)mask|=U;const t=node.type;if(t){const text=t.getText(this.source);if(/\bnull\b/.test(text))mask|=N;if(/\bundefined\b/.test(text))mask|=U;}return value(mask,'Declared parameter '+node.name.getText(this.source),this.line(node));}
- evaluate(node,state){if(!node)return value(U,'Implicit undefined',1);const line=this.line(node);
+ evaluate(node,state){if(!state)return value(0);if(!node)return value(U,'Implicit undefined',1);const line=this.line(node);
   if(ts.isParenthesizedExpression(node)||ts.isAsExpression(node)||ts.isTypeAssertionExpression(node)||ts.isSatisfiesExpression(node))return this.evaluate(node.expression,state);
   if(ts.isIdentifier(node)){if(node.text==='undefined'&&!this.checker.getSymbolAtLocation(node)?.declarations?.some(d=>!d.getSourceFile().isDeclarationFile))return value(U,'undefined literal',line);return state.get(this.binding(node))||this.typeValue(node);}
   if(node.kind===ts.SyntaxKind.NullKeyword)return value(N,'null literal',line);
@@ -23,15 +24,18 @@ class Analyzer {
   if(ts.isPropertyAccessExpression(node)||ts.isElementAccessExpression(node)){
    const receiver=this.evaluate(node.expression,state), continuation=!!(node.flags&ts.NodeFlags.OptionalChain)&&receiver.short;
    if(!node.questionDotToken)this.report(node,continuation?{...receiver,mask:receiver.innerMask}:receiver);
-   if(ts.isElementAccessExpression(node))this.evaluate(node.argumentExpression,state);
+   if((node.questionDotToken||continuation)&&!(receiver.mask&V))return {...value(U,'Optional chain short-circuited',line),short:true,innerMask:0};
+   if(ts.isElementAccessExpression(node)){const before=new Map(state);this.evaluate(node.argumentExpression,state);if((node.questionDotToken||continuation)&&(receiver.mask&3))adopt(state,join(before,state));}
    let result=this.typeValue(node);
    if(ts.isPropertyAccessExpression(node)){const symbol=this.checker.getSymbolAtLocation(node.name);if(symbol){const type=this.checker.getTypeOfSymbolAtLocation(symbol,node.name),parts=type.isUnion()?type.types:[type];let mask=0;for(const t of parts)mask|=t.flags&ts.TypeFlags.Null?N:t.flags&(ts.TypeFlags.Undefined|ts.TypeFlags.Void)?U:t.flags&(ts.TypeFlags.Any|ts.TypeFlags.Unknown|ts.TypeFlags.TypeParameter)?ANY:V;result={...result,mask:mask||ANY};}}
    const short=continuation||!!node.questionDotToken&&!!(receiver.mask&3);return {...result,innerMask:result.mask,mask:result.mask|(short?U:0),short};
   }
   if(ts.isCallExpression(node)){
-   if(ts.isPropertyAccessExpression(node.expression)||ts.isElementAccessExpression(node.expression)){const callee=this.evaluate(node.expression,state);if(!node.questionDotToken)this.report(node.expression,callee.short?{...callee,mask:callee.innerMask}:callee,'004','Possibly null/undefined callable');}
-   else {const callee=this.evaluate(node.expression,state);if(!node.questionDotToken)this.report(node.expression,callee,'004','Possibly null/undefined callable');}
-   const args=node.arguments.map(a=>this.evaluate(a,state));const signature=this.checker.getResolvedSignature(node),decl=signature?.getDeclaration();
+   const beforeCall=new Map(state);let callee;
+   if(ts.isPropertyAccessExpression(node.expression)||ts.isElementAccessExpression(node.expression)){callee=this.evaluate(node.expression,state);if(!node.questionDotToken)this.report(node.expression,callee.short?{...callee,mask:callee.innerMask}:callee,'004','Possibly null/undefined callable');}
+   else {callee=this.evaluate(node.expression,state);if(!node.questionDotToken)this.report(node.expression,callee,'004','Possibly null/undefined callable');}
+   if((node.questionDotToken||callee.short&&!!(node.flags&ts.NodeFlags.OptionalChain))&&!(callee.mask&V))return {...value(U,'Optional call short-circuited',line),short:true,innerMask:0};
+   const args=node.arguments.map(a=>this.evaluate(a,state));if((node.questionDotToken||callee.short)&&(callee.mask&3))adopt(state,join(beforeCall,state));const signature=this.checker.getResolvedSignature(node),decl=signature?.getDeclaration();
    if(decl&&this.functions.has(this.key(decl))&&(ts.isFunctionDeclaration(decl)||ts.isArrowFunction(decl)||ts.isFunctionExpression(decl))){
     const target=this.functions.get(this.key(decl));for(let i=0;i<Math.min(args.length,target.parameters.length);i++){const parameter=target.parameters[i];let required=this.typeValue(parameter).mask;if(parameter.questionToken||parameter.initializer)required|=U;const annotation=parameter.type?.getText(parameter.getSourceFile())||'';if(/\bnull\b/.test(annotation))required|=N;if(/\bundefined\b/.test(annotation))required|=U;if(args[i].mask&3&~required)this.report(node,args[i],'003','Nullable argument violates source parameter contract');}
     const summary=this.summaries.get(this.key(decl))||value();return {...summary,line,origin:'Source return consumed at call: '+summary.origin};
@@ -41,13 +45,13 @@ class Analyzer {
    let result=this.typeValue(node);if(node.questionDotToken)result=merge(result,value(U,'Optional call may not execute',line));return result;
   }
   if(ts.isNewExpression(node)){(node.arguments||[]).forEach(a=>this.evaluate(a,state));return value(V,'Constructed object',line);}
-  if(ts.isConditionalExpression(node)){this.evaluate(node.condition,state);return merge(this.evaluate(node.whenTrue,this.refine(node.condition,state,true)),this.evaluate(node.whenFalse,this.refine(node.condition,state,false)));}
+  if(ts.isConditionalExpression(node)){this.evaluate(node.condition,state);const yes=this.refine(node.condition,state,true),no=this.refine(node.condition,state,false);const a=this.evaluate(node.whenTrue,yes),b=this.evaluate(node.whenFalse,no);adopt(state,join(yes,no));return merge(a,b);}
   if(ts.isBinaryExpression(node)){
    const op=node.operatorToken.kind;
    if(op===ts.SyntaxKind.EqualsToken){const v=this.evaluate(node.right,state);this.assign(node.left,v,state);return v;}
    const left=this.evaluate(node.left,state);
-   if(op===ts.SyntaxKind.QuestionQuestionToken){const right=this.evaluate(node.right,state);return left.mask&3?merge(value(left.mask&V,left.origin,left.line),right):left;}
-   if(op===ts.SyntaxKind.AmpersandAmpersandToken||op===ts.SyntaxKind.BarBarToken){const right=this.evaluate(node.right,this.refine(node.left,state,op===ts.SyntaxKind.AmpersandAmpersandToken));return op===ts.SyntaxKind.BarBarToken?merge(value(left.mask&V,left.origin,left.line),right):merge(left,right);}
+   if(op===ts.SyntaxKind.QuestionQuestionToken){if(!(left.mask&3))return left;const branch=new Map(state),right=this.evaluate(node.right,branch);adopt(state,left.mask&V?join(state,branch):branch);return merge(value(left.mask&V,left.origin,left.line),right);}
+   if(op===ts.SyntaxKind.AmpersandAmpersandToken||op===ts.SyntaxKind.BarBarToken){const truth=op===ts.SyntaxKind.AmpersandAmpersandToken,branch=this.refine(node.left,state,truth),skipped=this.refine(node.left,state,!truth);const right=this.evaluate(node.right,branch);adopt(state,join(skipped,branch));return merge(left,right);}
    this.evaluate(node.right,state);return value(V,'Scalar expression completed',line);
   }
   if(ts.isArrowFunction(node)||ts.isFunctionExpression(node))return value(V,'Function object',line);
@@ -60,7 +64,11 @@ class Analyzer {
   ts.forEachChild(node,c=>{if(ts.isExpression(c))this.evaluate(c,state);});return this.typeValue(node);
  }
  assign(target,v,state){if(ts.isIdentifier(target))state.set(this.binding(target),v);else if(ts.isObjectBindingPattern(target)||ts.isArrayBindingPattern(target)){target.elements.forEach(e=>{if(ts.isBindingElement(e))this.assign(e.name,value(ANY,'Destructured value',this.line(e)),state);});}else if(ts.isPropertyAccessExpression(target)||ts.isElementAccessExpression(target))this.evaluate(target.expression,state);}
- refine(test,state,truth){const out=new Map(state);
+ refine(test,state,truth){if(!state)return null;const out=new Map(state);
+  if(test.kind===ts.SyntaxKind.NullKeyword||test.kind===ts.SyntaxKind.FalseKeyword){if(truth)return null;}
+  if(test.kind===ts.SyntaxKind.TrueKeyword){if(!truth)return null;}
+  if(ts.isStringLiteral(test)||ts.isNumericLiteral(test)){if(Boolean(ts.isNumericLiteral(test)?Number(test.text):test.text)!==truth)return null;}
+  if(ts.isIdentifier(test)&&truth&&!((state.get(this.binding(test))||this.typeValue(test)).mask&V))return null;
   if(ts.isCallExpression(test)&&truth&&ts.isPropertyAccessExpression(test.expression)&&test.expression.name.text==='isArray'&&ts.isIdentifier(test.expression.expression)&&test.expression.expression.text==='Array'&&test.arguments.length===1&&ts.isIdentifier(test.arguments[0])){
    const symbol=this.checker.getSymbolAtLocation(test.expression.expression);
    if(symbol?.declarations?.every(d=>d.getSourceFile().isDeclarationFile&&/lib\..*\.d\.ts$/.test(d.getSourceFile().fileName))){const target=test.arguments[0],old=state.get(this.binding(target))||this.typeValue(target);out.set(this.binding(target),value(old.mask&V,'Standard Array.isArray guard',this.line(test)));return out;}
@@ -100,7 +108,7 @@ if(ts.isParenthesizedExpression(test))return this.refine(test.expression,state,t
    const condition=node.condition||(ts.isWhileStatement(node)||ts.isDoStatement(node)?node.expression:null);if(ts.isForOfStatement(node)||ts.isForInStatement(node))this.evaluate(node.expression,head);
    const reporting=this.reporting;this.reporting=false;let previous=head,converged=false;for(let i=0;i<this.budget;i++){if(condition)this.evaluate(condition,previous);const entry=condition?this.refine(condition,previous,true):previous;let body=this.statement(node.statement,entry);if(body&&node.incrementor)this.evaluate(node.incrementor,body);const next=join(head,body);if(sameState(next,previous)){converged=true;break;}previous=next;}if(!converged)this.budgetExhausted=true;this.reporting=reporting;if(reporting){if(condition)this.evaluate(condition,previous);const finalEntry=condition?this.refine(condition,previous,true):previous;const finalBody=this.statement(node.statement,finalEntry);if(finalBody&&node.incrementor)this.evaluate(node.incrementor,finalBody);}state=join(state,previous);
   }
-  else if(ts.isTryStatement(node)){let combined=this.block(node.tryBlock.statements,state);if(node.catchClause){const entry=new Map(state);if(node.catchClause.variableDeclaration)this.assign(node.catchClause.variableDeclaration.name,value(ANY,'JavaScript may throw null/undefined',this.line(node.catchClause)),entry);combined=join(combined,this.block(node.catchClause.block.statements,entry));}state=node.finallyBlock?this.block(node.finallyBlock.statements,combined):combined;}
+  else if(ts.isTryStatement(node)){const exceptional=new Map(state);const invalidate=child=>{if(ts.isBinaryExpression(child)&&child.operatorToken.kind===ts.SyntaxKind.EqualsToken&&ts.isIdentifier(child.left))exceptional.set(this.binding(child.left),value(ANY,'Assignment before a possible exception',this.line(child)));if(ts.isVariableDeclaration(child)&&ts.isIdentifier(child.name))exceptional.set(this.binding(child.name),value());ts.forEachChild(child,invalidate);};invalidate(node.tryBlock);let combined=this.block(node.tryBlock.statements,state);if(node.catchClause){const entry=new Map(exceptional);if(node.catchClause.variableDeclaration)this.assign(node.catchClause.variableDeclaration.name,value(ANY,'JavaScript may throw null/undefined',this.line(node.catchClause)),entry);combined=join(combined,this.block(node.catchClause.block.statements,entry));}const final=node.finallyBlock?this.block(node.finallyBlock.statements,combined||exceptional):combined;state=combined?final:null;}
   else if(ts.isBreakStatement(node)||ts.isContinueStatement(node))return state;
   else if(ts.isSwitchStatement(node)){this.evaluate(node.expression,state);let combined=new Map(state);for(const clause of node.caseBlock.clauses)combined=join(combined,this.block(clause.statements,state));state=combined;}
   else if(ts.isFunctionDeclaration(node)||ts.isClassDeclaration(node)||ts.isImportDeclaration(node)||ts.isExportDeclaration(node)||ts.isInterfaceDeclaration(node)||ts.isTypeAliasDeclaration(node)||ts.isEmptyStatement(node)){}
