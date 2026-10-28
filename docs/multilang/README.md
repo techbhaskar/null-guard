@@ -80,9 +80,9 @@ Maven and Gradle integrations remain Java-only and preserve schema 1.0 behavior.
 | Go | Compatible installed Go; x/tools v0.52.0 | Module/build-tag/platform dependent; test files excluded; no automatic module download; unresolved calls remain unknown |
 | Rust | Stable compatible Cargo; locked syn/cargo_metadata | No macro expansion, unresolved trait dispatch, raw-pointer/borrow verification; standard Option/Result identity required; ambiguous imports and aliases remain unknown |
 
-Tested locally: macOS arm64, Java 21, Python 3.13, Node 22.22.0,
+Tested locally: macOS arm64, Java 21, Python 3.13, Node 26.8.1,
 Go 1.27.2, Rust 1.99.0 and .NET SDK 10.0.401. Signed local assets also pass
-clean installation and behavioral tests in a Linux arm64 container. Windows execution
+clean installation and behavioral tests in a Linux arm64 container. The Linux/Windows/macOS CI pack matrix passes. Windows signed-pack installation
 and signed published-asset installation on all three platforms remain release gates. This is not a claim
 that every version above each runtime minimum has been tested.
 

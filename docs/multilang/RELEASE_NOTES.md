@@ -22,8 +22,9 @@ Local validation covers Java 21, macOS/Linux arm64 signed local installs, mixed
 examples, 40 compiler-backed/review tests, report schemas and archive reproducibility.
 The frozen 271-finding source review exposed false positives and uncertain contracts;
 no rules have earned high-confidence status. Corrected findings still need source
-review. Windows execution and clean installation from published signed assets remain
-pending; the checked-in CI workflow builds the platform matrix.
+review. The Linux/Windows/macOS CI pack matrix and JVM/Gradle pipeline pass. Windows
+signed-pack installation and clean installation from published signed assets remain
+pending. CI build artifacts are unsigned.
 
 Do not publish this draft as a qualified release until the gates in
 `qualification/README.md` are satisfied.

@@ -31,6 +31,9 @@ Validation completed locally:
   example, execute 40 behavioral/review tests and remove successfully on macOS arm64
   and Linux arm64. Linux uses `scripts/qualification/Dockerfile`; only public source,
   dependencies and artifacts enter the container. Signing stays on the host.
+- The [platform pack matrix](https://github.com/techbhaskar/null-guard/actions/runs/40641075666)
+  and [JVM/Gradle pipeline](https://github.com/techbhaskar/null-guard/actions/runs/40641075702)
+  passed. The pack matrix runs all 40 behavioral/review tests on each platform.
 - Schema 2.0, official SARIF schema and dashboard script/visual checks pass.
 - Repeat archive comparisons and tested environments are recorded separately.
 
@@ -38,8 +41,9 @@ Remaining qualification gates:
 
 - Review the corrected implementation's findings against source evidence; baseline
   labels alone do not establish its accuracy. Keep every rule experimental meanwhile.
-- Complete Windows execution and signed-install verification. The platform CI matrix
-  builds unsigned artifacts; production installation intentionally rejects them.
+- Complete Windows signed-install verification for all five packs. The platform CI
+  matrix passed native tests and built packs on Linux, Windows and macOS. Its unsigned
+  artifacts intentionally cannot be installed by the production installer.
 - Verify clean installation from the eventual **published** signed release assets
   on Linux, Windows and macOS. Current signed-install evidence uses local assets.
 
