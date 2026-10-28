@@ -70,7 +70,7 @@ class Analyzer:
                 "confidence": "experimental", "methodId": self.module+"#"+self.current,
                 "message": message, "location": {"path": self.file, "startLine": line, "startColumn": col},
                 "evidence": [value.origin, "Receiver state: "+value.state, "Unsafe operation at line "+str(line)],
-                "relatedLocations": [{"path": self.file, "startLine": value.line, "startColumn": 1}]}
+                "relatedLocations": [] if "Value has no resolved nullability contract" in value.origin else [{"path": self.file, "startLine": value.line, "startColumn": 1}]}
         self.findings[(self.file, line, col, item["ruleId"], message)] = item
 
     def evaluate(self, node, state):

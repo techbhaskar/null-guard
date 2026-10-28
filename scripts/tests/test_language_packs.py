@@ -199,6 +199,15 @@ fn custom(value: Custom) -> i32 { value.unwrap() }
   data=analyze('rust','use {std::fmt, foreign::*}; fn f(x:Option<i32>)->i32{x.unwrap()}', 'rs');self.assertFalse(self.has(data,'#f'),self.methods(data))
   data=analyze('rust','type Option = Custom; struct Custom; impl Custom {fn unwrap(self)->i32{1}} fn f(x:Option)->i32{x.unwrap()}', 'rs');self.assertFalse(self.has(data,'#f'),self.methods(data))
   data=analyze('rust','struct Custom; impl Custom {fn unwrap(self)->i32{1}} fn f(Some:fn()->Custom)->i32{Some().unwrap()}','rs');self.assertFalse(self.has(data,'#f'),self.methods(data))
+ def test_unknown_origins_do_not_invent_first_line_related_locations(self):
+  cases=[('python','def f():\n    return unknown.value\n','py',None),('go','package fixture\n\nfunc f(p *int)int{return *p}\n','go',{'go.mod':'module example.com/fixture\ngo 1.26.0\n'}),('csharp','\n\nclass C {static int F(string? x)=>x.Length;}','cs',None)]
+  for pack,source,extension,extra in cases:
+   with self.subTest(pack=pack):self.assertEqual([],analyze(pack,source,extension,extra)['findings'][0]['relatedLocations'])
+ def test_unicode_columns_count_codepoints_in_every_pack(self):
+  cases=[('python','def f(x: str | None):\n    label="😀"; return x.strip()\n','py','x.strip',None),('ecmascript','function f(x: string|null){const label="😀";return x.length;}','ts','x.length',None),('csharp','class C {int F(string? x){var label="😀";return x.Length;}}','cs','x.Length',None),('go','package fixture\nfunc f(p *int) int {label:="😀";_=label;return *p}\n','go','*p',{'go.mod':'module example.com/fixture\ngo 1.26.0\n'}),('rust','fn f(x:Option<i32>){let label="😀";x.unwrap();}','rs','x.unwrap',None)]
+  for pack,source,extension,target,extra in cases:
+   with self.subTest(pack=pack):
+    finding=analyze(pack,source,extension,extra)['findings'][0];location=finding['location'];line=source.splitlines()[location['startLine']-1];self.assertEqual(line.index(target)+1,location['startColumn'])
  def test_rust_augmented_assignment_and_loop_shadow_invalidate_bounds(self):
   data=analyze('rust','fn changed(xs:Vec<i32>,mut i:usize)->i32{if i>=xs.len(){return 0;} i+=100; xs[i]} fn shadow(xs:Vec<i32>,i:usize,indices:&[usize]){if i>=xs.len(){return;} for i in 0..100 {xs[i];}}','rs')
   self.assertTrue(self.has(data,'#changed'),self.methods(data));self.assertTrue(self.has(data,'#shadow'),self.methods(data))

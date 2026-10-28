@@ -237,7 +237,8 @@ impl Analyzer {
         let col = self
             .lines
             .get(p.line.saturating_sub(1))
-            .map(|s| s.get(..p.column.min(s.len())).unwrap_or("").chars().count() + 1)
+            // proc_macro2 columns already count Unicode scalar values.
+            .map(|s| p.column.min(s.chars().count()) + 1)
             .unwrap_or(1);
         let f = json!({"ruleId":format!("NG-RS-{rule}"),"language":"rust","severity":"warning","confidence":"experimental","methodId":format!("{}#{}",self.file,self.current),"message":message,"location":{"path":self.file,"startLine":p.line.max(1),"startColumn":col},"evidence":[v.origin,format!("Standard value state mask: {}",v.mask)],"relatedLocations":[{"path":self.file,"startLine":v.line.max(1),"startColumn":1}]});
         self.findings.insert(

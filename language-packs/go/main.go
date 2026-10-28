@@ -144,7 +144,11 @@ func (a *Analyzer) emit(fn *ssa.Function, p token.Pos, f Fact, rule, message str
 	if file == "" {
 		return
 	}
-	item := map[string]any{"ruleId": "NG-GO-" + rule, "language": "go", "severity": "warning", "confidence": "experimental", "methodId": fn.String(), "message": message, "location": map[string]any{"path": file, "startLine": line, "startColumn": col}, "evidence": []string{f.Origin, fmt.Sprintf("Nil-state mask: %d", f.Mask)}, "relatedLocations": []any{map[string]any{"path": file, "startLine": max(1, f.Line), "startColumn": 1}}}
+	related := []any{}
+	if f.Line > 1 || strings.HasPrefix(f.Origin, "Source return consumed at call:") {
+		related = append(related, map[string]any{"path": file, "startLine": f.Line, "startColumn": 1})
+	}
+	item := map[string]any{"ruleId": "NG-GO-" + rule, "language": "go", "severity": "warning", "confidence": "experimental", "methodId": fn.String(), "message": message, "location": map[string]any{"path": file, "startLine": line, "startColumn": col}, "evidence": []string{f.Origin, fmt.Sprintf("Nil-state mask: %d", f.Mask)}, "relatedLocations": related}
 	a.findings[fmt.Sprintf("%s:%d:%d:%s:%s", file, line, col, rule, message)] = item
 }
 
