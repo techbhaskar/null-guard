@@ -15,7 +15,6 @@
         <maven.plugin.annotations.version>3.11.0</maven.plugin.annotations.version>
         <maven.plugin.api.version>3.9.6</maven.plugin.api.version>
         <maven.version>3.9.6</maven.version>
-        <jackson.version>2.18.11</jackson.version>
     </properties>
 
     <dependencies>
@@ -46,7 +45,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
 
         <dependency>
