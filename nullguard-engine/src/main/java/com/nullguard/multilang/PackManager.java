@@ -153,17 +153,20 @@ public final class PackManager {
     }
     // gpgv needs no agent, private keyring or trust database. This also avoids Unix
     // socket path limits when the user's pack directory is deeply nested.
+    // Relative paths also work with Git for Windows' POSIX gpgv, which treats
+    // a drive-letter keyring path as a resource URL.
     Process importer =
         new ProcessBuilder(
                 "gpg",
                 "--homedir",
-                work.toString().replace('\\', '/'),
+                ".",
                 "--batch",
                 "--yes",
                 "--dearmor",
                 "--output",
-                keyring.toString().replace('\\', '/'),
-                pub.toString().replace('\\', '/'))
+                "./" + keyring.getFileName(),
+                pub.getFileName().toString())
+            .directory(work.toFile())
             .redirectErrorStream(true)
             .redirectOutput(log.toFile())
             .start();
@@ -175,13 +178,14 @@ public final class PackManager {
         new ProcessBuilder(
                 "gpgv",
                 "--homedir",
-                work.toString().replace('\\', '/'),
+                ".",
                 "--status-fd",
                 "1",
                 "--keyring",
-                keyring.toString().replace('\\', '/'),
-                sig.toString().replace('\\', '/'),
-                zip.toString().replace('\\', '/'))
+                "./" + keyring.getFileName(),
+                sig.getFileName().toString(),
+                zip.getFileName().toString())
+            .directory(work.toFile())
             .redirectErrorStream(true)
             .redirectOutput(log.toFile())
             .start();
