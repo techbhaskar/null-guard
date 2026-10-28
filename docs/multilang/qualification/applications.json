@@ -53,5 +53,30 @@
     "id": "fd",
     "url": "https://github.com/sharkdp/fd",
     "commit": "c44735ec0f130c2486afe9c976937c03b57a8c62"
+  },
+  {
+    "id": "http-server",
+    "url": "https://github.com/http-party/http-server",
+    "commit": "0d3b7bb5b6e8a59fd450ae2dca65870009cfcd8b"
+  },
+  {
+    "id": "husky",
+    "url": "https://github.com/typicode/husky",
+    "commit": "3f0023dc10d7003d70f2e31aa56300eab80e76d6"
+  },
+  {
+    "id": "json-server",
+    "url": "https://github.com/typicode/json-server",
+    "commit": "89a34a44b7a6a5311dc84f3b8a1b8b45c0905aea"
+  },
+  {
+    "id": "qsreplace",
+    "url": "https://github.com/tomnomnom/qsreplace",
+    "commit": "320475befaf66d986400aa8c3ed9b43e0b6b5a02"
+  },
+  {
+    "id": "just",
+    "url": "https://github.com/casey/just",
+    "commit": "c7317c85c21ebd83ea4bb8de26f8afec44c7e597"
   }
 ]

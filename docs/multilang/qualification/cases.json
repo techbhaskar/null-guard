@@ -1,0 +1,80 @@
+[
+  {
+    "application": "pywal",
+    "repository": "pywal",
+    "language": "python",
+    "scope": "."
+  },
+  {
+    "application": "shot-scraper",
+    "repository": "shot-scraper",
+    "language": "python",
+    "scope": "."
+  },
+  {
+    "application": "http-server",
+    "repository": "http-server",
+    "language": "javascript",
+    "scope": "."
+  },
+  {
+    "application": "husky",
+    "repository": "husky",
+    "language": "javascript",
+    "scope": "."
+  },
+  {
+    "application": "serve",
+    "repository": "serve",
+    "language": "typescript",
+    "scope": "."
+  },
+  {
+    "application": "json-server",
+    "repository": "json-server",
+    "language": "typescript",
+    "scope": "."
+  },
+  {
+    "application": "dotnet-counters",
+    "repository": "diagnostics",
+    "language": "csharp",
+    "scope": "src/Tools/dotnet-counters"
+  },
+  {
+    "application": "dotnet-trace",
+    "repository": "diagnostics",
+    "language": "csharp",
+    "scope": "src/Tools/dotnet-trace"
+  },
+  {
+    "application": "httprobe",
+    "repository": "httprobe",
+    "language": "go",
+    "scope": "."
+  },
+  {
+    "application": "qsreplace",
+    "repository": "qsreplace",
+    "language": "go",
+    "scope": "."
+  },
+  {
+    "application": "hexyl",
+    "repository": "hexyl",
+    "language": "rust",
+    "scope": "."
+  },
+  {
+    "application": "fd",
+    "repository": "fd",
+    "language": "rust",
+    "scope": "."
+  },
+  {
+    "application": "just",
+    "repository": "just",
+    "language": "rust",
+    "scope": "."
+  }
+]

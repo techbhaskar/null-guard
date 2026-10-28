@@ -83,9 +83,9 @@ fn join(a: &State, b: &State) -> State {
     }
     r
 }
-fn masks(s: &State) -> Vec<(String, Kind, u8)> {
+fn masks(s: &State) -> Vec<(String, Kind, u8, Option<usize>)> {
     s.iter()
-        .map(|(k, v)| (k.clone(), v.kind.clone(), v.mask))
+        .map(|(k, v)| (k.clone(), v.kind.clone(), v.mask, v.len))
         .collect()
 }
 struct Analyzer {
@@ -115,6 +115,13 @@ impl Analyzer {
         if parts.len() == 1 {
             return parts[0] == name && !self.shadow.contains(name);
         };
+        if parts
+            .first()
+            .map(|p| self.shadow.contains(p))
+            .unwrap_or(false)
+        {
+            return false;
+        }
         let written = parts.join("::");
         match name {
             "Some" | "None" => {
@@ -133,6 +140,67 @@ impl Analyzer {
                     || written == format!("std::result::{name}")
                     || written == format!("core::result::{name}")
                     || written == format!("std::vec::{name}")
+            }
+        }
+    }
+    fn imports(&mut self, tree: &syn::UseTree, prefix: Vec<String>) {
+        const NAMES: [&str; 9] = [
+            "Option", "Result", "Some", "None", "Ok", "Err", "Vec", "std", "core",
+        ];
+        match tree {
+            syn::UseTree::Path(path) => {
+                let mut prefix = prefix;
+                prefix.push(path.ident.to_string());
+                self.imports(&path.tree, prefix)
+            }
+            syn::UseTree::Group(group) => {
+                for item in &group.items {
+                    self.imports(item, prefix.clone())
+                }
+            }
+            syn::UseTree::Name(name) => {
+                let imported = name.ident.to_string();
+                let mut full = prefix;
+                full.push(imported.clone());
+                if NAMES.contains(&imported.as_str()) {
+                    let path: syn::Path = syn::parse_str(&full.join("::")).unwrap();
+                    if !self.standard(&path, &imported) {
+                        self.shadow.insert(imported);
+                    }
+                }
+            }
+            syn::UseTree::Rename(rename) => {
+                let imported = rename.rename.to_string();
+                let mut full = prefix;
+                full.push(rename.ident.to_string());
+                if NAMES.contains(&imported.as_str()) {
+                    let path: syn::Path = syn::parse_str(&full.join("::")).unwrap();
+                    if !self.standard(&path, &imported) {
+                        self.shadow.insert(imported);
+                    }
+                }
+            }
+            syn::UseTree::Glob(_) => {
+                let path = prefix.join("::");
+                let root = prefix.first().map(String::as_str).unwrap_or("");
+                let established = !self.shadow.contains(root)
+                    && ([
+                        "std::option::Option",
+                        "core::option::Option",
+                        "std::result::Result",
+                        "core::result::Result",
+                    ]
+                    .contains(&path.as_str())
+                        || path.starts_with("std::prelude::")
+                        || path.starts_with("core::prelude::"));
+                if !established {
+                    self.shadow.extend(NAMES.map(str::to_owned));
+                    self.unresolved.insert(format!(
+                        "{}:unresolved wildcard import standard identities",
+                        self.file
+                    ));
+                    self.unsupported += 1;
+                }
             }
         }
     }
@@ -180,6 +248,7 @@ impl Analyzer {
     fn bind(&self, p: &Pat, v: &Fact, s: &mut State) {
         match p {
             Pat::Ident(i) => {
+                s.retain(|key, _| !key.starts_with("$bound:"));
                 s.insert(i.ident.to_string(), v.clone());
             }
             Pat::Type(t) => self.bind(&t.pat, v, s),
@@ -329,6 +398,16 @@ impl Analyzer {
                     self.eval(arg, s);
                 }
                 if let Expr::Path(p) = c.func.as_ref() {
+                    if p.path
+                        .get_ident()
+                        .map(|name| s.contains_key(&name.to_string()))
+                        .unwrap_or(false)
+                    {
+                        self.unresolved
+                            .insert(format!("{}:{line}:local callable", self.file));
+                        return Fact::unknown();
+                    }
+
                     for (name, kind, mask) in [
                         ("Some", Kind::Option, 2),
                         ("None", Kind::Option, 1),
@@ -437,6 +516,16 @@ impl Analyzer {
                 {
                     return Fact::unknown();
                 };
+                if matches!(receiver.kind, Kind::Option | Kind::Result) {
+                    if let Expr::Path(path) = m.receiver.as_ref() {
+                        if let Some(id) = path.path.get_ident() {
+                            let mut unknown = receiver.clone();
+                            unknown.mask = 3;
+                            unknown.origin = "Unresolved enum method may mutate state".into();
+                            s.insert(id.to_string(), unknown);
+                        }
+                    }
+                }
                 self.unresolved
                     .insert(format!("{}:{line}:method {name}", self.file));
                 Fact::unknown()
@@ -458,6 +547,15 @@ impl Analyzer {
                 }
                 Fact::unknown()
             }
+            Expr::Range(range) => {
+                if let Some(start) = &range.start {
+                    self.eval(start, s);
+                }
+                if let Some(end) = &range.end {
+                    self.eval(end, s);
+                }
+                Fact::unknown()
+            }
             Expr::Index(i) => {
                 let base = self.eval(&i.expr, s);
                 self.eval(&i.index, s);
@@ -467,7 +565,33 @@ impl Analyzer {
                         i.expr.to_token_stream().to_string().replace(' ', ""),
                         i.index.to_token_stream().to_string().replace(' ', "")
                     );
-                    let safe = matches!((base.len,integer(&i.index)),(Some(n),Some(k)) if k<n)
+                    let range_safe = if let Expr::Range(range) = i.index.as_ref() {
+                        if range.start.is_none() && range.end.is_none() {
+                            true
+                        } else if let Some(length) = base.len {
+                            let start = range.start.as_deref().map(integer).unwrap_or(Some(0));
+                            let end = range.end.as_deref().map(integer).unwrap_or(Some(length));
+                            match (start, end) {
+                                (Some(start), Some(end)) => {
+                                    let end = if matches!(range.limits, syn::RangeLimits::Closed(_))
+                                    {
+                                        end.checked_add(1)
+                                    } else {
+                                        Some(end)
+                                    };
+                                    end.map(|end| start <= end && end <= length)
+                                        .unwrap_or(false)
+                                }
+                                _ => false,
+                            }
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    };
+                    let safe = range_safe
+                        || matches!((base.len,integer(&i.index)),(Some(n),Some(k)) if k<n)
                         || s.get(&key).map(|f| f.mask == 2).unwrap_or(false);
                     if !safe {
                         self.emit(
@@ -561,6 +685,21 @@ impl Analyzer {
                 v
             }
             Expr::Binary(b) => {
+                if matches!(
+                    b.op,
+                    syn::BinOp::AddAssign(_)
+                        | syn::BinOp::SubAssign(_)
+                        | syn::BinOp::MulAssign(_)
+                        | syn::BinOp::DivAssign(_)
+                        | syn::BinOp::RemAssign(_)
+                        | syn::BinOp::BitXorAssign(_)
+                        | syn::BinOp::BitAndAssign(_)
+                        | syn::BinOp::BitOrAssign(_)
+                        | syn::BinOp::ShlAssign(_)
+                        | syn::BinOp::ShrAssign(_)
+                ) {
+                    s.retain(|key, _| !key.starts_with("$bound:"));
+                }
                 self.eval(&b.left, s);
                 let mut right = if matches!(b.op, syn::BinOp::And(_)) {
                     self.refine(&b.left, s, true)
@@ -641,6 +780,8 @@ impl Analyzer {
         let mut previous = head.clone();
         let mut converged = false;
         self.loop_exits.push(vec![]);
+        let reporting = self.report;
+        self.report = false;
         for _ in 0..self.r.max_iterations.unwrap_or(64).clamp(1, 64) {
             let entry = if let Some(t) = test {
                 self.eval(t, &mut previous);
@@ -659,6 +800,16 @@ impl Analyzer {
         if !converged {
             self.budget = true
         };
+        self.report = reporting;
+        if reporting {
+            let entry = if let Some(test) = test {
+                self.eval(test, &mut previous);
+                self.refine(test, &previous, true)
+            } else {
+                previous.clone()
+            };
+            self.block(body, entry);
+        }
         *state = join(&head, &previous);
         for exit in self.loop_exits.pop().unwrap_or_default() {
             *state = join(state, &exit)
@@ -667,6 +818,41 @@ impl Analyzer {
     fn block(&mut self, block: &syn::Block, mut state: State) -> (Option<State>, Fact) {
         let original = state.clone();
         let mut declared = BTreeSet::new();
+        let original_shadow = self.shadow.clone();
+        for statement in &block.stmts {
+            if let Stmt::Item(item) = statement {
+                let name = match item {
+                    Item::Type(i) => Some(&i.ident),
+                    Item::Struct(i) => Some(&i.ident),
+                    Item::Enum(i) => Some(&i.ident),
+                    Item::Const(i) => Some(&i.ident),
+                    Item::Static(i) => Some(&i.ident),
+                    Item::Fn(i) => Some(&i.sig.ident),
+                    _ => None,
+                };
+                if let Some(name) = name {
+                    self.shadow.insert(name.to_string());
+                    if matches!(item, Item::Fn(_)) {
+                        state.insert(
+                            name.to_string(),
+                            Fact::new(
+                                Kind::Unknown,
+                                2,
+                                "Unresolved local function",
+                                item.span().start().line,
+                            ),
+                        );
+                        declared.insert(name.to_string());
+                        self.unresolved.insert(format!(
+                            "{}:{}:local function body not resolved",
+                            self.file,
+                            item.span().start().line
+                        ));
+                        self.unsupported += 1;
+                    }
+                }
+            }
+        }
         let mut last = Fact::unknown();
         for stmt in &block.stmts {
             match stmt {
@@ -708,12 +894,14 @@ impl Analyzer {
                 Stmt::Expr(e, _) => {
                     last = self.eval(e, &mut state);
                     if matches!(e, Expr::Return(_)) {
+                        self.shadow = original_shadow;
                         return (None, last);
                     };
                     if matches!(e, Expr::Break(_) | Expr::Continue(_)) {
                         if let Some(exits) = self.loop_exits.last_mut() {
                             exits.push(state.clone())
                         };
+                        self.shadow = original_shadow;
                         return (None, last);
                     }
                 }
@@ -736,10 +924,16 @@ impl Analyzer {
                 state.remove(&name);
             }
         }
+        self.shadow = original_shadow;
         (Some(state), last)
     }
     fn analyze_fn(&mut self, file: &str, function: &syn::ItemFn, report: bool) -> Fact {
         self.shadow = self.shadows.get(file).cloned().unwrap_or_default();
+        for parameter in &function.sig.generics.params {
+            if let syn::GenericParam::Type(parameter) = parameter {
+                self.shadow.insert(parameter.ident.to_string());
+            }
+        }
         self.file = file.into();
         self.module = file.into();
         self.current = function.sig.ident.to_string();
@@ -776,6 +970,27 @@ impl Analyzer {
             {
                 Ok(tree) => {
                     self.shadow.clear();
+                    self.file = file.clone();
+                    // Item bindings are visible throughout a Rust module, including
+                    // bindings declared after an import or a function definition.
+                    for item in &tree.items {
+                        let name = match item {
+                            Item::Struct(i) => Some(&i.ident),
+                            Item::Enum(i) => Some(&i.ident),
+                            Item::Type(i) => Some(&i.ident),
+                            Item::Mod(i) => Some(&i.ident),
+                            Item::Const(i) => Some(&i.ident),
+                            Item::Static(i) => Some(&i.ident),
+                            Item::Fn(i) => Some(&i.sig.ident),
+                            Item::ExternCrate(i) => {
+                                Some(i.rename.as_ref().map(|(_, name)| name).unwrap_or(&i.ident))
+                            }
+                            _ => None,
+                        };
+                        if let Some(name) = name {
+                            self.shadow.insert(name.to_string());
+                        }
+                    }
                     self.analyzed += 1;
                     for item in &tree.items {
                         match item {
@@ -785,20 +1000,28 @@ impl Analyzer {
                             Item::Enum(e) => {
                                 self.shadow.insert(e.ident.to_string());
                             }
-                            Item::Use(u) => {
-                                let written = u.to_token_stream().to_string();
-                                if !written.contains("std ::") && !written.contains("core ::") {
-                                    for n in ["Option", "Result", "Some", "None", "Ok", "Err"] {
-                                        if written
-                                            .split(|c: char| !c.is_alphanumeric())
-                                            .any(|s| s == n)
-                                        {
-                                            self.shadow.insert(n.into());
-                                        }
-                                    }
-                                }
+                            Item::Use(u) => self.imports(&u.tree, vec![]),
+                            Item::Type(alias) => {
+                                self.shadow.insert(alias.ident.to_string());
                             }
-                            Item::Mod(_) => {
+                            Item::Const(value) => {
+                                self.shadow.insert(value.ident.to_string());
+                            }
+                            Item::Static(value) => {
+                                self.shadow.insert(value.ident.to_string());
+                            }
+                            Item::ExternCrate(value) => {
+                                self.shadow.insert(
+                                    value
+                                        .rename
+                                        .as_ref()
+                                        .map(|(_, name)| name)
+                                        .unwrap_or(&value.ident)
+                                        .to_string(),
+                                );
+                            }
+                            Item::Mod(module) => {
+                                self.shadow.insert(module.ident.to_string());
                                 self.unsupported += 1;
                                 self.diagnostics.insert(
                                     "Inline/external module dispatch is not semantically expanded"
@@ -849,7 +1072,7 @@ impl Analyzer {
                     .get(key)
                     .cloned()
                     .unwrap_or_else(Fact::unknown);
-                if old.kind != f.kind || old.mask != f.mask {
+                if old.kind != f.kind || old.mask != f.mask || old.len != f.len {
                     changed = true
                 };
                 self.summaries.insert(key.clone(), f);

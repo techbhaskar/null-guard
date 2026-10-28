@@ -46,6 +46,7 @@ class Analyzer:
         self.findings = {}
         self.diagnostics = []
         self.functions = {}
+        self.module_imports = {}
         self.summaries = {}
         self.trees = []
         self.unresolved = set()
@@ -76,7 +77,7 @@ class Analyzer:
         if node is None: return Value(NULL, "Implicit None", 1)
         line = getattr(node, "lineno", 1)
         if isinstance(node, ast.Constant): return Value(NULL if node.value is None else NONNULL, "Literal "+repr(node.value), line)
-        if isinstance(node, ast.Name): return state.get(node.id, UNKNOWN_VALUE)
+        if isinstance(node, ast.Name): return state.get(node.id, self.module_imports.get(self.module, {}).get(node.id, UNKNOWN_VALUE))
         if isinstance(node, (ast.List, ast.Tuple, ast.Set, ast.Dict, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp, ast.Lambda)):
             # Comprehension scopes do not leak variables into the containing state.
             if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
@@ -202,6 +203,8 @@ class Analyzer:
                 if isinstance(statement, ast.While): self.evaluate(statement.test, head)
                 else: self.evaluate(statement.iter, head); self.assign(statement.target, UNKNOWN_VALUE, head)
                 previous = head
+                reporting = self.report
+                self.report = False
                 for _ in range(self.budget):
                     entry = self.refine(statement.test, previous, True) if isinstance(statement, ast.While) else previous
                     body = self.block(statement.body, entry)
@@ -210,6 +213,10 @@ class Analyzer:
                     if {k:v.state for k,v in next_state.items()} == {k:v.state for k,v in previous.items()}: break
                     previous = next_state
                 else: self.exhausted = True
+                self.report = reporting
+                if reporting:
+                    entry = self.refine(statement.test, previous, True) if isinstance(statement, ast.While) else previous
+                    self.block(statement.body, entry)
                 # Retain a conservative exit; break paths cannot be assumed to satisfy test=false.
                 state = join(state, previous)
                 state = self.block(statement.orelse, state)
@@ -267,11 +274,37 @@ class Analyzer:
                 symtable.symtable(text, file, "exec")
                 module = str(pathlib.PurePosixPath(file).with_suffix("")).replace("/", ".")
                 self.trees.append((module, file, tree))
+                imported={}
+                class Imports(ast.NodeVisitor):
+                    def visit_FunctionDef(self,node): pass
+                    visit_AsyncFunctionDef=visit_FunctionDef
+                    visit_ClassDef=visit_FunctionDef
+                    def visit_Name(self,node):
+                        if isinstance(node.ctx,ast.Store): imported.pop(node.id,None)
+                    def visit_Import(self,node):
+                        for alias in node.names: imported[alias.asname or alias.name.split('.')[0]]=Value(NONNULL,"Imported module binding",node.lineno)
+                Imports().visit(tree)
+                for node in ast.walk(tree):
+                    if isinstance(node,ast.Global):
+                        for name in node.names: imported.pop(name,None)
+                self.module_imports[module]=imported
                 for function in tree.body:
-                    if isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)) and not function.decorator_list:
                         self.functions[module+":"+function.name] = (module, file, function)
             except (SyntaxError, UnicodeError, OSError, ValueError) as error:
                 self.failed += 1; self.diagnostics.append(file+": "+str(error))
+        for module,file,tree in self.trees:
+            rebound=set()
+            class Rebound(ast.NodeVisitor):
+                def visit_FunctionDef(self,node): pass
+                visit_AsyncFunctionDef=visit_FunctionDef
+                visit_ClassDef=visit_FunctionDef
+                def visit_Name(self,node):
+                    if isinstance(node.ctx,ast.Store): rebound.add(node.id)
+            Rebound().visit(tree)
+            for node in ast.walk(tree):
+                if isinstance(node,ast.Global): rebound.update(node.names)
+            for name in rebound: self.functions.pop(module+":"+name,None)
         for _ in range(self.budget):
             changed = False
             for key, (module, file, fn) in self.functions.items():

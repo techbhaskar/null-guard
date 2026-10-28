@@ -4,6 +4,7 @@ No automatic true-positive labels or precision claims are generated.
 """
 import argparse
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -13,12 +14,16 @@ LABELS={'true-positive','false-positive','uncertain'}
 def validate(rows,counts):
  errors=[];group=defaultdict(list);seen=set()
  for row in rows:
-  key=(row.get('application'),row.get('commit'),row.get('ruleId'),row.get('path'),row.get('line'))
+  key=(row.get('application'),row.get('commit'),row.get('ruleId'),row.get('path'),row.get('line'),row.get('column',0),row.get('message',''))
   if key in seen:errors.append('Duplicate review: '+str(key))
   seen.add(key);group[row.get('language')].append(row)
+  if row.get('language') not in LANGUAGES:errors.append('Unsupported review language: '+str(row.get('language')))
+  if not re.fullmatch('[0-9a-f]{40}',row.get('commit','')):errors.append('Unpinned source commit: '+str(key))
+  if not isinstance(row.get('line'),int) or row['line']<1:errors.append('Invalid source location: '+str(key))
   if row.get('label') not in LABELS or not row.get('reviewer') or not row.get('reasoning') or not row.get('sourceUrl'):errors.append('Incomplete review evidence: '+str(key))
  for lang in sorted(LANGUAGES):
-  selected=group[lang];required=min(50,counts.get(lang,50))
+  if lang not in counts or not isinstance(counts[lang],int) or isinstance(counts[lang],bool) or counts[lang]<0:errors.append('Missing/invalid observed count: '+lang)
+  selected=group[lang];observed=counts.get(lang);required=min(50,observed if isinstance(observed,int) and not isinstance(observed,bool) and observed>=0 else 50)
   if len(selected)<required:errors.append(f'{lang}: {len(selected)}/{required} required reviews')
   if len({r.get('application') for r in selected})<2:errors.append(lang+': reviews from two pinned applications required')
  rules=defaultdict(list)
@@ -39,7 +44,7 @@ def main():
  report=json.loads(a.report.read_text());rows=[]
  for project in report['projects']:
   for finding in project['findings']:
-   loc=finding['location'];rows.append(dict(application=a.application,commit=a.commit,language=finding['language'],ruleId=finding['ruleId'],confidence=finding['confidence'],path=loc['path'],line=loc['startLine'],message=finding['message'],evidence=finding.get('evidence',[]),sourceUrl=a.repository.rstrip('/')+'/blob/'+a.commit+'/'+loc['path']+'#L'+str(loc['startLine']),label=None,reviewer=None,reasoning=None))
+   loc=finding['location'];rows.append(dict(application=a.application,commit=a.commit,language=finding['language'],ruleId=finding['ruleId'],confidence=finding['confidence'],path=loc['path'],line=loc['startLine'],column=loc['startColumn'],message=finding['message'],evidence=finding.get('evidence',[]),sourceUrl=a.repository.rstrip('/')+'/blob/'+a.commit+'/'+loc['path']+'#L'+str(loc['startLine']),label=None,reviewer=None,reasoning=None))
  a.output.write_text(json.dumps(rows,indent=2)+'\n');print(f'Exported {len(rows)} unreviewed findings')
  return 0
 

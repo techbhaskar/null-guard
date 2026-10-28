@@ -1,6 +1,8 @@
 name: Qualify multi-language preview
 on:
   workflow_dispatch:
+  push:
+    branches: [codex/multilanguage-preview]
   pull_request:
     paths: ['language-packs/**', '**/multilang/**', 'scripts/*language*', 'scripts/tests/**']
 permissions:

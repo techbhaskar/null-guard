@@ -32,6 +32,7 @@ type Request struct {
 }
 type Fact struct {
 	Mask             int
+	Stored           *Fact
 	Origin           string
 	Line             int
 	Error            ssa.Value
@@ -45,6 +46,7 @@ type Analyzer struct {
 	fset        *token.FileSet
 	findings    map[string]any
 	unresolved  map[string]bool
+	captures    map[*ssa.MakeClosure][]Fact
 	summaries   map[*ssa.Function][]Fact
 	budget      bool
 	diagnostics []string
@@ -60,10 +62,20 @@ func nullable(t types.Type) bool {
 	}
 	return false
 }
+func nonNilSSA(v ssa.Value) bool {
+	switch v.(type) {
+	case *ssa.Global, *ssa.Alloc, *ssa.Function, *ssa.Builtin, *ssa.MakeMap, *ssa.MakeSlice, *ssa.MakeChan, *ssa.MakeClosure, *ssa.FieldAddr, *ssa.IndexAddr:
+		return true
+	}
+	return false
+}
 func base(v ssa.Value) Fact {
 	m := Non
 	if v == nil || nullable(v.Type()) {
 		m = Unknown
+	}
+	if nonNilSSA(v) {
+		m = Non
 	}
 	return Fact{Mask: m, Origin: "Unresolved nil contract", Line: 1}
 }
@@ -72,7 +84,13 @@ func merge(a, b Fact) Fact {
 	if o != b.Origin {
 		o = "Joined control-flow paths"
 	}
-	return Fact{Mask: a.Mask | b.Mask, Origin: o, Line: max(1, min(a.Line, b.Line)), Error: a.Error, Ignored: a.Ignored || b.Ignored, Success: a.Success && b.Success}
+	result := Fact{Mask: a.Mask | b.Mask, Origin: o, Line: max(1, min(a.Line, b.Line)), Error: a.Error, Ignored: a.Ignored || b.Ignored, Success: a.Success && b.Success}
+	if a.Stored != nil && b.Stored != nil {
+		stored := merge(*a.Stored, *b.Stored)
+		stored.Stored = nil
+		result.Stored = &stored
+	}
+	return result
 }
 func clone(s State) State {
 	r := State{}
@@ -105,7 +123,7 @@ func equal(a, b State) bool {
 		return false
 	}
 	for k, v := range a {
-		if o, ok := b[k]; !ok || v.Mask != o.Mask {
+		if o, ok := b[k]; !ok || v.Mask != o.Mask || (v.Stored == nil) != (o.Stored == nil) || v.Stored != nil && o.Stored != nil && v.Stored.Mask != o.Stored.Mask {
 			return false
 		}
 	}
@@ -129,8 +147,76 @@ func (a *Analyzer) emit(fn *ssa.Function, p token.Pos, f Fact, rule, message str
 	item := map[string]any{"ruleId": "NG-GO-" + rule, "language": "go", "severity": "warning", "confidence": "experimental", "methodId": fn.String(), "message": message, "location": map[string]any{"path": file, "startLine": line, "startColumn": col}, "evidence": []string{f.Origin, fmt.Sprintf("Nil-state mask: %d", f.Mask)}, "relatedLocations": []any{map[string]any{"path": file, "startLine": max(1, f.Line), "startColumn": 1}}}
 	a.findings[fmt.Sprintf("%s:%d:%d:%s:%s", file, line, col, rule, message)] = item
 }
+
+// A captured cell may retain a stored-value fact only if its address cannot
+// escape to a mutator and all closures read the cell without assigning it.
+func stableCell(value ssa.Value) bool {
+	if _, ok := value.(*ssa.Alloc); !ok {
+		return false
+	}
+	refs := value.Referrers()
+	if refs == nil {
+		return false
+	}
+	stores := 0
+	for _, ref := range *refs {
+		switch use := ref.(type) {
+		case *ssa.Store:
+			if use.Addr != value {
+				return false
+			}
+			stores++
+		case *ssa.UnOp:
+			if use.Op != token.MUL {
+				return false
+			}
+		case *ssa.DebugRef:
+		case *ssa.MakeClosure:
+			fn, ok := use.Fn.(*ssa.Function)
+			if !ok {
+				return false
+			}
+			for index, binding := range use.Bindings {
+				if binding == value {
+					if index >= len(fn.FreeVars) || fn.FreeVars[index].Referrers() == nil {
+						return false
+					}
+					for _, inner := range *fn.FreeVars[index].Referrers() {
+						switch read := inner.(type) {
+						case *ssa.UnOp:
+							if read.Op != token.MUL {
+								return false
+							}
+						case *ssa.DebugRef:
+						default:
+							return false
+						}
+					}
+				}
+			}
+		default:
+			return false
+		}
+	}
+	return stores == 1
+}
+func invalidateStored(state State) {
+	for value, fact := range state {
+		if fact.Stored != nil && !stableCell(value) {
+			fact.Stored = nil
+			state[value] = fact
+		}
+	}
+}
+
 func (a *Analyzer) val(v ssa.Value, s State) Fact {
 	if f, ok := s[v]; ok {
+		if nonNilSSA(v) {
+			f.Mask = Non
+		}
+		if _, captured := v.(*ssa.FreeVar); captured && a.val(v, State{}).Mask == Non {
+			f.Mask = Non
+		}
 		return f
 	}
 	switch x := v.(type) {
@@ -139,6 +225,29 @@ func (a *Analyzer) val(v ssa.Value, s State) Fact {
 			return Fact{Mask: Nil, Origin: "nil constant", Line: 1}
 		}
 		return Fact{Mask: Non, Origin: "Constant", Line: 1}
+	case *ssa.FreeVar:
+		var result Fact
+		found := false
+		for site, bindings := range a.captures {
+			if site.Fn != x.Parent() {
+				continue
+			}
+			for index, variable := range x.Parent().FreeVars {
+				if variable == x && index < len(bindings) {
+					if !found {
+						result = bindings[index]
+						found = true
+					} else {
+						result = merge(result, bindings[index])
+					}
+				}
+			}
+		}
+		if found {
+			return result
+		}
+	case *ssa.Global, *ssa.Alloc:
+		return Fact{Mask: Non, Origin: "Address of storage", Line: 1}
 	case *ssa.Function, *ssa.Builtin:
 		return Fact{Mask: Non, Origin: "Resolved function", Line: 1}
 	}
@@ -184,7 +293,7 @@ func successful(call *ssa.Call) bool {
 		return false
 	}
 	switch f.Pkg.Pkg.Path() + "." + f.Name() {
-	case "os.Open", "os.OpenFile", "os.Create", "net.Dial", "net/http.NewRequest", "net/http.NewRequestWithContext":
+	case "os.Open", "os.OpenFile", "os.Create", "net.Dial", "net/http.NewRequest", "net/http.NewRequestWithContext", "net/url.Parse", "net/url.ParseRequestURI":
 		return true
 	}
 	return false
@@ -218,9 +327,14 @@ func (a *Analyzer) transfer(fn *ssa.Function, b *ssa.BasicBlock, in State, outs 
 		switch x := i.(type) {
 		case *ssa.Phi:
 			var f Fact
+			first := true
 			for n, v := range x.Edges {
+				if _, visited := outs[b.Preds[n]]; !visited {
+					continue
+				}
 				edge := a.refine(b.Preds[n], b, outs[b.Preds[n]])
-				if n == 0 {
+				if first {
+					first = false
 					f = a.val(v, edge)
 				} else {
 					f = merge(f, a.val(v, edge))
@@ -236,6 +350,14 @@ func (a *Analyzer) transfer(fn *ssa.Function, b *ssa.BasicBlock, in State, outs 
 		case *ssa.MakeChan:
 			s[x] = Fact{Mask: Non, Origin: "Initialized channel", Line: line}
 		case *ssa.MakeClosure:
+			bindings := make([]Fact, len(x.Bindings))
+			for index, binding := range x.Bindings {
+				bindings[index] = a.val(binding, s)
+				if !stableCell(binding) {
+					bindings[index].Stored = nil
+				}
+			}
+			a.captures[x] = bindings
 			s[x] = Fact{Mask: Non, Origin: "Function closure", Line: line}
 		case *ssa.MakeInterface:
 			f := a.val(x.X, s)
@@ -254,11 +376,22 @@ func (a *Analyzer) transfer(fn *ssa.Function, b *ssa.BasicBlock, in State, outs 
 			s[x] = a.val(x.X, s)
 		case *ssa.Convert:
 			s[x] = a.val(x.X, s)
+		case *ssa.Store:
+			address := a.val(x.Addr, s)
+			stored := a.val(x.Val, s)
+			stored.Stored = nil
+			address.Stored = &stored
+			s[x.Addr] = address
 		case *ssa.UnOp:
 			if x.Op == token.MUL {
 				check(x.X, x.Pos(), "pointer dereference")
 			}
 			s[x] = base(x)
+			if x.Op == token.MUL {
+				if stored := a.val(x.X, s).Stored; stored != nil {
+					s[x] = *stored
+				}
+			}
 		case *ssa.FieldAddr:
 			check(x.X, x.Pos(), "field receiver")
 			s[x] = Fact{Mask: Non, Origin: "Address after receiver access", Line: line}
@@ -284,6 +417,8 @@ func (a *Analyzer) transfer(fn *ssa.Function, b *ssa.BasicBlock, in State, outs 
 				if target := call.Common().StaticCallee(); target != nil {
 					if values, ok := a.summaries[target]; ok && x.Index < len(values) {
 						f = values[x.Index]
+						f.Line = line
+						f.Origin = "Source return consumed at call: " + f.Origin
 					}
 				}
 				if tuple, ok := x.Tuple.Type().(*types.Tuple); ok && tuple.Len() > 0 && isError(tuple.At(tuple.Len()-1).Type()) && x.Index != tuple.Len()-1 && nullable(x.Type()) {
@@ -305,12 +440,24 @@ func (a *Analyzer) transfer(fn *ssa.Function, b *ssa.BasicBlock, in State, outs 
 				}
 			}
 			f := base(x)
+			if target := c.StaticCallee(); target != nil && target.Pkg != nil {
+				identity := target.Pkg.Pkg.Path() + "." + target.Name()
+				switch identity {
+				case "flag.Bool", "flag.Int", "flag.Int64", "flag.Uint", "flag.Uint64", "flag.String", "flag.Float64", "flag.Duration", "bufio.NewScanner", "bufio.NewReader", "bufio.NewWriter", "strings.NewReader", "bytes.NewReader", "bytes.NewBuffer":
+					f = Fact{Mask: Non, Origin: "Resolved standard-library allocation contract", Line: line}
+				}
+			}
 			if target := c.StaticCallee(); target != nil {
 				if values, ok := a.summaries[target]; ok && len(values) == 1 {
 					f = values[0]
+					f.Line = line
+					f.Origin = "Source return consumed at call: " + f.Origin
 				}
 			}
+			invalidateStored(s)
 			s[x] = f
+		case *ssa.Go, *ssa.Defer:
+			invalidateStored(s)
 		case *ssa.Return:
 			if report {
 				for _, v := range x.Results {
@@ -341,15 +488,15 @@ func (a *Analyzer) transfer(fn *ssa.Function, b *ssa.BasicBlock, in State, outs 
 func (a *Analyzer) analyze(fn *ssa.Function, report bool) []Fact {
 	ins := map[*ssa.BasicBlock]State{}
 	outs := map[*ssa.BasicBlock]State{}
-	for _, b := range fn.Blocks {
-		outs[b] = State{}
-	}
 	converged := false
 	for n := 0; n < a.r.MaxIterations; n++ {
 		changed := false
 		for _, b := range fn.Blocks {
 			var incoming State
 			for _, pred := range b.Preds {
+				if _, visited := outs[pred]; !visited {
+					continue
+				}
 				incoming = join(incoming, a.refine(pred, b, outs[pred]))
 			}
 			if incoming == nil {
@@ -523,7 +670,7 @@ func main() {
 	if r.MaxIterations < 1 || r.MaxIterations > 64 {
 		r.MaxIterations = 64
 	}
-	a := Analyzer{r: r, findings: map[string]any{}, unresolved: map[string]bool{}, summaries: map[*ssa.Function][]Fact{}}
+	a := Analyzer{r: r, captures: map[*ssa.MakeClosure][]Fact{}, findings: map[string]any{}, unresolved: map[string]bool{}, summaries: map[*ssa.Function][]Fact{}}
 	if e := json.NewEncoder(os.Stdout).Encode(a.run()); e != nil {
 		fmt.Fprintln(os.Stderr, e)
 		os.Exit(1)

@@ -16,7 +16,7 @@ VERSION='2.0.0-preview.1'
 PACKS=['python','ecmascript','csharp','go','rust']
 
 def main():
- parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--assets',type=Path,required=True);args=parser.parse_args()
+ parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--assets',type=Path,required=True);parser.add_argument('--behavioral-tests',action='store_true');args=parser.parse_args()
  family={'Darwin':'macos','Linux':'linux','Windows':'windows'}[platform.system()];arch={'arm64':'arm64','aarch64':'arm64','AMD64':'x64','x86_64':'x64'}[platform.machine()]
  jar=ROOT/f'nullguard-cli/target/nullguard-cli-{VERSION}-jar-with-dependencies.jar'
  with tempfile.TemporaryDirectory(prefix='nullguard-clean-install-') as directory:
@@ -32,6 +32,8 @@ def main():
   for p in report['projects']:
    for c in p['coverage'].values():assert c['discoveredFiles']==c['analyzedFiles'] and c['failedFiles']==0 and c['unsupportedFiles']==0
    if p['languages']!=['java']:assert p['capabilities']['stabilityScore'] is False
+  if args.behavioral_tests:
+   subprocess.run([os.sys.executable,'-m','unittest','discover','-s','scripts/tests','-v'],cwd=ROOT,env=dict(env,NULLGUARD_TEST_PACK_HOME=str(home/'packs')),check=True,timeout=300)
   for pack in PACKS:run('packs','remove',pack)
   assert not any((home/'packs').iterdir())
  print('Signed clean installation, seven-language mixed scan and removal passed on '+family+'-'+arch)

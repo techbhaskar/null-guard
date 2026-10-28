@@ -58,6 +58,43 @@ class SubprocessTest {
   }
 
   @Test
+  void missingRuntimeIsAnAnalysisFailure() throws Exception {
+    var packs = fake("valid");
+    var manifest = (ObjectNode) packs.manifest("python");
+    manifest.putArray("command").add(root.resolve("missing-runtime").toString());
+    Protocol.JSON.writeValue(packs.directory("python").resolve("pack.json").toFile(), manifest);
+    assertThrows(
+        java.io.IOException.class,
+        () -> new SubprocessAnalyzer(packs, "python", Duration.ofSeconds(1)).analyze(project()));
+  }
+
+  @Test
+  void aFailedAdapterDoesNotDiscardAnotherProjectsSuccessfulResult() throws Exception {
+    Files.writeString(root.resolve("test.py"), "value=None");
+    Files.writeString(root.resolve("broken.ts"), "const value=null;");
+    var report =
+        new MultiLanguageRunner(fake("valid"), Duration.ofSeconds(10))
+            .run(
+                root,
+                Set.of(Language.PYTHON, Language.TYPESCRIPT),
+                com.nullguard.bootstrap.NullGuardConfig.defaults().build(),
+                null,
+                false);
+    assertEquals("partial", report.path("status").asText());
+    assertEquals(2, report.path("projects").size());
+    assertEquals(
+        1,
+        java.util.stream.StreamSupport.stream(report.path("projects").spliterator(), false)
+            .filter(p -> p.path("status").asText().equals("complete"))
+            .count());
+    assertEquals(
+        1,
+        java.util.stream.StreamSupport.stream(report.path("projects").spliterator(), false)
+            .filter(p -> p.path("status").asText().equals("failed"))
+            .count());
+  }
+
+  @Test
   void timeoutTerminatesPackInsteadOfHanging() throws Exception {
     var packs = fake("sleep");
     long start = System.nanoTime();

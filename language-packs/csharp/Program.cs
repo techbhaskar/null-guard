@@ -17,6 +17,7 @@ sealed class Analyzer(Request request) {
  readonly Dictionary<IMethodSymbol,(SyntaxNode,SemanticModel)> methods=new(SymbolEqualityComparer.Default);
  bool budget,reporting; string file="",method=""; SemanticModel model=null!;
  Dictionary<string,Fact> state=new();
+ Dictionary<string,Fact> captureDefaults=new();
  static string Key(ISymbol s)=>s.Kind+":"+s.ToDisplayString()+":"+s.Locations.FirstOrDefault()?.SourceSpan.Start;
  static Fact Merge(Fact a,Fact b)=>new(a.Mask|b.Mask,a.Origin==b.Origin?a.Origin:"Joined control-flow paths",Math.Min(a.Line,b.Line));
  static Dictionary<string,Fact> Join(Dictionary<string,Fact>? a,Dictionary<string,Fact> b){if(a is null)return new(b);var result=new Dictionary<string,Fact>();foreach(var key in a.Keys.Union(b.Keys))result[key]=Merge(a.GetValueOrDefault(key,new()),b.GetValueOrDefault(key,new()));return result;}
@@ -32,9 +33,9 @@ sealed class Analyzer(Request request) {
  case ILocalReferenceOperation l:return Checked(l,ReadSymbol(l.Local,l.Type,l.Local.NullableAnnotation));
  case IParameterReferenceOperation p:return Checked(p,ReadSymbol(p.Parameter,p.Type,p.Parameter.NullableAnnotation));
  case IInstanceReferenceOperation:return new(Non,"Instance reference",Line(op.Syntax));
- case IFlowCaptureReferenceOperation c:return state.GetValueOrDefault("capture:"+c.Id.GetHashCode(),new());
- case IFlowCaptureOperation c:var captured=Eval(c.Value);state["capture:"+c.Id.GetHashCode()]=captured;return captured;
- case IVariableDeclaratorOperation d:var initial=d.Initializer is null?new Fact(Null,"Default local value",Line(d.Syntax)):Eval(d.Initializer.Value);state[Key(d.Symbol)]=initial;return initial;
+ case IFlowCaptureReferenceOperation c:return state.GetValueOrDefault("capture:"+c.Id.GetHashCode(),captureDefaults.GetValueOrDefault("capture:"+c.Id.GetHashCode(),new()));
+ case IFlowCaptureOperation c:var captured=Eval(c.Value);var captureKey="capture:"+c.Id.GetHashCode();state[captureKey]=captured;captureDefaults[captureKey]=captureDefaults.TryGetValue(captureKey,out var priorCapture)?Merge(priorCapture,captured):captured;return captured;
+ case IVariableDeclaratorOperation d:var initial=d.Initializer is null?new Fact(d.Symbol.Type.IsValueType&&!NullableValue(d.Symbol.Type)?Non:Null,"Default local value",Line(d.Syntax)):Eval(d.Initializer.Value);state[Key(d.Symbol)]=initial;return initial;
  case ISimpleAssignmentOperation a:var assigned=Eval(a.Value);Assign(a.Target,assigned);return assigned;
  case IConversionOperation c:var converted=Eval(c.Operand);return c.IsTryCast?new(3,"as conversion may return null",Line(c.Syntax)):converted;
  case IObjectCreationOperation o:foreach(var arg in o.Arguments)Eval(arg.Value);return new(Non,"Constructed object",Line(op.Syntax));
@@ -49,7 +50,8 @@ sealed class Analyzer(Request request) {
  case IInvocationOperation call:
   if(call.Instance is not null)Emit(call,Eval(call.Instance));foreach(var arg in call.Arguments){var v=Eval(arg.Value);if(arg.Parameter?.NullableAnnotation==NullableAnnotation.NotAnnotated&&arg.Parameter.Type.IsReferenceType)Emit(arg,v,"004","Nullable argument violates a non-null parameter contract");}
   if(call.TargetMethod.ContainingType.ToDisplayString()=="System.ArgumentNullException"&&call.TargetMethod.Name=="ThrowIfNull"&&call.Arguments.Length>0)Assign(call.Arguments[0].Value,new(Non,"ArgumentNullException.ThrowIfNull completed",Line(call.Syntax)));
-  if(summaries.TryGetValue(call.TargetMethod.OriginalDefinition,out var summary))return summary;
+  if(!call.IsVirtual&&summaries.TryGetValue(call.TargetMethod.OriginalDefinition,out var summary))return summary with {Line=Line(call.Syntax),Origin="Source return consumed at call: "+summary.Origin};
+  if(call.IsVirtual)unresolved.Add(file+":"+Line(call.Syntax)+":virtual dispatch remains unresolved");
   return Contract(call.Type,call.TargetMethod.ReturnNullableAnnotation);
  case IConditionalOperation c:Eval(c.Condition);var original=new Dictionary<string,Fact>(state);state=Refine(c.Condition,original,true);var yes=Eval(c.WhenTrue);var ys=state;state=Refine(c.Condition,original,false);var no=Eval(c.WhenFalse);state=Join(ys,state);return Merge(yes,no);
  case ICoalesceOperation c:var left=Eval(c.Value);var right=Eval(c.WhenNull);return(left.Mask&Null)!=0?Merge(new(left.Mask&Non,left.Origin,left.Line),right):left;
@@ -74,11 +76,11 @@ sealed class Analyzer(Request request) {
  }
  Fact EvalWithoutReport(IOperation value){var old=reporting;reporting=false;var result=Eval(value);reporting=old;return result;}
  Dictionary<string,Fact> Edge(BasicBlock from,BasicBlock to,Dictionary<string,Fact> outgoing){if(from.BranchValue is null||from.ConditionKind==ControlFlowConditionKind.None)return new(outgoing);bool conditional=from.ConditionalSuccessor?.Destination==to;bool truth=from.ConditionKind==ControlFlowConditionKind.WhenTrue?conditional:!conditional;return Refine(from.BranchValue,outgoing,truth);}
- Fact Analyze(IMethodSymbol symbol,SyntaxNode node,SemanticModel semantic,bool report){model=semantic;file=Path.GetRelativePath(request.root,node.SyntaxTree.FilePath).Replace('\\','/');method=symbol.ToDisplayString();reporting=false;ControlFlowGraph? cfg;
+ Fact Analyze(IMethodSymbol symbol,SyntaxNode node,SemanticModel semantic,bool report){captureDefaults=new();model=semantic;file=Path.GetRelativePath(request.root,node.SyntaxTree.FilePath).Replace('\\','/');method=symbol.ToDisplayString();reporting=false;ControlFlowGraph? cfg;
   try{cfg=ControlFlowGraph.Create(node,semantic);}catch(Exception error){diagnostics.Add(file+": CFG unavailable: "+error.Message);unresolved.Add(file+":"+Line(node)+":CFG unavailable");return new();}if(cfg is null)return new();
-  var ins=cfg.Blocks.ToDictionary(b=>b.Ordinal,b=>new Dictionary<string,Fact>());var outs=cfg.Blocks.ToDictionary(b=>b.Ordinal,b=>new Dictionary<string,Fact>());bool converged=false;
+  var ins=cfg.Blocks.ToDictionary(b=>b.Ordinal,b=>new Dictionary<string,Fact>());var outs=new Dictionary<int,Dictionary<string,Fact>>();bool converged=false;
   Dictionary<string,Fact> Transfer(BasicBlock block,Dictionary<string,Fact> entry){state=new(entry);foreach(var operation in block.Operations)Eval(operation);if(block.BranchValue is not null)Eval(block.BranchValue);return new(state);}
-  for(int pass=0;pass<Math.Clamp(request.maxIterations,1,64);pass++){bool changed=false;foreach(var block in cfg.Blocks){if(!block.IsReachable)continue;Dictionary<string,Fact>? incoming=null;foreach(var predecessor in block.Predecessors)incoming=Join(incoming,Edge(predecessor.Source,block,outs[predecessor.Source.Ordinal]));incoming??=new();ins[block.Ordinal]=incoming;var outgoing=Transfer(block,incoming);if(!Same(outgoing,outs[block.Ordinal])){changed=true;outs[block.Ordinal]=outgoing;}}if(!changed){converged=true;break;}}if(!converged)budget=true;
+  for(int pass=0;pass<Math.Clamp(request.maxIterations,1,64);pass++){bool changed=false;foreach(var block in cfg.Blocks){if(!block.IsReachable)continue;Dictionary<string,Fact>? incoming=null;foreach(var predecessor in block.Predecessors)if(outs.TryGetValue(predecessor.Source.Ordinal,out var prior))incoming=Join(incoming,Edge(predecessor.Source,block,prior));incoming??=new();ins[block.Ordinal]=incoming;var outgoing=Transfer(block,incoming);if(!outs.TryGetValue(block.Ordinal,out var previous)||!Same(outgoing,previous)){changed=true;outs[block.Ordinal]=outgoing;}}if(!changed){converged=true;break;}}if(!converged)budget=true;
   reporting=report;Fact? returned=null;foreach(var block in cfg.Blocks){if(!block.IsReachable)continue;Transfer(block,ins[block.Ordinal]);if(block.FallThroughSuccessor?.Semantics==ControlFlowBranchSemantics.Return&&block.BranchValue is not null){var value=Eval(block.BranchValue);returned=returned is null?value:Merge(returned,value);}}
   return returned??Contract(symbol.ReturnType,symbol.ReturnNullableAnnotation);
  }
