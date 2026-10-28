@@ -48,6 +48,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jackson.version>2.18.11</jackson.version>
         <javaparser.version>3.25.8</javaparser.version>
         <spotbugs.version>4.10.5</spotbugs.version>
         <findsecbugs.version>1.14.0</findsecbugs.version>
@@ -97,6 +98,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>com.github.javaparser</groupId>
                 <artifactId>javaparser-symbol-solver-core</artifactId>
