@@ -4,7 +4,7 @@ on:
   push:
     branches: [codex/multilanguage-preview]
   pull_request:
-    paths: ['language-packs/**', '**/multilang/**', 'scripts/*language*', 'scripts/tests/**']
+    paths: ['pom.xml', '**/pom.xml', 'language-packs/**', '**/multilang/**', 'scripts/*language*', 'scripts/tests/**']
 permissions:
   contents: read
 jobs:

@@ -4,6 +4,7 @@ Usage: python scripts/validate_sarif.py path/to/nullguard-results.sarif
 Requires jsonschema; uses the schema from OASIS without modifying the report.
 """
 import json
+import http.client
 import sys
 import urllib.request
 import urllib.error
@@ -20,7 +21,7 @@ def main():
     try:
         with urllib.request.urlopen(SCHEMA_URL, timeout=30) as response:
             schema = json.load(response)
-    except urllib.error.URLError as error:
+    except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.IncompleteRead) as error:
         print(f"OASIS schema host unavailable ({error}); using its official GitHub mirror")
         with urllib.request.urlopen(SCHEMA_MIRROR, timeout=30) as response:
             schema = json.load(response)

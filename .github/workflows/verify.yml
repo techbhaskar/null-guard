@@ -42,6 +42,7 @@ jobs:
       - run: python scripts/validate_openapi.py nullguard-engine/target/openapi-validation/variants.json nullguard-engine/target/openapi-validation/schemas.json nullguard-engine/target/openapi-validation/configured.json nullguard-engine/target/openapi-validation/responses.json
       - run: python scripts/smoke_entrypoints.py
       - run: python scripts/validate_openapi.py nullguard-cli/target/ci-reports/nullguard-openapi.json
+      - run: python -m unittest discover -s scripts -p test_validate_sarif.py -v
       - run: python scripts/validate_sarif.py nullguard-cli/target/ci-reports/nullguard-results.sarif
       - run: python -m unittest discover -s scripts -p test_summarize_coverage.py -v
       - run: python scripts/summarize_coverage.py --min-instruction=80 --min-branch=60 --min-full-line=85
