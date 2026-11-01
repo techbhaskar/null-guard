@@ -1,0 +1,67 @@
+name: Verify published release installation
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release tag to verify
+        required: true
+        default: v2.0.0
+permissions:
+  contents: read
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: language-packs/go/go.mod
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Make Git for Windows signature tools available
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo 'C:\Program Files\Git\usr\bin' >> "$GITHUB_PATH"
+      - name: Download published assets
+        shell: bash
+        run: gh release download "$RELEASE_TAG" --dir release-assets
+      - name: Verify the published CLI and stage it for the install smoke test
+        shell: python
+        run: |
+          import hashlib, os, pathlib, shutil, subprocess
+          version = os.environ['RELEASE_TAG'].removeprefix('v')
+          name = f'nullguard-cli-{version}-jar-with-dependencies.jar'
+          jar = pathlib.Path('release-assets') / name
+          expected = pathlib.Path(str(jar) + '.sha256').read_text().split()[0]
+          assert hashlib.sha256(jar.read_bytes()).hexdigest() == expected
+          subprocess.run(['gpg', '--batch', '--import', 'nullguard-engine/src/main/resources/multilang/release-key.asc'], check=True)
+          subprocess.run(['gpg', '--batch', '--verify', str(jar) + '.asc', str(jar)], check=True)
+          target = pathlib.Path('nullguard-cli/target')
+          target.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(jar, target / name)
+      - name: Verify signed pack installation, behavior and removal
+        run: python scripts/smoke_multilang.py --assets release-assets --behavioral-tests

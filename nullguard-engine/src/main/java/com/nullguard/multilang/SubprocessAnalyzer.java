@@ -81,7 +81,13 @@ public final class SubprocessAnalyzer implements LanguageAnalyzer {
       if (process != null && process.isAlive()) {
         process.descendants().forEach(ProcessHandle::destroyForcibly);
         process.destroyForcibly();
-        process.waitFor(5, TimeUnit.SECONDS);
+        if (!process.waitFor(5, TimeUnit.SECONDS))
+          throw new IOException("Pack process did not terminate after cancellation");
+      }
+      if (process != null) {
+        process.getOutputStream().close();
+        process.getInputStream().close();
+        process.getErrorStream().close();
       }
       PackManager.deleteTree(work);
     }

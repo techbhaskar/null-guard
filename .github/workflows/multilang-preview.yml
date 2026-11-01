@@ -2,7 +2,7 @@ name: Qualify multi-language preview
 on:
   workflow_dispatch:
   push:
-    branches: [codex/multilanguage-preview]
+    branches: [master, codex/multilanguage-preview, 'codex/release-*']
   pull_request:
     paths: ['pom.xml', '**/pom.xml', 'language-packs/**', '**/multilang/**', 'scripts/*language*', 'scripts/tests/**']
 permissions:

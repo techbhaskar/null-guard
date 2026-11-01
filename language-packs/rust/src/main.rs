@@ -1114,7 +1114,7 @@ impl Analyzer {
             .cloned()
             .collect();
         let partial = self.failed > 0 || self.budget || self.unsupported > 0 || !missing.is_empty();
-        json!({"protocolVersion":"1.0","analyzerVersion":"2.0.0-preview.1","analyzer":"rust","project":self.r.project,"languages":["rust"],"status":if partial{"partial"}else{"complete"},"findings":self.findings.values().collect::<Vec<_>>(),"dependencies":[],"diagnostics":self.diagnostics.iter().collect::<Vec<_>>(),"coverage":{"rust":{"discoveredFiles":self.r.files.len(),"analyzedFiles":self.analyzed,"failedFiles":self.failed,"unsupportedFiles":0,"unsupportedExpressionVisits":self.unsupported,"unresolvedSymbols":self.unresolved.len(),"budgetExhausted":self.budget,"missingDependencies":missing}},"capabilities":{"safetyAnalysis":true,"callGraph":false,"stabilityScore":false,"openApi":false,"vulnerabilityReachability":false}})
+        json!({"protocolVersion":"1.0","analyzerVersion":"2.0.0","analyzer":"rust","project":self.r.project,"languages":["rust"],"status":if partial{"partial"}else{"complete"},"findings":self.findings.values().collect::<Vec<_>>(),"dependencies":[],"diagnostics":self.diagnostics.iter().collect::<Vec<_>>(),"coverage":{"rust":{"discoveredFiles":self.r.files.len(),"analyzedFiles":self.analyzed,"failedFiles":self.failed,"unsupportedFiles":0,"unsupportedExpressionVisits":self.unsupported,"unresolvedSymbols":self.unresolved.len(),"budgetExhausted":self.budget,"missingDependencies":missing}},"capabilities":{"safetyAnalysis":true,"callGraph":false,"stabilityScore":false,"openApi":false,"vulnerabilityReachability":false}})
     }
 }
 fn integer(e: &Expr) -> Option<usize> {

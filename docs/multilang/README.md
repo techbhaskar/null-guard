@@ -1,14 +1,16 @@
-# Multi-language preview — 2.0.0-preview.1
+# Experimental multi-language analysis — 2.0.0
 
 This implementation adds opt-in Python, JavaScript, TypeScript, C#, Go and Rust
-analysis alongside Java. All six new languages are experimental. Distribution,
-real-application accuracy review and the three-platform installation matrix are
-release gates; this source tree is not a published, qualified preview release.
+analysis alongside Java. All six new languages are experimental and report-only
+in version 2.0.0. Distribution testing and real-application accuracy review are
+tracked in the [qualification record](qualification/README.md); version 2.0.0
+does not claim qualified support for these packs. See the
+[release notes](../releases/2.0.0.md) for publication status.
 
 ## Installation and quick start
 
 Build the JVM CLI with Java 21: `mvn clean package`. The executable is
-`nullguard-cli/target/nullguard-cli-2.0.0-preview.1-jar-with-dependencies.jar`.
+`nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar`.
 Use that path in place of `nullguard-cli.jar` below.
 
 Once signed packs have been published with the release:

@@ -18,7 +18,7 @@
       "const": "1.0"
     },
     "analyzerVersion": {
-      "const": "2.0.0-preview.1"
+      "const": "2.0.0"
     },
     "project": {
       "type": "string"

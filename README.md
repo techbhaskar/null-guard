@@ -19,11 +19,12 @@ NullGuard performs static analysis only. It does not instrument or run the analy
 
 > **GitHub source release `1.1.2`:** includes overload/constructor correctness fixes, local object lifecycle analysis, and analysis-completeness reporting. See the [release notes](docs/releases/1.1.2.md). Maven Central publication of `1.1.2` is pending; use a local build to try these changes.
 
-## Multi-language preview in development
+## Multi-language analysis (experimental)
 
-The `2.0.0-preview.1` source adds optional Python, JavaScript/TypeScript, C#, Go
-and Rust packs. They are opt-in and experimental; release qualification is
-pending. See the [installation, language examples, report guide and capability
+The `2.0.0` source adds optional Python, JavaScript/TypeScript, C#, Go
+and Rust packs. They are opt-in and experimental; accuracy and installation
+qualification remain documented separately. See the [2.0.0 release notes](docs/releases/2.0.0.md)
+and [installation, language examples, report guide and capability
 limits](docs/multilang/README.md). Existing Maven/Gradle commands remain Java-only.
 
 
@@ -43,7 +44,7 @@ an overall precision estimate.
 - [CI adoption](#suggested-ci-adoption)
 - [Troubleshooting](#troubleshooting)
 
-Registry installation examples below target **1.1.1**, available from Maven Central; source-build CLI commands target **1.1.2**. The previous signed standalone
+Registry installation examples below target **1.1.1**, available from Maven Central; source-build CLI commands target **2.0.0**. The previous signed standalone
 CLI downloads remain on the [1.1.0 GitHub release page](https://github.com/techbhaskar/null-guard/releases/tag/v1.1.0).
 For the authenticated GitHub Packages mirror of **1.1.0**, see [registry setup](docs/github-packages.md); a 1.1.1 mirror publication is not claimed.
 
@@ -259,11 +260,11 @@ mvn clean verify
 The build runs all module tests and creates the standalone CLI at:
 
 ```text
-nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar
+nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar
 ```
 
-For development, install `1.1.2` into your local Maven repository. Use
-`com.arinits.nullguard:nullguard-maven-plugin:1.1.2:analyze` to try the
+For development, install `2.0.0` into your local Maven repository. Use
+`com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze` to try the
 GitHub source release from another project (it is not yet on Maven Central):
 
 ```bash
@@ -369,7 +370,7 @@ JSON, including when an enabled hotspot gate fails after successful analysis.
 
 | Setting | Default | What it controls |
 | --- | --- | --- |
-| `toolVersion` | `1.1.1` (Central) / `1.1.2` (source) | Analyzer version, independent of the Gradle plugin version |
+| `toolVersion` | `1.1.1` (Central) / `2.0.0` (source) | Analyzer version, independent of the Gradle plugin version |
 | `failBuild` | `false` | Fail on an architectural hotspot at the configured threshold |
 | `failThreshold` | `CRITICAL` | `LOW`, `MEDIUM`/`MODERATE`, `HIGH`, or `CRITICAL` |
 | `runOnCheck` | `false` | Make the existing Gradle `check` task depend on analysis |
@@ -517,13 +518,13 @@ Use the CLI for local exploration, scripts, or source trees that are not being i
 From the NullGuard repository:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar path/to/service/src/main/java
+java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar path/to/service/src/main/java
 ```
 
 Choose a report directory and enable a CI-style failure policy:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar \
   path/to/service/src/main/java \
   --output=build/nullguard \
   --fail-build \
@@ -533,7 +534,7 @@ java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar \
 PowerShell uses a backtick for line continuation:
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   --output=C:\work\orders-service\target\nullguard `
   --fail-build `
@@ -545,13 +546,13 @@ java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar `
 For best results, supply the service's compiled classes and dependency JARs with `--classpath`. Entries use the operating system's path separator: `;` on Windows and `:` on Linux/macOS.
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   "--classpath=C:\work\orders-service\target\classes;C:\libs\shared-contracts.jar"
 ```
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar \
   /work/orders-service/src/main/java \
   --classpath=/work/orders-service/target/classes:/work/libs/shared-contracts.jar
 ```
@@ -559,7 +560,7 @@ java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar \
 The dashboard's dedicated SAST section runs SpotBugs with FindSecBugs against compiled classes. The Maven integration scans its main output after compilation. Gradle supplies its main output directory when it exists but does not compile the application just to run NullGuard; run `classes` before `nullguard` for a SAST result. For the standalone CLI, compiled Maven outputs (`target/classes`) are discovered recursively beneath the supplied project path. You can use `--sast-classes` to explicitly select directories instead; this is separate from `--classpath`, which supplies types for source analysis:
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-1.1.2-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   "--sast-classes=C:\work\orders-service\target\classes"
 ```

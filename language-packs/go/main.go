@@ -659,7 +659,7 @@ func (a *Analyzer) run() map[string]any {
 	if a.diagnostics == nil {
 		a.diagnostics = []string{}
 	}
-	return map[string]any{"protocolVersion": "1.0", "analyzerVersion": "2.0.0-preview.1", "analyzer": "go", "project": a.r.Project, "languages": []string{"go"}, "status": status, "findings": findings, "dependencies": []any{}, "diagnostics": a.diagnostics, "coverage": map[string]any{"go": map[string]any{"discoveredFiles": len(a.r.Files), "analyzedFiles": len(analyzed), "failedFiles": len(failed), "unsupportedFiles": unsupported, "unresolvedSymbols": len(a.unresolved), "budgetExhausted": a.budget, "missingDependencies": missing}}, "capabilities": map[string]bool{"safetyAnalysis": true, "callGraph": false, "stabilityScore": false, "openApi": false, "vulnerabilityReachability": false}}
+	return map[string]any{"protocolVersion": "1.0", "analyzerVersion": "2.0.0", "analyzer": "go", "project": a.r.Project, "languages": []string{"go"}, "status": status, "findings": findings, "dependencies": []any{}, "diagnostics": a.diagnostics, "coverage": map[string]any{"go": map[string]any{"discoveredFiles": len(a.r.Files), "analyzedFiles": len(analyzed), "failedFiles": len(failed), "unsupportedFiles": unsupported, "unresolvedSymbols": len(a.unresolved), "budgetExhausted": a.budget, "missingDependencies": missing}}, "capabilities": map[string]bool{"safetyAnalysis": true, "callGraph": false, "stabilityScore": false, "openApi": false, "vulnerabilityReachability": false}}
 }
 func main() {
 	var r Request
