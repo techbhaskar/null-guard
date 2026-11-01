@@ -1,6 +1,6 @@
 'use strict';
 const ts = require('typescript'), fs = require('node:fs'), path = require('node:path');
-const N=1,U=2,V=4,ANY=7, VERSION='2.0.0-preview.1';
+const N=1,U=2,V=4,ANY=7, VERSION='2.0.0';
 const value=(mask=ANY,origin='No resolved nullability contract',line=1)=>({mask,origin,line});
 const merge=(a,b)=>value(a.mask|b.mask,a.origin===b.origin?a.origin:('Joined paths: '+a.origin+'; '+b.origin).slice(0,500),Math.min(a.line,b.line));
 function sameState(a,b){return a.size===b.size&&[...a].every(([key,v])=>b.has(key)&&b.get(key).mask===v.mask);}

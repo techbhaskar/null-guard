@@ -7,7 +7,7 @@ import symtable
 import sys
 from dataclasses import dataclass
 
-VERSION = "2.0.0-preview.1"
+VERSION = "2.0.0"
 NULL, NONNULL, UNKNOWN = "null", "nonnull", "unknown"
 
 @dataclass(frozen=True)

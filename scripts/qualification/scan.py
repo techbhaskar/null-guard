@@ -30,7 +30,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--checkouts',type=Path,required=True)
     parser.add_argument('--reports',type=Path,required=True)
-    parser.add_argument('--jar',type=Path,default=ROOT/'nullguard-cli/target/nullguard-cli-2.0.0-preview.1-jar-with-dependencies.jar')
+    parser.add_argument('--jar',type=Path,default=ROOT/'nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar')
     parser.add_argument('--output',type=Path,default=RECORDS)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     repositories={entry['id']:entry for entry in json.loads((RECORDS/'applications.json').read_text())}

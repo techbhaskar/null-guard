@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
-VERSION='2.0.0-preview.1'
+VERSION='2.0.0'
 PACKS=['python','ecmascript','csharp','go','rust']
 
 def main():

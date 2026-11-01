@@ -14,7 +14,7 @@ for name in ['language-packs','scripts']:
  shutil.copytree(ROOT/name,a.output/name,ignore=ignore)
 shutil.copytree(ROOT/'examples/multilang',a.output/'examples/multilang',ignore=ignore)
 shutil.copy2(ROOT/'LICENSE',a.output/'LICENSE')
-jar='nullguard-cli/target/nullguard-cli-2.0.0-preview.1-jar-with-dependencies.jar'
+jar='nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar'
 (a.output/Path(jar).parent).mkdir(parents=True)
 shutil.copy2(ROOT/jar,a.output/jar)
 print(a.output.resolve())

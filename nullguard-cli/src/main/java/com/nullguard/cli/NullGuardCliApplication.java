@@ -207,7 +207,7 @@ public final class NullGuardCliApplication {
         // ── Execute via bootstrap ─────────────────────────────────────────────
         try {
             System.out.println("-------------------------------------------------------");
-            System.out.println(" NullGuard: Stability Intelligence Engine (v1.1)");
+            System.out.println(" NullGuard: Stability Intelligence Engine (v" + com.nullguard.multilang.Protocol.ANALYZER_VERSION + ")");
             System.out.println("-------------------------------------------------------");
             System.out.println("Source path : " + sourcePath.toAbsolutePath());
             System.out.println("Output dir  : " + outputDir.toAbsolutePath());

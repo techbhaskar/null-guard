@@ -8,7 +8,7 @@ Build the preview CLI and install the five signed language pack archives followi
 [the multi-language guide](../../docs/multilang/README.md). Then:
 
 ```sh
-java -jar nullguard-cli/target/nullguard-cli-2.0.0-preview.1-jar-with-dependencies.jar examples/multilang --languages=auto --output=preview-reports
+java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar examples/multilang --languages=auto --output=preview-reports
 ```
 
 Open `preview-reports/nullguard-dashboard-latest.html`. Filter by language and

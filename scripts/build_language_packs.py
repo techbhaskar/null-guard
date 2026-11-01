@@ -16,7 +16,7 @@ import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
 IDS=('python','ecmascript','csharp','go','rust')
-VERSION='2.0.0-preview.1'
+VERSION='2.0.0'
 
 def run(command,cwd,env):
  subprocess.run(command,cwd=cwd,env=env,check=True)
