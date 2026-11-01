@@ -9,11 +9,12 @@ does not claim qualified support for these packs. See the
 
 ## Installation and quick start
 
-Build the JVM CLI with Java 21: `mvn clean package`. The executable is
+Download the signed CLI from the [2.0.0 release](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0),
+or build it with Java 21: `mvn clean package`. The source-build executable is
 `nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar`.
 Use that path in place of `nullguard-cli.jar` below.
 
-Once signed packs have been published with the release:
+Install the published signed packs explicitly:
 
 ```sh
 java -jar nullguard-cli.jar packs install python ecmascript csharp go rust
@@ -84,9 +85,11 @@ Maven and Gradle integrations remain Java-only and preserve schema 1.0 behavior.
 
 Tested locally: macOS arm64, Java 21, Python 3.13, Node 26.8.1,
 Go 1.27.2, Rust 1.99.0 and .NET SDK 10.0.401. Signed local assets also pass
-clean installation and behavioral tests in a Linux arm64 container. The Linux/Windows/macOS CI pack matrix passes. Windows signed-pack installation
-and signed published-asset installation on all three platforms remain release gates. This is not a claim
-that every version above each runtime minimum has been tested.
+clean installation and behavioral tests in a Linux arm64 container. The Linux/Windows/macOS CI pack matrix passes.
+The [published-asset installation workflow](https://github.com/techbhaskar/null-guard/actions/runs/41341798456)
+passed signed CLI verification, all five pack installations, seven-language mixed
+scans, behavioral tests and removal on Linux x64, Windows x64 and macOS arm64.
+This is not a claim that every version above each runtime minimum has been tested.
 
 Dependency inputs: npm/pnpm/Yarn locks, pinned requirements/Poetry/uv, NuGet
 restore assets/locks, go.mod and Cargo.lock. Unresolved ranges remain unknown.

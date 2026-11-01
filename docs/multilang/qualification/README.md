@@ -1,6 +1,7 @@
-# Preview qualification record
+# Multi-language qualification record
 
-Status: **not release-qualified**. All new rules remain experimental and report-only.
+Status: **distribution installation verified; analyzer accuracy not qualified**.
+All new rules remain experimental and report-only.
 
 The frozen baseline and supplemental source review contains **271 labels** across
 Python, JavaScript, TypeScript, C#, Go and Rust: 128 false positives, 143 uncertain,
@@ -23,7 +24,16 @@ Do not combine these candidates with baseline labels or treat coverage gaps as c
 analysis. Pinned checkouts are listed in `applications.json` and selected scopes in
 `cases.json`.
 
-Validation completed locally:
+Release 2.0.0 verification:
+
+- 265 Maven tests passed, with one opt-in benchmark skipped; 16 script tests and
+  ten Gradle tests passed. See the [release evidence](../../releases/2.0.0.md).
+- The [published-download installation matrix](https://github.com/techbhaskar/null-guard/actions/runs/41341798456)
+  passed on Linux x64, Windows x64 and macOS arm64. It downloads the public CLI and
+  signed packs, verifies signatures, installs into empty pack homes, scans the
+  seven-language example, runs behavioral tests and removes all packs.
+
+Earlier implementation validation (preserved as historical evidence):
 
 - Java 21 Maven verification: 243 tests, no failures/errors, one opt-in benchmark skipped.
 - Existing Gradle integration and legacy CLI/Maven smoke checks pass.
@@ -41,13 +51,10 @@ Remaining qualification gates:
 
 - Review the corrected implementation's findings against source evidence; baseline
   labels alone do not establish its accuracy. Keep every rule experimental meanwhile.
-- Complete Windows signed-install verification for all five packs. The platform CI
-  matrix passed native tests and built packs on Linux, Windows and macOS. Its unsigned
-  artifacts intentionally cannot be installed by the production installer.
-- Verify clean installation from the eventual **published** signed release assets
-  on Linux, Windows and macOS. Current signed-install evidence uses local assets.
 
-No preview release has been published. Publication is a separate action.
+Version 2.0.0 is [published on GitHub](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0)
+with the new analyzers explicitly experimental. Maven Central publication is
+pending confirmation. Distribution verification does not establish analyzer accuracy.
 
 Validate the frozen review with:
 

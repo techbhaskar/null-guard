@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/techbhaskar/null-guard/actions/workflows/verify.yml/badge.svg)](https://github.com/techbhaskar/null-guard/actions/workflows/verify.yml)
 [![Coverage Status](https://codecov.io/gh/techbhaskar/null-guard/graph/badge.svg)](https://codecov.io/gh/techbhaskar/null-guard)
 
-NullGuard is a static stability-analysis engine for Java services. It parses a codebase, builds control-flow and call graphs, follows risk across method boundaries, identifies API-facing and high-blast-radius hotspots, calculates a project stability score, and produces prioritized remediation suggestions.
+NullGuard is a static stability-analysis engine for Java services, with optional experimental safety analyzers for Python, JavaScript/TypeScript, C#, Go and Rust. Its Java engine builds control-flow and call graphs, follows risk across method boundaries, identifies API-facing and high-blast-radius hotspots, calculates a project stability score, and produces prioritized remediation suggestions.
 
 It is intended to answer questions that are difficult to answer with a method-level nullability warning alone:
 
@@ -15,13 +15,13 @@ It is intended to answer questions that are difficult to answer with a method-le
 
 NullGuard performs static analysis only. It does not instrument or run the analyzed application.
 
-> **Release status:** `1.1.1` is published on Maven Central. See the [release notes and verification results](docs/releases/1.1.1.md).
+> **Release 2.0.0:** the signed CLI and language packs are [published on GitHub](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0). See the [release notes and verification results](docs/releases/2.0.0.md). New language analyzers remain experimental and report-only.
 
-> **GitHub source release `1.1.2`:** includes overload/constructor correctness fixes, local object lifecycle analysis, and analysis-completeness reporting. See the [release notes](docs/releases/1.1.2.md). Maven Central publication of `1.1.2` is pending; use a local build to try these changes.
+> **Maven Central:** `2.0.0` publication is pending confirmation. Registry examples continue to use the last confirmed version, `1.1.1`.
 
 ## Multi-language analysis (experimental)
 
-The `2.0.0` source adds optional Python, JavaScript/TypeScript, C#, Go
+Release `2.0.0` adds optional Python, JavaScript/TypeScript, C#, Go
 and Rust packs. They are opt-in and experimental; accuracy and installation
 qualification remain documented separately. See the [2.0.0 release notes](docs/releases/2.0.0.md)
 and [installation, language examples, report guide and capability
@@ -44,8 +44,8 @@ an overall precision estimate.
 - [CI adoption](#suggested-ci-adoption)
 - [Troubleshooting](#troubleshooting)
 
-Registry installation examples below target **1.1.1**, available from Maven Central; source-build CLI commands target **2.0.0**. The previous signed standalone
-CLI downloads remain on the [1.1.0 GitHub release page](https://github.com/techbhaskar/null-guard/releases/tag/v1.1.0).
+Registry installation examples below target **1.1.1**, available from Maven Central; source-build CLI commands target **2.0.0**. Current signed standalone
+CLI downloads are on the [2.0.0 GitHub release page](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0).
 For the authenticated GitHub Packages mirror of **1.1.0**, see [registry setup](docs/github-packages.md); a 1.1.1 mirror publication is not claimed.
 
 ## Why use NullGuard in microservices?

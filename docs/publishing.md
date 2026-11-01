@@ -1,10 +1,11 @@
-> Release 1.1.1 is PUBLISHED in deployment
-> `97ba9be7-6a6f-4c3c-aba0-9bee05cbfd30`. See [release details](releases/1.1.1.md).
+> Release 2.0.0 is published on GitHub. Maven Central deployment
+> `a1072a4f-8ab3-45af-9491-4a94c1b4b4a1` last reported `PUBLISHING`; confirmation
+> is pending. Do not re-upload this version. See [release details](releases/2.0.0.md).
 
 # Publishing to Maven Central
 
 Version `1.0.0` is published and its plugin was installed from Central using an
-empty Maven cache on 2026-10-16. Versions 1.0.0, 1.0.1, 1.1.0 and 1.1.1 are published. The current reactor version is `1.1.2` (GitHub source/tag only; not yet published to Central). The `central-release` Maven profile attaches
+empty Maven cache on 2026-10-16. Versions 1.0.0, 1.0.1, 1.1.0 and 1.1.1 are confirmed published. The current reactor version is `2.0.0` (published on GitHub; Central publication pending confirmation). The `central-release` Maven profile attaches
 sources and Javadoc, signs artifacts, uploads the reactor bundle, and waits for
 Central to confirm publication.
 
@@ -23,11 +24,11 @@ of 1.1.1. Check current Portal usage before preparing another upload.
    Maven settings. Never commit tokens.
 4. Install GnuPG, import or create your release signing key, and publish its public
    key as described in Sonatype's GPG instructions. Keep the private key local.
-5. Use JDK 17 or 21, as in the project's verification workflow.
+5. Use JDK 21, as in the project's verification workflow.
 
 ## Release
 
-The reactor is currently `com.arinits.nullguard:…:1.1.2`. For a future release,
+The reactor is currently `com.arinits.nullguard:…:2.0.0`. For a future release,
 update all reactor parent references:
 
 ```sh
