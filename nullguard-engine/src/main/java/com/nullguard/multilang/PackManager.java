@@ -247,8 +247,27 @@ public final class PackManager {
 
   static void deleteTree(Path p) throws IOException {
     if (!Files.exists(p, LinkOption.NOFOLLOW_LINKS)) return;
+    List<Path> paths;
     try (var files = Files.walk(p)) {
-      for (Path f : files.sorted(Comparator.reverseOrder()).toList()) Files.delete(f);
+      paths = files.sorted(Comparator.reverseOrder()).toList();
+    }
+    // Release directory enumeration handles before deleting on Windows. Process
+    // exit and virus scanners can also briefly retain redirected-output handles.
+    for (Path f : paths) {
+      for (int attempt = 0; ; attempt++) {
+        try {
+          Files.deleteIfExists(f);
+          break;
+        } catch (FileSystemException e) {
+          if (!System.getProperty("os.name").startsWith("Windows") || attempt == 5) throw e;
+          try {
+            Thread.sleep(50L << attempt);
+          } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while cleaning pack files", interrupted);
+          }
+        }
+      }
     }
   }
 }
