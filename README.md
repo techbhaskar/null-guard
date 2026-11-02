@@ -28,6 +28,21 @@ and [installation, language examples, report guide and capability
 limits](docs/multilang/README.md). Existing Maven/Gradle commands remain Java-only.
 
 
+## Agent skill
+
+The free MIT [NullGuard audit skill](skills/nullguard-audit/SKILL.md) guides coding
+agents through Java, C#/.NET, Python, JavaScript and TypeScript audits, requested
+fixes and GitHub Actions adoption, including mixed repositories. Java uses the
+native Maven/Gradle integrations; the other languages require a compatible CLI
+and installed signed language packs and retain their experimental capability limits.
+Engine binaries and packs are not bundled in the skill.
+
+See [installation and compatibility](skills/nullguard-audit/references/distribution.md)
+and [executed qualification checks](skills/nullguard-audit/references/qualification.md).
+Build the distributable with `python3 scripts/package_nullguard_skill.py`; the ZIP
+is written to `target/skills/nullguard-audit.zip`. Agent-specific qualification is
+recorded separately from helper and engine fixture tests.
+
 ## Developer guide
 
 Accuracy evaluation: see the [review protocol and corpus](docs/evaluation/accuracy-protocol.md)

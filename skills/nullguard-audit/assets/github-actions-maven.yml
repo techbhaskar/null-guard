@@ -1,0 +1,35 @@
+name: NullGuard Java audit (Maven)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile and test application
+        run: |
+          if [ -f ./mvnw ]; then
+            ./mvnw --batch-mode test
+          else
+            mvn --batch-mode test
+          fi
+      - name: Audit Java sources (report-only)
+        run: python skills/nullguard-audit/scripts/run_nullguard.py --project . --build-tool maven --languages java
+      - name: Retain reports after success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nullguard-maven
+          path: '**/target/nullguard/**'
+          if-no-files-found: warn

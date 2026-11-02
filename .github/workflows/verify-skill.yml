@@ -1,0 +1,51 @@
+name: Verify NullGuard skill
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'scripts/*nullguard_skill*.py'
+      - 'scripts/tests/test_nullguard_skill.py'
+      - '.github/workflows/verify-skill.yml'
+  push:
+    paths:
+      - 'skills/**'
+      - 'scripts/*nullguard_skill*.py'
+      - 'scripts/tests/test_nullguard_skill.py'
+      - '.github/workflows/verify-skill.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  helpers:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover -s scripts/tests -p test_nullguard_skill.py -v
+      - run: python scripts/package_nullguard_skill.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nullguard-skill-${{ matrix.os }}-${{ matrix.python }}
+          path: target/skills/nullguard-audit.zip
+  native-java:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.4'
+      - run: python scripts/smoke_nullguard_skill.py --require-gradle

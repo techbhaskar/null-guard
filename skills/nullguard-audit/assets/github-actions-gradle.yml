@@ -1,0 +1,36 @@
+name: NullGuard Java audit (Gradle)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # Configure native plugin 2.0.0 and its Java 21 analyzer launcher first.
+      # Application compilation/tests can use a separate existing toolchain.
+      - name: Compile and test application
+        run: |
+          if [ -f ./gradlew ]; then
+            ./gradlew classes test
+          else
+            gradle classes test
+          fi
+      - name: Audit Java sources (report-only)
+        run: python skills/nullguard-audit/scripts/run_nullguard.py --project . --build-tool gradle --languages java
+      - name: Retain reports after success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nullguard-gradle
+          path: '**/build/reports/nullguard/**'
+          if-no-files-found: warn

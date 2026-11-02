@@ -1,0 +1,39 @@
+name: NullGuard language-pack audit
+on:
+  workflow_dispatch:
+    inputs:
+      cli_jar:
+        description: Absolute verified executable CLI JAR path on the runner
+        required: true
+        type: string
+      pack_home:
+        description: Absolute installed signed pack home on the runner
+        required: true
+        type: string
+      languages:
+        description: Comma-separated languages (or auto for Java/Python/JS/TS/C#)
+        default: auto
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  audit:
+    # A trusted runner with Java 21, Python 3.10+, language runtimes and signed packs.
+    # Keep this manual; do not expose a persistent self-hosted runner to fork PRs.
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit with installed packs (report-only findings)
+        env:
+          NULLGUARD_CLI: ${{ inputs.cli_jar }}
+          NULLGUARD_PACK_HOME: ${{ inputs.pack_home }}
+          NULLGUARD_LANGUAGES: ${{ inputs.languages }}
+        run: python skills/nullguard-audit/scripts/run_nullguard.py --project . --build-tool cli --cli-jar "$NULLGUARD_CLI" --languages "$NULLGUARD_LANGUAGES"
+      - name: Retain complete or partial reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nullguard-multilang
+          path: nullguard-out/**
+          if-no-files-found: warn

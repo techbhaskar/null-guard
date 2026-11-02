@@ -40,3 +40,4 @@ language-packs/**/obj/
 language-packs/**/target/
 **/__pycache__/
 /dist-packs/
+.planning/**

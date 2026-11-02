@@ -1,0 +1,4 @@
+interface:
+  display_name: "NullGuard Audit"
+  short_description: "Audit Java, C#, Python and JavaScript/TypeScript"
+  default_prompt: "Use $nullguard-audit to analyze this repository and prioritize verified findings."
