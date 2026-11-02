@@ -1,0 +1,7 @@
+node_modules/
+build/
+.docusaurus/
+.generated-docs/
+static/search-index.json
+static/downloads/
+*.log

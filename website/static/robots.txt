@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /null-guard/
+Sitemap: https://techbhaskar.github.io/null-guard/sitemap.xml

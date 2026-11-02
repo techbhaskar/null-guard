@@ -1,0 +1,66 @@
+name: Documentation website
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'website/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'nullguard-gradle-plugin/README.md'
+      - 'skills/nullguard-audit/**'
+      - 'scripts/package_nullguard_skill.py'
+      - '.github/workflows/deploy-docs.yml'
+  pull_request:
+    paths:
+      - 'website/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'nullguard-gradle-plugin/README.md'
+      - 'skills/nullguard-audit/**'
+      - 'scripts/package_nullguard_skill.py'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Package the downloadable agent skill
+        run: python3 ../scripts/package_nullguard_skill.py
+      - run: npm ci --no-audit --no-fund
+      - name: Build and validate Markdown links
+        run: npm run build
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: website/build
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
