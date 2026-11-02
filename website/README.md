@@ -47,3 +47,26 @@ Open Graph metadata, a sitemap and robots.txt. Search runs in the browser withou
 an external search account. Publication makes the content crawlable; it does not
 guarantee indexing or search ranking. GitHub Pages is a static host: analytics
 and search-console verification are not configured or invented.
+
+## Blog and sitemap
+
+The sitemap is generated at `/null-guard/sitemap.xml` (not `sites.xml`). It includes
+documentation, public pages and blog routes. Search is excluded. The footer links
+to the sitemap and blog RSS feed.
+
+Create a Markdown post in `website/blog/YYYY-MM-DD-short-title.md`, with frontmatter:
+
+```yaml
+---
+title: A descriptive post title
+description: A short summary for search and social metadata.
+slug: short-title
+authors: [nullguard]
+tags: [remediation]
+---
+```
+
+Write a standalone introduction, then `<!-- truncate -->`, then the full post.
+Define new tags in `blog/tags.yml`. Build before publishing to catch broken links
+and invalid post metadata. Posts deploy with the existing Pages workflow.
+The blog is at `/null-guard/blog/`; feeds are `blog/rss.xml` and `blog/atom.xml`.

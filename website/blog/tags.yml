@@ -1,0 +1,12 @@
+releases:
+  label: Releases
+  description: NullGuard releases, compatibility and capability boundaries.
+multi-language:
+  label: Multi-language analysis
+  description: Working with Java and the experimental language packs.
+agent-skills:
+  label: Agent skills
+  description: Repeatable NullGuard workflows for coding agents.
+remediation:
+  label: Remediation
+  description: Source review, focused fixes and regression testing.
