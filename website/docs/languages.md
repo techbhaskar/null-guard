@@ -6,13 +6,13 @@ NullGuard combines a Java stability-analysis engine with optional experimental l
 
 | Language | Integration | Runtime in addition to Java 21 | Analysis status |
 | --- | --- | --- | --- |
-| Java | Maven, Gradle, or CLI | Project dependencies improve symbol resolution | Core engine; review completeness and accuracy limits |
-| Python | `python` pack | Python 3.11+ | Experimental, report-only |
-| JavaScript / JSX | `ecmascript` pack | Node 22+ | Experimental, report-only |
-| TypeScript / TSX | `ecmascript` pack | Node 22+; pack pins TypeScript 6.0.3 | Experimental, report-only |
-| C# / .NET | `csharp` pack | .NET SDK 10 | Experimental, SDK-style C# only |
-| Go | `go` pack | Compatible Go runtime/toolchain | Experimental, report-only |
-| Rust | `rust` pack | Compatible stable Cargo toolchain | Experimental, report-only |
+| [Java](../../README.md) | Maven, Gradle, or CLI | Project dependencies improve symbol resolution | Core engine; review completeness and accuracy limits |
+| [Python](guides/python.md) | `python` pack | Python 3.11+ | Experimental, report-only |
+| [JavaScript / JSX](guides/javascript.md) | `ecmascript` pack | Node 22+ | Experimental, report-only |
+| [TypeScript / TSX](guides/typescript.md) | `ecmascript` pack | Node 22+; pack pins TypeScript 6.0.3 | Experimental, report-only |
+| [C# / .NET](guides/csharp.md) | `csharp` pack | .NET SDK 10 | Experimental, SDK-style C# only |
+| [Go](guides/go.md) | `go` pack | Go 1.26+; local compatible toolchain | Experimental, report-only |
+| [Rust](guides/rust.md) | `rust` pack | Compatible stable Cargo toolchain | Experimental, report-only |
 
 Use the exact installed pack manifest and release guide for compatibility. These minimums are not a claim that every newer runtime version has been tested.
 

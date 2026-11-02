@@ -1,9 +1,17 @@
 module.exports = {
   docs: [
     {type: 'category', label: 'Start here', collapsed: false, items: ['getting-started', 'languages', 'agent-skill']},
-    {type: 'category', label: 'Use NullGuard', collapsed: false, items: [
+    {type: 'category', label: 'Language guides', collapsed: false, items: [
       {type: 'doc', id: 'reference/java-guide', label: 'Java developer guide'},
-      {type: 'doc', id: 'reference/multilang/index', label: 'Multi-language guide'},
+      {type: 'doc', id: 'guides/python', label: 'Python developer guide'},
+      {type: 'doc', id: 'guides/javascript', label: 'JavaScript / JSX developer guide'},
+      {type: 'doc', id: 'guides/typescript', label: 'TypeScript / TSX developer guide'},
+      {type: 'doc', id: 'guides/csharp', label: 'C# / .NET developer guide'},
+      {type: 'doc', id: 'guides/go', label: 'Go developer guide'},
+      {type: 'doc', id: 'guides/rust', label: 'Rust developer guide'},
+    ]},
+    {type: 'category', label: 'Use NullGuard', collapsed: false, items: [
+      {type: 'doc', id: 'reference/multilang/index', label: 'Mixed repositories & pack reference'},
       {type: 'doc', id: 'integrations/gradle', label: 'Gradle integration'},
       {type: 'doc', id: 'reference/analysis-completeness', label: 'Analysis completeness'},
       {type: 'doc', id: 'reference/memory-insights', label: 'Memory insights'},
