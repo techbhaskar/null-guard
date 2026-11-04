@@ -22,14 +22,14 @@ GROUP = 'com/arinits/nullguard'
 
 def download(url, output):
     subprocess.run(['curl', '--fail', '--silent', '--show-error', '--location',
-                    '--retry', '2', '--output', str(output), url], check=True)
+                    '--retry', '2', '--max-time', '120', '--output', str(output), url], check=True)
 
 
 def prepare(version, directory):
     if not re.fullmatch(r'\d+\.\d+\.\d+', version):
         raise ValueError('Expected a stable numeric release version')
     inventory = []
-    for artifact in sorted(COMPONENTS):
+    for artifact in sorted(COMPONENTS, key=lambda name: (name != "nullguard-parent", name)):
         relative = f'{GROUP}/{artifact}/{version}/'
         folder = directory / relative
         folder.mkdir(parents=True, exist_ok=True)
@@ -67,7 +67,7 @@ def registry_read(relative):
     credentials = (os.environ['GITHUB_PACKAGES_USERNAME'] + ':' + os.environ['GITHUB_PACKAGES_TOKEN']).encode()
     config = 'header = "Authorization: Basic ' + base64.b64encode(credentials).decode() + '"\n'
     result = subprocess.run(['curl','--silent','--show-error','--location','--config','-',
-                             '--write-out','\n%{http_code}',REGISTRY+'/'+relative],
+                             '--max-time','120','--write-out','\n%{http_code}',REGISTRY+'/'+relative],
                             input=config.encode(),capture_output=True,check=True)
     data, status = result.stdout.rsplit(b'\n',1)
     if status == b'404': return None
@@ -79,7 +79,7 @@ def registry_upload(relative, file):
     credentials = (os.environ['GITHUB_PACKAGES_USERNAME'] + ':' + os.environ['GITHUB_PACKAGES_TOKEN']).encode()
     config = 'header = "Authorization: Basic ' + base64.b64encode(credentials).decode() + '"\n'
     subprocess.run(['curl','--fail','--silent','--show-error','--config','-',
-                    '--upload-file',str(file),REGISTRY+'/'+relative],input=config.encode(),check=True)
+                    '--max-time','120','--upload-file',str(file),REGISTRY+'/'+relative],input=config.encode(),check=True)
 
 
 def existing_components(version, directory, inventory):
@@ -125,7 +125,7 @@ def publish(version, directory, inventory):
                 args += ['-Dfiles='+','.join(str(folder/n) for n in attached),
                          '-Dclassifiers='+','.join(n[len(stem)+1:-4] for n in attached),
                          '-Dtypes='+','.join('jar' for _ in attached)]
-            subprocess.run(args,check=True)
+            subprocess.run(args,check=True,timeout=180)
             for name in component['files']:
                 if name.endswith('.module'):
                     registry_upload(f'{GROUP}/{artifact}/{version}/{name}', folder/name)
