@@ -1,0 +1,41 @@
+name: Mirror release to GitHub Packages
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing stable Maven Central release version
+        required: true
+        default: '2.0.0'
+permissions:
+  contents: read
+  packages: write
+concurrency:
+  group: github-packages-publication
+  cancel-in-progress: false
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Import established release public key
+        run: gpg --batch --import nullguard-engine/src/main/resources/multilang/release-key.asc
+      - name: Test mirror safeguards
+        run: python -m unittest discover -s scripts -p test_mirror_github_packages.py -v
+      - name: Mirror verified Central artifacts
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          GITHUB_PACKAGES_USERNAME: ${{ github.actor }}
+          GITHUB_PACKAGES_TOKEN: ${{ github.token }}
+        run: |
+          version="${INPUT_VERSION:-${RELEASE_TAG#v}}"
+          python scripts/mirror_github_packages.py --version "$version" --directory "$RUNNER_TEMP/central-mirror" --publish

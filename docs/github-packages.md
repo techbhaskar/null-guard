@@ -1,15 +1,15 @@
 # GitHub Releases and Packages
 
-[Release v1.1.0](https://github.com/techbhaskar/null-guard/releases/tag/v1.1.0)
+[Release v2.0.0](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0)
 provides the standalone CLI JAR, its GPG signature and a SHA-256 checksum. GitHub
 also supplies source archives for the tag.
 
 All 13 release components are published as public GitHub Maven packages.
 The Maven registry mirror is
 `https://maven.pkg.github.com/techbhaskar/null-guard`. It uses the same
-`com.arinits.nullguard` coordinates and version `1.1.0` as Maven Central, including
-the Gradle implementation and plugin marker. Artifacts are mirrored from the
-verified signed Central bundle, rather than rebuilt with different contents.
+`com.arinits.nullguard` coordinates and version `2.0.0` as Maven Central, including
+the Gradle implementation and plugin marker. Artifacts are downloaded from Maven Central and their SHA-256 checksums and
+release-key signatures are verified before mirroring, rather than rebuilding them.
 
 ## Authentication
 
@@ -36,7 +36,7 @@ URL `https://maven.pkg.github.com/techbhaskar/null-guard`. Keep Maven Central fo
 third-party dependencies.
 
 ```sh
-mvn com.arinits.nullguard:nullguard-maven-plugin:1.1.0:analyze
+mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze
 ```
 
 ## Gradle
@@ -55,6 +55,29 @@ maven {
 ```
 
 Keep `mavenCentral()` in both places for third-party dependencies, then apply
-`id("com.arinits.nullguard") version "1.1.0"`. The plugin resolves its CLI tool
+`id("com.arinits.nullguard") version "2.0.0"`. The plugin resolves its CLI tool
 through the normal repository block, so configuring only plugin repositories is
 insufficient. Run `./gradlew nullguard` as described in the main README.
+
+## Publishing the registry mirror
+
+The `Mirror release to GitHub Packages` workflow runs when a release is published.
+It can also be dispatched with an existing stable Central version, such as `2.0.0`.
+Central must finish publishing the version first; if the workflow runs before the
+artifacts are available, rerun it after Central publication completes.
+
+The workflow uses its repository token with `packages: write`. It verifies the
+original signed artifacts for all 13 components before publishing any component,
+then downloads each mirrored artifact to verify identical bytes. An identical
+existing component is skipped; differing or incomplete contents cause a failure
+rather than overwriting a published version. The Gradle plugin marker is included.
+No current development binaries are published under an existing release version.
+
+For a local verification without publishing:
+
+```sh
+python3 scripts/mirror_github_packages.py --version 2.0.0 --directory /tmp/nullguard-central-mirror
+```
+
+Local publication adds `--publish` and reads `GITHUB_PACKAGES_USERNAME` and
+`GITHUB_PACKAGES_TOKEN` from the environment. Never commit token values.
