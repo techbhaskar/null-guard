@@ -22,10 +22,18 @@ public final class JavaLanguageAnalyzer implements LanguageAnalyzer {
         Files.createDirectories(target.getParent());
         Files.copy(project.root().resolve(file), target);
       }
+      // Keep declaration metadata with the staged sources for advisory discovery; never execute it.
+      for (String name : java.util.List.of("pom.xml", "build.gradle", "build.gradle.kts", "gradle.lockfile")) {
+        Path manifest = project.root().resolve(name);
+        if (Files.isRegularFile(manifest)) Files.copy(manifest, staged.resolve(name));
+      }
       var result = new EngineBootstrap(config).run(staged);
       ObjectNode out = Protocol.empty(project, "java");
       var report = Protocol.JSON.readTree(result.getVisualizations().getJsonGraph());
       out.set("legacySummary", report.path("summary"));
+      out.set("cveSummary", report.path("cveSummary"));
+      out.set("sastSummary", report.path("sastSummary"));
+      out.set("coverageSummary", Protocol.JSON.valueToTree(com.nullguard.bootstrap.JacocoCoverage.read(project.root(), config.getJacocoReport())));
       ObjectNode caps = (ObjectNode) out.get("capabilities");
       caps.put("callGraph", true);
       caps.put("stabilityScore", true);

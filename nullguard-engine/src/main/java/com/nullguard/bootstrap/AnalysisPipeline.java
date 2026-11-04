@@ -213,6 +213,7 @@ public final class AnalysisPipeline {
             report.put("memoryInsights", MemoryInsights.describe(projectModel));
             report.put("cveSummary", cveOutcome.cveSummary());
             report.put("sastSummary", sastSummary);
+            report.put("coverageSummary", JacocoCoverage.read(projectRoot, config.getJacocoReport()));
             return new VisualizationBundle(report, jsonGraphExporter, dot, exporter.sarif(findings, projectRoot), findings);
         });
         ctx.setVisualizationBundle(vizBundle);

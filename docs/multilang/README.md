@@ -93,8 +93,10 @@ This is not a claim that every version above each runtime minimum has been teste
 
 Dependency inputs: npm/pnpm/Yarn locks, pinned requirements/Poetry/uv, NuGet
 restore assets/locks, go.mod and Cargo.lock. Unresolved ranges remain unknown.
-Use `--cve-input=/path/advisories.json` for offline advisories or opt into OSV with
-`--cve-online`. Exact resolved versions can match advisory records; offline ranges
+Published 2.0.0 uses `--cve-online` to opt into OSV. Development source now enables
+online lookup by default, with `--cve-offline` to disable it; see
+[current advisory lookup](../cve-analysis.md). Use
+`--cve-input=/path/advisories.json` to supply an external advisory report. Exact resolved versions can match advisory records; offline ranges
 that cannot be evaluated are diagnosed, and reachability is never inferred.
 
 ## Building and qualifying packs

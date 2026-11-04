@@ -13,5 +13,8 @@ public abstract class NullGuardExtension {
     public abstract DirectoryProperty getReportDirectory();
     public abstract ListProperty<String> getExcludes();
     public abstract Property<String> getMaxHeapSize();
+    public abstract Property<Boolean> getCveOnline();
+    public abstract org.gradle.api.file.RegularFileProperty getCveInput();
+    public abstract org.gradle.api.file.RegularFileProperty getJacocoReport();
     public abstract org.gradle.api.file.RegularFileProperty getOpenApiConfig();
 }

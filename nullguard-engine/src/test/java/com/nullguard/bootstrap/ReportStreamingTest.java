@@ -36,7 +36,7 @@ class ReportStreamingTest {
     }
 
     @Test void streamedFileMatchesInMemoryReport(@TempDir Path dir) throws Exception {
-        var result = new EngineBootstrap(NullGuardConfig.defaults().build()).run(PipelineIntegrationTest.SOURCES);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).build()).run(PipelineIntegrationTest.SOURCES);
         Path json = dir.resolve("report.json");
         result.getVisualizations().writeJson(json);
         var mapper = new ObjectMapper();
@@ -47,13 +47,16 @@ class ReportStreamingTest {
     }
 
     @Test void dashboardEmbedsTheReportExactlyOnce(@TempDir Path dir) throws Exception {
-        var result = new EngineBootstrap(NullGuardConfig.defaults().build()).run(PipelineIntegrationTest.SOURCES);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).build()).run(PipelineIntegrationTest.SOURCES);
         Path html = dir.resolve("dashboard.html");
         HtmlDashboardRenderer.write(html, result, "20260101_000000", "orders<service>");
         String page = Files.readString(html);
         assertEquals(1, page.split("\"schemaVersion\"", -1).length - 1, "report must be embedded once");
         assertFalse(page.contains("Object.assign"), "side tables are already part of the report");
         assertTrue(page.contains("orders&lt;service&gt;"));
+        assertTrue(page.contains("id=\"coverage\""));
+        assertTrue(page.contains("id=\"qualityfixes\""));
+        assertTrue(result.getVisualizations().getJsonGraph().contains("coverageSummary"));
         assertEquals(1, page.split("</script>", -1).length - 1, "only the real closing tag");
     }
 }

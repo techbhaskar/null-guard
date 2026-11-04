@@ -93,7 +93,7 @@ class ConstructorFieldInvariantTest {
                     Object callback() { return new Object() { int size(String value) { return value.length(); } }; }
                 }
                 """);
-        var result = new EngineBootstrap(NullGuardConfig.defaults().outputDirectory(root.resolve("out")).build()).run(root);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).outputDirectory(root.resolve("out")).build()).run(root);
         var warnings = result.getFindings().stream().filter(f -> f.ruleId().equals("NG001")).toList();
         for (String method : new String[]{"Safe#size()", "Guarded#size()", "Delegating#size()"})
             assertFalse(warnings.stream().anyMatch(f -> f.methodId().equals(method)), method + ": " + warnings);

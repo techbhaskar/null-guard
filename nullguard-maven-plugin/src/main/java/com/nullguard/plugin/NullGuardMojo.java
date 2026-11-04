@@ -82,6 +82,16 @@ public class NullGuardMojo extends AbstractMojo {
     @Parameter(property = "nullguard.openapiConfig")
     private File openApiConfig;
 
+    /** Current OSV lookup; sends dependency names and versions to OSV unless disabled. */
+    @Parameter(property = "nullguard.cveOnline", defaultValue = "true")
+    private boolean cveOnline = true;
+
+    @Parameter(property = "nullguard.cveInput")
+    private File cveInput;
+
+    @Parameter(property = "nullguard.jacocoReport")
+    private File jacocoReport;
+
     // ── Mojo entry point ──────────────────────────────────────────────────────
 
     @Override
@@ -112,6 +122,9 @@ public class NullGuardMojo extends AbstractMojo {
                     .highRiskThreshold(highRiskThreshold)
                     .outputDirectory(outputDir)
                     .openApiConfigFile(openApiConfig == null ? null : openApiConfig.toPath())
+                    .jacocoReport(jacocoReport == null ? null : jacocoReport.toPath())
+                    .osvOnlineLookup(cveOnline)
+                    .cveInputFile(cveInput == null ? null : cveInput.toPath())
                     .sourceRoots(project.getCompileSourceRoots().stream()
                             .map(Paths::get)
                             .toList())

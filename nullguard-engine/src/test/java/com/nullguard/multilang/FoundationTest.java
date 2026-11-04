@@ -150,7 +150,7 @@ class FoundationTest {
             .run(
                 root,
                 Set.of(Language.PYTHON, Language.TYPESCRIPT),
-                com.nullguard.bootstrap.NullGuardConfig.defaults().build(),
+                com.nullguard.bootstrap.NullGuardConfig.defaults().osvOnlineLookup(false).build(),
                 null,
                 false);
     assertEquals(2, report.path("projects").size());

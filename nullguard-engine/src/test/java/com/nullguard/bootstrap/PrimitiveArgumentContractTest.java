@@ -51,7 +51,7 @@ class PrimitiveArgumentContractTest {
                     void goodBoxing() { primitiveBoxed(count); }
                 }
                 """);
-        var result = new EngineBootstrap(NullGuardConfig.defaults().outputDirectory(root.resolve("out")).build()).run(root);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).outputDirectory(root.resolve("out")).build()).run(root);
         var warnings = result.getFindings().stream().filter(f -> f.ruleId().equals("NG004")).toList();
         for (String method : new String[]{"good(char[])", "goodBoxing()"})
             assertFalse(warnings.stream().anyMatch(f -> f.methodId().equals("Example#" + method)), warnings.toString());

@@ -17,7 +17,7 @@ class SastScannerTest {
 
     @Test
     void reportsExplicitlyWhenNoCompiledClassesAreConfigured() {
-        Map<String, Object> result = SastScanner.scan(NullGuardConfig.defaults().build());
+        Map<String, Object> result = SastScanner.scan(NullGuardConfig.defaults().osvOnlineLookup(false).build());
 
         assertEquals("NOT_RUN", result.get("status"));
         assertEquals(List.of(), result.get("findings"));
@@ -26,7 +26,7 @@ class SastScannerTest {
 
     @Test
     void reportsExplicitlyWhenConfiguredClassesAreUnavailable() {
-        Map<String, Object> result = SastScanner.scan(NullGuardConfig.defaults()
+        Map<String, Object> result = SastScanner.scan(NullGuardConfig.defaults().osvOnlineLookup(false)
                 .sastClassDirectories(List.of(root.resolve("not-compiled")))
                 .build());
 
@@ -54,7 +54,7 @@ class SastScannerTest {
                 null, null, null, "-d", classes.toString(), javaFile.toString());
         assertEquals(0, compileResult);
 
-        var result = new EngineBootstrap(NullGuardConfig.defaults()
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false)
                 .sastClassDirectories(List.of(classes))
                 .build()).run(root.resolve("src"));
         var report = new ObjectMapper().readTree(result.getVisualizations().getJsonGraph());

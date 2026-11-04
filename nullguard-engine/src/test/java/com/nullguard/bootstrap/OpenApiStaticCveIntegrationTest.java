@@ -267,7 +267,7 @@ class OpenApiStaticCveIntegrationTest {
         Path fakeJar = root.resolve("commons-text-1.9.jar");
         Files.writeString(fakeJar, "");
 
-        NullGuardConfig config = NullGuardConfig.defaults()
+        NullGuardConfig config = NullGuardConfig.defaults().osvOnlineLookup(false)
                 .outputDirectory(root.resolve("out"))
                 .sourceRoots(List.of(srcDir))
                 .classpathEntries(List.of(fakeJar))

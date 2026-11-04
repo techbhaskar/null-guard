@@ -249,6 +249,8 @@ public final class HtmlDashboardRenderer {
                   <span class="nav-count" id="cnt-overview">0</span>
                 </a>
                 <a onclick="show('memory')" class="nav-item" id="nav-memory"><span>Memory &amp; retention</span></a>
+                <a onclick="show('coverage')" class="nav-item" id="nav-coverage"><span>JaCoCo Coverage</span></a>
+                <a onclick="show('qualityfixes')" class="nav-item" id="nav-qualityfixes"><span>Code Quality &amp; Fixes</span></a>
                 <a onclick="show('quality')" class="nav-item" id="nav-quality">
                   <span>Code Quality &amp; Arch</span>
                   <span class="nav-count" id="cnt-quality">0</span>
@@ -388,6 +390,8 @@ public final class HtmlDashboardRenderer {
                 </section>
 
                 <!-- 4. CODE QUALITY & ARCH -->
+                <section id="coverage" class="content"><div class="card"><h2>JaCoCo Coverage</h2><p id="coverageStatus"></p><div id="coverageTotals"></div><div class="table-wrap"><table id="coverageTable"></table></div></div></section>
+                <section id="qualityfixes" class="content"><div class="card"><h2>Code Quality &amp; Fixes</h2><p>Sonar-style categories for NullGuard and SpotBugs findings. These are review suggestions, not SonarQube results or applied fixes. Scan completeness and CVE freshness remain visible in their existing tabs.</p><div id="fixCounts"></div><div class="table-wrap"><table id="fixTable"></table></div></div></section>
                 <section id="quality" class="content">
                   <div class="kpi-grid" id="qualityGrid"></div>
                   <div class="card">
@@ -413,12 +417,12 @@ public final class HtmlDashboardRenderer {
 
                 <!-- 5. REACHABLE CVES -->
                 <section id="cves" class="content">
-                  <div class="kpi-grid" id="cveGrid"></div>
+                  <div class="kpi-grid" id="cveGrid"></div><div class="card" id="cveScanStatus"></div>
                   <div class="card">
                     <div class="card-header">
                       <div>
                         <h3 class="card-title">3-Tier Call-Graph Reachable Vulnerability Scanner (NG401–NG403)</h3>
-                        <p class="card-subtitle">Separates exploitable API-Reachable CVEs from internal Code-Reachable and Unreachable dependency noise</p>
+                        <p class="card-subtitle">Static call-path evidence helps prioritize dependency advisories; reachability does not prove exploitability.</p>
                       </div>
                       <div class="filter-pills" id="cveFilterPills">
                         <span class="pill active" onclick="setCveFilter('ALL', this)">All CVEs</span>
@@ -664,7 +668,8 @@ public final class HtmlDashboardRenderer {
             panel('pillarsGrid', () => {
               const nsGrade = s.grade || 'A';
               const archGrade = arch.architectureGrade || 'A';
-              const secGrade = cve.securityGrade || 'A';
+              const cveComplete = cve.status === 'COMPLETED' && typeof cve.securityScore === 'number';
+              const secGrade = cveComplete ? cve.securityGrade : 'N/A';
               document.getElementById('pillarsGrid').innerHTML = `
                 <div class="pillar-card">
                   <div class="pillar-top">
@@ -701,9 +706,9 @@ public final class HtmlDashboardRenderer {
                 <div class="pillar-card" style="cursor:pointer" onclick="show('cves')">
                   <div class="pillar-top">
                     <div>
-                      <div class="pillar-label">3. Security &amp; Reachable CVEs</div>
+                      <div class="pillar-label">3. Dependency Advisory Exposure</div>
                       <div class="pillar-score-row">
-                        <span class="pillar-score">${num(cve.securityScore ?? 100)}</span>
+                        <span class="pillar-score">${cveComplete ? num(cve.securityScore) : 'N/A'}</span>
                         <span class="pillar-max">/ 100</span>
                       </div>
                     </div>
@@ -1008,28 +1013,37 @@ public final class HtmlDashboardRenderer {
 
             function renderCves() {
               panel('cveTable', () => {
+                const complete = cve.status === 'COMPLETED' && typeof cve.securityScore === 'number';
+                const status = cve.status || 'UNKNOWN';
+                document.getElementById('cveScanStatus').innerHTML = `<h3>Advisory scan: ${esc(status)}</h3>
+                  <p>Sources: ${esc((cve.sources || ['Not recorded']).join(', '))}. Lookup time: ${esc(cve.checkedAt || 'Not recorded')}.</p>
+                  <p>${esc(cve.queriedDependencies ?? 0)} dependencies submitted for live lookup; ${esc(cve.dependencyCoverage || 'Dependency coverage not recorded')}.</p>
+                  ${status === 'OFFLINE_LIMITED' ? '<p>Live lookup is disabled. The bundled catalog is limited and is not a current vulnerability feed. Enable online lookup or supply a current external report.</p>' : ''}
+                  ${!complete ? '<p>No exposure grade is assigned to an incomplete, offline-limited or unavailable lookup.</p>' : '<p>The exposure score is a prioritization heuristic, not a security certification.</p>'}
+                  <ul>${(cve.diagnostics || []).map(d => '<li>' + esc(d) + '</li>').join('')}</ul>`;
                 const q = searchQuery.toLowerCase();
                 const vulns = (cve.vulnerabilities || []).filter(v => {
                   if (cveFilter !== 'ALL' && v.reachability !== cveFilter) return false;
                   if (!q) return true;
                   return (v.cveId || '').toLowerCase().includes(q)
                     || (v.dependency || '').toLowerCase().includes(q)
-                    || (v.summary || '').toLowerCase().includes(q);
+                    || (v.summary || '').toLowerCase().includes(q)
+                    || (v.aliases || []).some(alias => alias.toLowerCase().includes(q));
                 });
                 document.getElementById('cveGrid').innerHTML = `
-                  <div class="kpi-box"><span class="kpi-label">Security Grade</span><span class="kpi-val" style="color:${(cve.apiReachableCount||0)>0?'var(--danger)':'var(--success)'}">${esc(cve.securityGrade || 'A')} (${num(cve.securityScore ?? 100)})</span><span class="kpi-sub">${cve.totalDependencies || 0} dependencies scanned</span></div>
-                  <div class="kpi-box"><span class="kpi-label">API-Reachable (NG401)</span><span class="kpi-val" style="color:var(--danger)">${cve.apiReachableCount || 0}</span><span class="kpi-sub">Active on public HTTP routes</span></div>
+                  <div class="kpi-box"><span class="kpi-label">Advisory Exposure Grade</span><span class="kpi-val" style="color:${(cve.apiReachableCount||0)>0?'var(--danger)':'var(--success)'}">${complete ? esc(cve.securityGrade) + ' (' + num(cve.securityScore) + ')' : 'N/A'}</span><span class="kpi-sub">${cve.totalDependencies || 0} dependencies discovered</span></div>
+                  <div class="kpi-box"><span class="kpi-label">API-Reachable (NG401)</span><span class="kpi-val" style="color:var(--danger)">${cve.apiReachableCount || 0}</span><span class="kpi-sub">Matching static HTTP call path</span></div>
                   <div class="kpi-box"><span class="kpi-label">Code-Reachable (NG402)</span><span class="kpi-val" style="color:var(--warning)">${cve.codeReachableCount || 0}</span><span class="kpi-sub">Invoked by internal code</span></div>
-                  <div class="kpi-box"><span class="kpi-label">Unreachable (NG403)</span><span class="kpi-val" style="color:var(--success)">${cve.unreachableCount || 0}</span><span class="kpi-sub">Unused in call graph</span></div>`;
+                  <div class="kpi-box"><span class="kpi-label">Not observed (NG403)</span><span class="kpi-val" style="color:var(--success)">${cve.unreachableCount || 0}</span><span class="kpi-sub">No matching static path; runtime use is possible</span></div>`;
 
                 document.getElementById('cveTable').innerHTML = `
                   <thead><tr><th style="width:165px">Advisory &amp; CVSS</th><th style="width:24%">Dependency &amp; Upgrade</th><th style="width:185px">Reachability Tier</th><th>Impact &amp; Exposed Endpoints</th></tr></thead>
                   <tbody>${vulns.length ? vulns.map(v => `<tr>
-                    <td><div class="method-title mono">${esc(v.cveId)}</div><span class="badge badge-${v.severity}" style="margin-top:4px;">${esc(v.severity)} · CVSS ${esc(v.cvssScore)}</span></td>
-                    <td><div class="mono" style="color:var(--text-main);font-weight:600;">${esc(v.dependency)}:${esc(v.version)}</div><div class="loc-tag" style="color:var(--success)">⬆ Upgrade to ${esc(v.fixedVersion)}</div></td>
+                    <td><div class="method-title mono">${esc(v.cveId)}</div><div class="loc-tag">${(v.aliases || []).map(esc).join(", ")}</div><span class="badge badge-${v.severity}" style="margin-top:4px;">${esc(v.severity || 'UNKNOWN')} · CVSS ${v.cvssScore == null ? 'Not provided' : esc(v.cvssScore)}</span></td>
+                    <td><div class="mono" style="color:var(--text-main);font-weight:600;">${esc(v.dependency)}:${esc(v.version)}</div><div class="loc-tag" style="color:var(--success)">Reported fixes: ${esc(v.fixedVersion || 'Not provided; review advisory')}</div></td>
                     <td><span class="badge badge-${v.reachability}">${esc(v.ruleId)} · ${esc(v.reachability)}</span></td>
-                    <td><div>${esc(v.summary)}</div>${(v.affectedEndpoints || []).length ? `<div style="margin-top:6px;font-size:0.78rem;color:var(--danger)"><strong>Exposed HTTP Routes:</strong> ${v.affectedEndpoints.map(e => `<code class="badge badge-CRITICAL">${esc(e)}</code>`).join(' ')}</div>` : ''}</td>
-                  </tr>`).join('') : `<tr><td colspan="4" class="empty-state">Zero vulnerable dependencies match the current filter.</td></tr>`}</tbody>`;
+                    <td><div>${esc(v.summary)}</div><div class="loc-tag">Source: ${esc(v.source || "Not recorded")} · Advisory modified: ${esc(v.modified || "Not recorded")}</div>${(v.affectedEndpoints || []).length ? `<div style="margin-top:6px;font-size:0.78rem;color:var(--danger)"><strong>Exposed HTTP Routes:</strong> ${v.affectedEndpoints.map(e => `<code class="badge badge-CRITICAL">${esc(e)}</code>`).join(' ')}</div>` : ''}</td>
+                  </tr>`).join('') : `<tr><td colspan="4" class="empty-state">No advisory findings match this filter. Review scan status and coverage before drawing conclusions.</td></tr>`}</tbody>`;
               });
             }
 
@@ -1147,7 +1161,37 @@ public final class HtmlDashboardRenderer {
               table.innerHTML = '<thead><tr><th style="width:16%%">Review signal</th><th style="width:30%%">Source</th><th style="width:22%%">Symbol / enclosing method</th><th style="width:32%%">Review guidance</th></tr></thead><tbody>' + visible.map(s => `<tr><td>${esc(s.kind)}</td><td>${esc(s.location)}</td><td>${esc(s.symbol)}</td><td>${esc(s.guidance)}</td></tr>`).join('') + (visible.length ? '' : '<tr><td colspan="4">No matching source sites.</td></tr>') + '</tbody>';
             }
 
+            function renderCoverageAndFixes() {
+              const coverage = data.coverageSummary || {status:'NOT_AVAILABLE',reason:'No JaCoCo XML supplied.'};
+              document.getElementById('coverageStatus').textContent = coverage.status + ' — ' + coverage.reason + (coverage.reportPath ? ' Report: ' + coverage.reportPath + ' Modified: ' + coverage.modifiedAt : '');
+              const counterLabel = c => c ? (typeof c.percent === 'number' ? c.percent.toFixed(1) + '%' : 'N/A') + ' (' + c.covered + ' covered, ' + c.missed + ' missed)' : 'N/A';
+              document.getElementById('coverageTotals').innerHTML = Object.entries(coverage.counters || {}).map(([k,v]) => '<p><strong>' + esc(k) + '</strong>: ' + esc(counterLabel(v)) + '</p>').join('');
+              const sources = (coverage.sources || []).filter(x => !searchQuery || x.path.toLowerCase().includes(searchQuery.toLowerCase()));
+              document.getElementById('coverageTable').innerHTML = '<thead><tr><th>Report source path</th><th>Line coverage</th><th>Uncovered lines</th><th>Partially covered lines</th></tr></thead><tbody>' + sources.map(x => '<tr><td>' + esc(x.path) + '</td><td>' + esc(counterLabel((x.counters || {}).LINE)) + '</td><td>' + esc(x.missedLines.join(', ')) + '</td><td>' + esc(x.partialLines.join(', ')) + '</td></tr>').join('') + '</tbody>';
+              const guidance = {
+                NG201:'Batch or prefetch external and database operations to avoid repeated I/O inside the loop.',
+                NG202:'Preserve exception context and handle or propagate the failure explicitly.',
+                NG203:'Remove shared mutable request state or protect concurrent access.',
+                NG204:'Route persistence access through the service boundary.',
+                NG205:'Break the dependency cycle with a narrower interface or separated responsibility.',
+                NG206:'Close resources on every exit path, preferably with try-with-resources.',
+                NG301:'Align endpoint implementation and declared API contract.',
+                NG302:'Align endpoint implementation and declared API contract.'
+              };
+              const fixes = (data.findings || []).map(f => {
+                const security = String(f.ruleId).startsWith('NG4');
+                const maintain = ['NG204','NG205'].includes(f.ruleId);
+                return {category:security?'Security':maintain?'Maintainability':'Reliability',source:'NullGuard',rule:f.ruleId,severity:f.severity,message:f.message,location:f.location ? f.location.path + ':' + f.location.startLine : f.methodId,
+                  fix: security ? 'Review the Reachable CVEs tab for advisory-specific fixed versions; verify compatibility and rerun the scan.' : guidance[f.ruleId] || 'Follow the reported null path, validate the input contract, and guard or correct the dereference. Add a regression test.'};
+              }).concat((sast.findings || []).map(f => ({category:f.category === 'SECURITY'?'Security':f.category === 'BAD_PRACTICE'?'Maintainability':'Bug',source:'SpotBugs',rule:f.type,severity:f.severity,message:f.message,location:f.path + ':' + f.line,fix:'Inspect this SpotBugs rule and source location; correct the flagged operation and verify with a regression test. No automatic patch has been applied.'})));
+              const counts = {}; fixes.forEach(f => counts[f.category] = (counts[f.category] || 0) + 1);
+              document.getElementById('fixCounts').textContent = Object.entries(counts).map(([k,v]) => k + ': ' + v).join(' · ') || 'No findings reported. This is not proof of complete coverage or a passed quality gate.';
+              const visible = fixes.filter(f => !searchQuery || JSON.stringify(f).toLowerCase().includes(searchQuery.toLowerCase()));
+              document.getElementById('fixTable').innerHTML = '<thead><tr><th>Category / source</th><th>Rule / severity</th><th>Location</th><th>Finding</th><th>Suggested remediation</th></tr></thead><tbody>' + visible.map(f => '<tr><td>' + esc(f.category + ' / ' + f.source) + '</td><td>' + esc(f.rule + ' / ' + f.severity) + '</td><td>' + esc(f.location) + '</td><td>' + esc(f.message) + '</td><td>' + esc(f.fix) + '</td></tr>').join('') + '</tbody>';
+            }
+
             function renderAllDynamic() {
+              renderCoverageAndFixes();
               renderMemory();
               renderAllFindings();
               renderSuggestions();

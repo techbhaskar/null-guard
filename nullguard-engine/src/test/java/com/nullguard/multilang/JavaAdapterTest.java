@@ -17,7 +17,7 @@ class JavaAdapterTest {
         "class Example { int bad(String value) { return value.length(); } }");
     var project = new ProjectSpec("java", root, List.of("java"), List.of("Example.java"));
     var result =
-        new JavaLanguageAnalyzer(com.nullguard.bootstrap.NullGuardConfig.defaults().build())
+        new JavaLanguageAnalyzer(com.nullguard.bootstrap.NullGuardConfig.defaults().osvOnlineLookup(false).build())
             .analyze(project);
     assertEquals(1, result.path("coverage").path("java").path("analyzedFiles").asInt());
     assertTrue(result.path("capabilities").path("stabilityScore").asBoolean());

@@ -15,13 +15,12 @@ import com.nullguard.core.model.SemanticCallSite;
 import com.nullguard.core.model.SourceLocation;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import com.nullguard.security.OsvClient;
+import java.time.Instant;
+import java.util.Properties;
+import java.util.jar.JarFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -153,43 +152,82 @@ public final class ReachableCveScanner {
             GlobalCallGraph callGraph,
             List<ApiEndpointModel> endpoints) {
 
+        return scan(projectRoot, config, project, callGraph, endpoints, new OsvClient());
+    }
+
+    static ScanOutcome scan(Path projectRoot, NullGuardConfig config, ProjectModel project,
+            GlobalCallGraph callGraph, List<ApiEndpointModel> endpoints, OsvClient osv) {
         List<DependencyCoordinate> dependencies = discoverDependencies(projectRoot, config);
         List<MatchedVulnerability> matched = new ArrayList<>();
-
-        // 1. Match against built-in Maven CVE catalog
-        for (DependencyCoordinate dep : dependencies) {
-            for (AdvisoryEntry adv : BUILTIN_CATALOG) {
-                if (matchesCoordinate(dep, adv.groupId(), adv.artifactId())
-                        && compareVersions(dep.version(), adv.maxVulnerableVersion()) <= 0) {
-                    matched.add(new MatchedVulnerability(
-                            adv.cveId(),
-                            dep.groupId() + ":" + dep.artifactId(),
-                            dep.version(),
-                            adv.fixedVersion(),
-                            adv.severity(),
-                            adv.cvssScore(),
-                            adv.summary(),
-                            adv.packagePrefixes(),
-                            adv.classOrMethodTokens()
-                    ));
+        List<String> diagnostics = new ArrayList<>();
+        List<String> sources = new ArrayList<>();
+        Map<String, Map<String, Object>> metadata = new LinkedHashMap<>();
+        String checkedAt = Instant.now().toString();
+        boolean onlineCompleted = false;
+        int queriedDependencies = 0;
+        if (config.isOsvOnlineLookup()) {
+            List<OsvClient.Package> queries = dependencies.stream()
+                    .filter(dep -> !dep.groupId().equals("*") && !dep.version().contains("${"))
+                    .map(dep -> new OsvClient.Package("Maven", dep.groupId() + ":" + dep.artifactId(), dep.version()))
+                    .distinct().toList();
+            queriedDependencies = queries.size();
+            if (queries.size() < dependencies.size())
+                diagnostics.add("Some dependency coordinates could not be resolved for OSV lookup.");
+            if (!queries.isEmpty()) {
+                try {
+                    for (OsvClient.Match match : osv.query(queries)) {
+                        JsonNode detail = OsvClient.metadata(match);
+                        String id = match.advisory().path("id").asText();
+                        String name = match.dependency().name();
+                        List<String> fixes = new ArrayList<>();
+                        detail.path("fixedVersions").forEach(v -> fixes.add(v.asText()));
+                        matched.add(new MatchedVulnerability(id, name, match.dependency().version(),
+                                fixes.isEmpty() ? "Not provided; review advisory" : String.join(", ", fixes),
+                                detail.path("severity").asText("UNKNOWN"), null,
+                                detail.path("summary").asText(), List.of(name.substring(0, name.indexOf(':'))), List.of()));
+                        metadata.put(id + "@" + name + "@" + match.dependency().version(),
+                                new ObjectMapper().convertValue(detail, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}));
+                    }
+                    onlineCompleted = true;
+                    sources.add("OSV_LIVE");
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    diagnostics.add("OSV lookup interrupted; advisory coverage is incomplete.");
+                } catch (Exception failure) {
+                    diagnostics.add("OSV lookup incomplete: " + failure.getMessage());
+                }
+            } else diagnostics.add("No fully resolved dependency coordinates available for online lookup.");
+        }
+        // The small bundled catalog is offline fallback evidence, never a current database.
+        if (!onlineCompleted) {
+            sources.add("BUNDLED_LEGACY_CATALOG");
+            for (DependencyCoordinate dep : dependencies) {
+                for (AdvisoryEntry adv : BUILTIN_CATALOG) {
+                    if (matchesCoordinate(dep, adv.groupId(), adv.artifactId())
+                            && compareVersions(dep.version(), adv.maxVulnerableVersion()) <= 0) {
+                        matched.add(new MatchedVulnerability(adv.cveId(), dep.groupId() + ":" + dep.artifactId(),
+                                dep.version(), adv.fixedVersion(), adv.severity(), adv.cvssScore(), adv.summary(),
+                                adv.packagePrefixes(), adv.classOrMethodTokens()));
+                    }
                 }
             }
         }
-
-        // 2. Parse external --cve-input JSON report if configured
-        if (config.getCveInputFile() != null && Files.isRegularFile(config.getCveInputFile())) {
-            matched.addAll(parseExternalCveReport(config.getCveInputFile()));
+        if (config.getCveInputFile() != null) {
+            try {
+                matched.addAll(parseExternalCveReport(config.getCveInputFile()));
+                sources.add("EXTERNAL_REPORT");
+            } catch (Exception failure) {
+                diagnostics.add("External CVE input could not be read: " + failure.getMessage());
+            }
         }
-
-        // 3. Optional online OSV.dev batch lookup if enabled
-        if (config.isOsvOnlineLookup() && !dependencies.isEmpty()) {
-            matched.addAll(queryOsvBatchApi(dependencies));
-        }
+        String status = dependencies.isEmpty() && config.getCveInputFile() == null ? "NOT_RUN"
+                : !diagnostics.isEmpty() ? "PARTIAL" : dependencies.isEmpty() ? "NOT_RUN"
+                : onlineCompleted ? "COMPLETED" : "OFFLINE_LIMITED";
 
         // Deduplicate by CVE ID + dependency
         Map<String, MatchedVulnerability> uniqueVulns = new LinkedHashMap<>();
         for (MatchedVulnerability v : matched) {
-            uniqueVulns.putIfAbsent(v.cveId() + "@" + v.dependency(), v);
+            uniqueVulns.putIfAbsent(v.cveId() + "@" + v.dependency() + "@" + v.version(), v);
         }
 
         // Build method index and fallback location for project-level findings
@@ -271,6 +309,8 @@ public final class ReachableCveScanner {
             }
 
             Map<String, Object> rec = new LinkedHashMap<>();
+            rec.put("source", "BUNDLED_LEGACY_OR_EXTERNAL");
+            rec.putAll(metadata.getOrDefault(vuln.cveId() + "@" + vuln.dependency() + "@" + vuln.version(), Map.of()));
             rec.put("cveId", vuln.cveId());
             rec.put("dependency", vuln.dependency());
             rec.put("version", vuln.version());
@@ -293,8 +333,16 @@ public final class ReachableCveScanner {
                 : securityScore >= 40.0 ? "D" : "F";
 
         Map<String, Object> cveSummary = new LinkedHashMap<>();
-        cveSummary.put("securityScore", securityScore);
-        cveSummary.put("securityGrade", securityGrade);
+        cveSummary.put("status", status);
+        cveSummary.put("checkedAt", checkedAt);
+        cveSummary.put("sources", sources);
+        cveSummary.put("onlineRequested", config.isOsvOnlineLookup());
+        cveSummary.put("queriedDependencies", queriedDependencies);
+        cveSummary.put("diagnostics", diagnostics);
+        cveSummary.put("dependencyCoverage", "Discovered manifests and classpath only; not a complete SBOM");
+        cveSummary.put("reachabilityLimit", "Static call-path evidence is not proof of exploitability; an unobserved path may exist at runtime");
+        cveSummary.put("securityScore", status.equals("COMPLETED") ? securityScore : null);
+        cveSummary.put("securityGrade", status.equals("COMPLETED") ? securityGrade : "N/A");
         cveSummary.put("totalDependencies", dependencies.size());
         cveSummary.put("totalVulnerabilities", vulnRecords.size());
         cveSummary.put("apiReachableCount", apiReachableCount);
@@ -334,8 +382,28 @@ public final class ReachableCveScanner {
             for (Path cp : config.getClasspathEntries()) {
                 if (cp == null || cp.getFileName() == null) continue;
                 String fileName = cp.getFileName().toString();
+                boolean identified = false;
+                if (Files.isRegularFile(cp)) {
+                    try (JarFile jar = new JarFile(cp.toFile())) {
+                        var entries = jar.entries();
+                        while (entries.hasMoreElements()) {
+                            var entry = entries.nextElement();
+                            if (!entry.getName().startsWith("META-INF/maven/") || !entry.getName().endsWith("/pom.properties")) continue;
+                            Properties props = new Properties();
+                            try (var input = jar.getInputStream(entry)) { props.load(input); }
+                            String group = props.getProperty("groupId", "");
+                            String artifact = props.getProperty("artifactId", "");
+                            String version = props.getProperty("version", "");
+                            if (!group.isBlank() && !artifact.isBlank() && !version.isBlank()) {
+                                coords.putIfAbsent(group + ":" + artifact + ":" + version,
+                                        new DependencyCoordinate(group, artifact, version));
+                                identified = true;
+                            }
+                        }
+                    } catch (IOException ignored) { /* Report unresolved coordinates below. */ }
+                }
                 Matcher m = JAR_NAME_PATTERN.matcher(fileName);
-                if (m.matches()) {
+                if (!identified && m.matches()) {
                     String artifactId = m.group(1);
                     String version = m.group(2);
                     coords.putIfAbsent(artifactId + ":" + version, new DependencyCoordinate("*", artifactId, version));
@@ -391,101 +459,50 @@ public final class ReachableCveScanner {
         } catch (IOException ignored) {}
     }
 
-    private static List<MatchedVulnerability> parseExternalCveReport(Path file) {
+    private static List<MatchedVulnerability> parseExternalCveReport(Path file) throws IOException {
         List<MatchedVulnerability> result = new ArrayList<>();
-        try {
-            JsonNode root = new ObjectMapper().readTree(file.toFile());
-            JsonNode vulnsNode = root.path("vulnerabilities");
-            if (vulnsNode.isArray()) {
-                for (JsonNode v : vulnsNode) {
-                    String id = v.path("id").asText(v.path("cveId").asText("CVE-UNKNOWN"));
-                    String dep = v.path("dependency").asText(v.path("packageName").asText("unknown:unknown"));
-                    String ver = v.path("version").asText("0.0.0");
-                    String fix = v.path("fixedVersion").asText("upgrade");
-                    String sev = v.path("severity").asText("HIGH").toUpperCase(Locale.ROOT);
-                    double cvss = v.path("cvssScore").asDouble(7.5);
-                    String summary = v.path("summary").asText(v.path("title").asText("Reported vulnerability"));
-                    List<String> prefixes = new ArrayList<>();
-                    if (v.path("packagePrefixes").isArray()) {
-                        v.path("packagePrefixes").forEach(p -> prefixes.add(p.asText()));
-                    } else if (dep.contains(":")) {
-                        prefixes.add(dep.substring(0, dep.indexOf(':')));
-                    }
-                    List<String> tokens = new ArrayList<>();
-                    if (v.path("symbols").isArray()) {
-                        v.path("symbols").forEach(s -> tokens.add(s.asText()));
-                    }
-                    result.add(new MatchedVulnerability(id, dep, ver, fix, sev, cvss, summary, prefixes, tokens));
+        JsonNode root = new ObjectMapper().readTree(file.toFile());
+        if (root == null || !root.isObject() || (!root.path("vulnerabilities").isArray() && !root.path("Results").isArray()))
+            throw new IOException("Expected vulnerabilities[] or Trivy Results[]");
+        JsonNode vulnsNode = root.path("vulnerabilities");
+        if (vulnsNode.isArray()) {
+            for (JsonNode v : vulnsNode) {
+                String id = v.path("id").asText(v.path("cveId").asText("CVE-UNKNOWN"));
+                String dep = v.path("dependency").asText(v.path("packageName").asText("unknown:unknown"));
+                String ver = v.path("version").asText("0.0.0");
+                String fix = v.path("fixedVersion").asText("Not provided; review advisory");
+                String sev = v.path("severity").asText("UNKNOWN").toUpperCase(Locale.ROOT);
+                Double cvss = v.path("cvssScore").isNumber() ? v.path("cvssScore").asDouble() : null;
+                String summary = v.path("summary").asText(v.path("title").asText("Reported vulnerability"));
+                List<String> prefixes = new ArrayList<>();
+                if (v.path("packagePrefixes").isArray()) {
+                    v.path("packagePrefixes").forEach(p -> prefixes.add(p.asText()));
+                } else if (dep.contains(":")) {
+                    prefixes.add(dep.substring(0, dep.indexOf(':')));
                 }
-            }
-            // Trivy Results[].Vulnerabilities[] format
-            if (root.path("Results").isArray()) {
-                for (JsonNode res : root.path("Results")) {
-                    for (JsonNode v : res.path("Vulnerabilities")) {
-                        String id = v.path("VulnerabilityID").asText("CVE-UNKNOWN");
-                        String pkg = v.path("PkgName").asText("unknown");
-                        String ver = v.path("InstalledVersion").asText("0.0.0");
-                        String fix = v.path("FixedVersion").asText("upgrade");
-                        String sev = v.path("Severity").asText("HIGH").toUpperCase(Locale.ROOT);
-                        String title = v.path("Title").asText("Trivy vulnerability finding");
-                        List<String> prefixes = pkg.contains(":") ? List.of(pkg.substring(0, pkg.indexOf(':'))) : List.of(pkg);
-                        result.add(new MatchedVulnerability(id, pkg, ver, fix, sev, 7.5, title, prefixes, List.of()));
-                    }
+                List<String> tokens = new ArrayList<>();
+                if (v.path("symbols").isArray()) {
+                    v.path("symbols").forEach(s -> tokens.add(s.asText()));
                 }
+                result.add(new MatchedVulnerability(id, dep, ver, fix, sev, cvss, summary, prefixes, tokens));
             }
-        } catch (IOException ignored) {}
-        return result;
-    }
-
-    private static List<MatchedVulnerability> queryOsvBatchApi(List<DependencyCoordinate> dependencies) {
-        List<MatchedVulnerability> found = new ArrayList<>();
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            List<Map<String, Object>> queries = new ArrayList<>();
-            List<DependencyCoordinate> queriedDeps = new ArrayList<>();
-            for (DependencyCoordinate dep : dependencies) {
-                if ("*".equals(dep.groupId())) continue;
-                queries.add(Map.of(
-                        "version", dep.version(),
-                        "package", Map.of("name", dep.groupId() + ":" + dep.artifactId(), "ecosystem", "Maven")
-                ));
-                queriedDeps.add(dep);
-            }
-            if (queries.isEmpty()) return List.of();
-
-            String payload = mapper.writeValueAsString(Map.of("queries", queries));
-            HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.osv.dev/v1/querybatch"))
-                    .timeout(Duration.ofSeconds(3))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(payload))
-                    .build();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                JsonNode results = mapper.readTree(response.body()).path("results");
-                for (int i = 0; i < results.size() && i < queriedDeps.size(); i++) {
-                    DependencyCoordinate dep = queriedDeps.get(i);
-                    for (JsonNode vuln : results.get(i).path("vulns")) {
-                        String id = vuln.path("id").asText();
-                        found.add(new MatchedVulnerability(
-                                id,
-                                dep.groupId() + ":" + dep.artifactId(),
-                                dep.version(),
-                                "latest",
-                                "HIGH",
-                                7.5,
-                                "OSV advisory " + id + " affecting " + dep.groupId() + ":" + dep.artifactId(),
-                                List.of(dep.groupId()),
-                                List.of()
-                        ));
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-            // Graceful fallback when running in sandboxed or air-gapped CI
         }
-        return found;
+        // Trivy Results[].Vulnerabilities[] format
+        if (root.path("Results").isArray()) {
+            for (JsonNode res : root.path("Results")) {
+                for (JsonNode v : res.path("Vulnerabilities")) {
+                    String id = v.path("VulnerabilityID").asText("CVE-UNKNOWN");
+                    String pkg = v.path("PkgName").asText("unknown");
+                    String ver = v.path("InstalledVersion").asText("0.0.0");
+                    String fix = v.path("FixedVersion").asText("Not provided; review advisory");
+                    String sev = v.path("Severity").asText("UNKNOWN").toUpperCase(Locale.ROOT);
+                    String title = v.path("Title").asText("Trivy vulnerability finding");
+                    List<String> prefixes = pkg.contains(":") ? List.of(pkg.substring(0, pkg.indexOf(':'))) : List.of(pkg);
+                    result.add(new MatchedVulnerability(id, pkg, ver, fix, sev, null, title, prefixes, List.of()));
+                }
+            }
+        }
+        return result;
     }
 
     private static Set<String> findDirectCallers(
@@ -576,7 +593,7 @@ public final class ReachableCveScanner {
             String version,
             String fixedVersion,
             String severity,
-            double cvssScore,
+            Double cvssScore,
             String summary,
             List<String> packagePrefixes,
             List<String> classOrMethodTokens

@@ -30,6 +30,7 @@ class NullGuardPluginTest {
                         Files.createDirectories(output);
                         List<String> lines = new ArrayList<>(Arrays.asList(args));
                         lines.add("SAST_CLASSES:" + System.getProperty("nullguard.sast.classes", ""));
+                        lines.add("CVE_ONLINE:" + System.getProperty("nullguard.cve.online", ""));
                         try (var paths = Files.walk(root)) {
                             paths.filter(p -> p.toString().endsWith(".java")).forEach(p -> lines.add("SOURCE:" + root.relativize(p).toString().replace('\\\\', '/')));
                         }
@@ -111,6 +112,21 @@ class NullGuardPluginTest {
         String invocation = Files.readString(project.resolve("build/reports/nullguard/invocation.txt"));
         assertTrue(invocation.contains("SAST_CLASSES:" + classes), invocation);
     }
+    @Test void defaultsToOnlineLookupAndSupportsAnExplicitOfflineSetting() throws Exception {
+        source("src/main/java/demo/Main.java");
+        Files.writeString(project.resolve("build.gradle"), groovy());
+        runner("nullguard").build();
+        Path invocationFile = project.resolve("build/reports/nullguard/invocation.txt");
+        assertTrue(Files.readString(invocationFile).contains("--cve-online"));
+        Files.writeString(project.resolve("advisories.json"), "{\"vulnerabilities\":[]}");
+        Files.writeString(project.resolve("build.gradle"), groovy() + "\nnullguard { cveOnline.set(false); cveInput.set(layout.projectDirectory.file('advisories.json')) }\n");
+        runner("nullguard", "--rerun-tasks").build();
+        String invocation = Files.readString(invocationFile);
+        assertFalse(invocation.contains("--cve-online"));
+        assertTrue(invocation.contains("CVE_ONLINE:false"));
+        String input = invocation.lines().filter(line -> line.startsWith("--cve-input=")).findFirst().orElseThrow().substring(12);
+        assertEquals(project.resolve("advisories.json").toRealPath(), Path.of(input).toRealPath());
+    }
     @Test void failuresPropagateWhenOptingIntoCheck() throws Exception {
         source("src/main/java/demo/Main.java");
         Files.writeString(project.resolve("build.gradle"), groovy() + "nullguard { failBuild.set(true); runOnCheck.set(true) }\n");
@@ -152,7 +168,7 @@ class NullGuardPluginTest {
         Files.writeString(project.resolve("build.gradle"), """
                 plugins { id 'java'; id 'com.arinits.nullguard' }
                 repositories { mavenCentral() }
-                nullguard { toolVersion.set("1.0.0") }
+                nullguard { toolVersion.set("1.0.0"); cveOnline.set(false) }
                 """);
         var result = runner("nullguard", "--configuration-cache").build();
         assertEquals(TaskOutcome.SUCCESS, result.task(":nullguard").getOutcome());

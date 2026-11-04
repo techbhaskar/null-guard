@@ -24,6 +24,16 @@ sources.set(path.join(root, 'README.md'), 'reference/java-guide.md');
 sources.set(path.join(root, 'nullguard-gradle-plugin/README.md'), 'integrations/gradle.md');
 sources.set(path.join(root, 'skills/nullguard-audit/SKILL.md'), 'agent-skill/workflow.md');
 await collect(path.join(root, 'skills/nullguard-audit/references'), 'agent-skill/references');
+// Keep dated internal evidence in the repository, outside the public site.
+for (const source of [
+  'skills/nullguard-audit/references/qualification.md',
+  'docs/evaluation/accuracy-followup-2026-10-23.md',
+  'docs/evaluation/accuracy-pilot-2026-10-23.md',
+  'docs/evaluation/real-project-review.md',
+  'docs/developer-onboarding-evaluation.md',
+  'docs/packaging.md',
+  'docs/usability/README.md',
+]) sources.delete(path.join(root, source));
 
 await rm(output, {recursive: true, force: true});
 await mkdir(output, {recursive: true});

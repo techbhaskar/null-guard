@@ -3,6 +3,8 @@ package com.nullguard.multilang;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
 import java.net.URI;
+import com.nullguard.security.OsvClient;
+import java.time.Instant;
 import java.net.http.*;
 import java.nio.file.*;
 import java.time.Duration;
@@ -37,41 +39,27 @@ public final class AdvisoryMatcher {
           matchOffline(project, n, vulnerabilities);
         }
     }
+    project.set("vulnerabilities", vulnerabilities);
+    ObjectNode scan = project.putObject("advisoryScan");
+    scan.put("status", online ? "PARTIAL" : input == null ? "NOT_REQUESTED" : "EXTERNAL_INPUT");
+    scan.put("checkedAt", Instant.now().toString());
+    scan.put("source", online ? "OSV" : input == null ? "NONE" : "EXTERNAL_REPORT");
     if (online && !project.path("dependencies").isEmpty()) {
-      ObjectNode query = Protocol.JSON.createObjectNode();
-      ArrayNode batch = query.putArray("queries");
-      for (JsonNode d : project.path("dependencies")) {
-        ObjectNode q = batch.addObject();
-        q.set(
-            "package",
-            Protocol.JSON
-                .createObjectNode()
-                .put("ecosystem", d.path("ecosystem").asText())
-                .put("name", d.path("name").asText()));
-        q.put("version", d.path("version").asText());
+      List<OsvClient.Package> queries = new ArrayList<>();
+      for (JsonNode dependency : project.path("dependencies"))
+        queries.add(new OsvClient.Package(dependency.path("ecosystem").asText(),
+            dependency.path("name").asText(), dependency.path("version").asText()));
+      for (OsvClient.Match match : new OsvClient(endpoint.resolve(".")).query(queries)) {
+        ObjectNode dependency = Protocol.JSON.createObjectNode()
+            .put("ecosystem", match.dependency().ecosystem()).put("name", match.dependency().name())
+            .put("version", match.dependency().version());
+        add(vulnerabilities, dependency, match.advisory().path("id").asText(),
+            match.advisory().path("summary").asText("OSV exact installed-version match"));
+        ((ObjectNode) vulnerabilities.get(vulnerabilities.size() - 1)).setAll(OsvClient.metadata(match));
       }
-      HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
-      var response =
-          client.send(
-              HttpRequest.newBuilder(endpoint)
-                  .timeout(Duration.ofSeconds(45))
-                  .header("Content-Type", "application/json")
-                  .POST(HttpRequest.BodyPublishers.ofString(query.toString()))
-                  .build(),
-              HttpResponse.BodyHandlers.ofString());
-      if (response.statusCode() != 200)
-        throw new IllegalStateException("OSV HTTP " + response.statusCode());
-      JsonNode results = Protocol.JSON.readTree(response.body()).path("results");
-      if (!results.isArray() || results.size() != batch.size())
-        throw new IllegalStateException("OSV batch response mismatch");
-      for (int i = 0; i < results.size(); i++)
-        for (JsonNode v : results.get(i).path("vulns"))
-          add(
-              vulnerabilities,
-              project.path("dependencies").get(i),
-              v.path("id").asText(),
-              "OSV exact installed-version match; review the advisory for details");
-    }
+      scan.put("status", "COMPLETED");
+      scan.put("queriedDependencies", queries.size());
+    } else if (online) scan.put("status", "NOT_RUN");
     Map<String, JsonNode> unique = new TreeMap<>();
     vulnerabilities.forEach(
         v ->

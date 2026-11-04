@@ -10,7 +10,7 @@ class ConstructorLifecycleTest {
     @TempDir Path root;
     private FinalAnalysisResult run(String source) throws Exception {
         Files.writeString(root.resolve("Example.java"), source);
-        var result = new EngineBootstrap(NullGuardConfig.defaults().outputDirectory(root.resolve("out")).build()).run(root);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).outputDirectory(root.resolve("out")).build()).run(root);
         assertEquals(source, Files.readString(root.resolve("Example.java")), "AST lowering must not edit service source files");
         assertTrue(result.getFindings().stream().filter(f -> f.ruleId().equals("NG006"))
                 .allMatch(f -> f.location() != null && f.location().startLine() > 0 && f.location().startLine() <= source.lines().count()),

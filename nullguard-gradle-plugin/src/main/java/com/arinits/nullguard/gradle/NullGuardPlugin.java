@@ -21,6 +21,7 @@ public final class NullGuardPlugin implements Plugin<Project> {
         extension.getReportDirectory().convention(project.getLayout().getBuildDirectory().dir("reports/nullguard"));
         extension.getExcludes().convention(List.of());
         extension.getMaxHeapSize().convention("2g");
+        extension.getCveOnline().convention(true);
         Configuration tool = project.getConfigurations().create("nullguardTool", c -> {
             c.setCanBeConsumed(false);
             c.setCanBeResolved(true);
@@ -48,6 +49,9 @@ public final class NullGuardPlugin implements Plugin<Project> {
                 task.getExcludes().convention(extension.getExcludes());
                 task.getAnalyzerHeapSize().convention(extension.getMaxHeapSize());
                 task.getOpenApiConfig().convention(extension.getOpenApiConfig());
+                task.getCveOnline().convention(extension.getCveOnline());
+                task.getCveInput().convention(extension.getCveInput());
+                task.getJacocoReport().convention(extension.getJacocoReport());
             });
             project.getTasks().named("check").configure(task -> task.dependsOn(
                     extension.getRunOnCheck().map(enabled -> enabled ? List.of(analyze) : List.of())));

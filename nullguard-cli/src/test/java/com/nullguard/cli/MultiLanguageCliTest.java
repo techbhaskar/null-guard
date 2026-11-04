@@ -68,4 +68,20 @@ class MultiLanguageCliTest {
     assertFalse(MultiLanguageCli.handles(new String[] {root.toString(), "--fail-build"}));
     assertTrue(MultiLanguageCli.handles(new String[] {"packs", "list"}));
   }
+
+  @Test
+  void multiLanguageJavaDefaultsOnlineAndSupportsOfflineOverride() throws Exception {
+    Path source = Files.createDirectories(root.resolve("source"));
+    Files.writeString(source.resolve("Safe.java"), "class Safe { int value() { return 1; } }");
+    for (boolean offline : new boolean[] {false, true}) {
+      Path output = root.resolve(offline ? "offline" : "default");
+      var arguments = new java.util.ArrayList<>(java.util.List.of(
+          source.toString(), "--languages=java", "--output=" + output));
+      if (offline) arguments.add("--cve-offline");
+      assertEquals(0, MultiLanguageCli.run(arguments.toArray(String[]::new)));
+      var report = new com.fasterxml.jackson.databind.ObjectMapper()
+          .readTree(output.resolve("nullguard-report-latest.json").toFile());
+      assertEquals(!offline, report.path("projects").get(0).path("cveSummary").path("onlineRequested").asBoolean());
+    }
+  }
 }

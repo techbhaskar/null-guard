@@ -56,7 +56,7 @@ class PerformanceBenchmarkTest {
         writeReport(measurements, sizes, samples, warmups, "completed");
     }
     private void runAndCheck(Path root, int methods) {
-        var result = new EngineBootstrap(NullGuardConfig.defaults().build()).run(root);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).build()).run(root);
         // One synthesized implicit constructor per generated source class.
         assertEquals(methods + (methods + 99) / 100, result.getRiskSummary().getTotalMethods());
     }

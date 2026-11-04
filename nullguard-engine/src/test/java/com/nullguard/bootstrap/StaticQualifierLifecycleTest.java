@@ -45,7 +45,7 @@ class StaticQualifierLifecycleTest {
                     void legalStatic() { new StaticThroughNull().work(); }
                 }
                 """);
-        var result = new EngineBootstrap(NullGuardConfig.defaults().outputDirectory(root.resolve("out")).build()).run(root);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).outputDirectory(root.resolve("out")).build()).run(root);
         var warnings = result.getFindings().stream().filter(f -> f.ruleId().equals("NG006")).toList();
         assertFalse(warnings.stream().anyMatch(f -> f.methodId().equals("Client#good()")), warnings.toString());
         assertFalse(warnings.stream().anyMatch(f -> f.methodId().equals("Client#legalStatic()")), warnings.toString());

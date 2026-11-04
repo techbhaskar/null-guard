@@ -37,6 +37,7 @@ public final class NullGuardConfig {
     private final List<Path> classpathEntries;
     private final List<Path> sastClassDirectories;
     private final Path cveInputFile;
+    private final Path jacocoReport;
     private final boolean osvOnlineLookup;
     private final OpenApiOptions openApiOptions;
 
@@ -58,6 +59,7 @@ public final class NullGuardConfig {
         this.classpathEntries        = List.copyOf(builder.classpathEntries);
         this.sastClassDirectories   = List.copyOf(builder.sastClassDirectories);
         this.cveInputFile            = builder.cveInputFile;
+        this.jacocoReport = builder.jacocoReport;
         this.osvOnlineLookup         = builder.osvOnlineLookup;
         this.openApiOptions = OpenApiOptions.load(builder.openApiConfigFile);
     }
@@ -102,6 +104,7 @@ public final class NullGuardConfig {
     public List<Path> getSourceRoots() { return sourceRoots; }
     public List<Path> getClasspathEntries() { return classpathEntries; }
     public List<Path> getSastClassDirectories() { return sastClassDirectories; }
+    public Path getJacocoReport() { return jacocoReport; }
     public Path getCveInputFile()      { return cveInputFile; }
     public boolean isOsvOnlineLookup() { return osvOnlineLookup; }
     public OpenApiOptions getOpenApiOptions() { return openApiOptions; }
@@ -143,7 +146,8 @@ public final class NullGuardConfig {
         private List<Path> classpathEntries = List.of();
         private List<Path> sastClassDirectories = List.of();
         private Path cveInputFile = null;
-        private boolean osvOnlineLookup = false;
+        private Path jacocoReport = null;
+        private boolean osvOnlineLookup = true;
         private Path openApiConfigFile;
 
         public Builder propagationDepthLimit(int v)    { this.propagationDepthLimit   = v; return this; }
@@ -171,6 +175,7 @@ public final class NullGuardConfig {
             this.sastClassDirectories = v == null ? List.of() : List.copyOf(v);
             return this;
         }
+        public Builder jacocoReport(Path v) { this.jacocoReport = v; return this; }
         public Builder cveInputFile(Path v)            { this.cveInputFile            = v; return this; }
         public Builder osvOnlineLookup(boolean v)      { this.osvOnlineLookup         = v; return this; }
         public Builder openApiConfigFile(Path v) { this.openApiConfigFile = v; return this; }

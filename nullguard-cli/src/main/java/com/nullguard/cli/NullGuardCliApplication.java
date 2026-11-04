@@ -113,7 +113,8 @@ public final class NullGuardCliApplication {
             }
         }
         Path    cveInputFile    = null;
-        boolean osvOnline       = false;
+        Path jacocoReport = null;
+        boolean osvOnline       = Boolean.parseBoolean(System.getProperty("nullguard.cve.online", "true"));
         Path openApiConfigFile = null;
 
         for (String arg : args) {
@@ -136,10 +137,14 @@ public final class NullGuardCliApplication {
                     outputDir = Paths.get(arg.substring("--output=".length()));
                 } else if (arg.startsWith("--openapi-config=")) {
                     openApiConfigFile = Paths.get(arg.substring("--openapi-config=".length()));
+                } else if (arg.startsWith("--jacoco-report=")) {
+                    jacocoReport = Paths.get(arg.substring("--jacoco-report=".length()));
                 } else if (arg.startsWith("--cve-input=")) {
                     cveInputFile = Paths.get(arg.substring("--cve-input=".length()));
                 } else if (arg.equals("--cve-online")) {
                     osvOnline = true;
+                } else if (arg.equals("--cve-offline")) {
+                    osvOnline = false;
                 } else if (arg.startsWith("--classpath=")) {
                     String rawClasspath = arg.substring("--classpath=".length());
                     for (String entry : rawClasspath.split(
@@ -199,7 +204,7 @@ public final class NullGuardCliApplication {
                 .sourceRoots(List.of(sourcePath))
                 .classpathEntries(classpathEntries)
                 .sastClassDirectories(sastClassDirectories)
-                .cveInputFile(cveInputFile)
+                .jacocoReport(jacocoReport).cveInputFile(cveInputFile)
                 .osvOnlineLookup(osvOnline)
                 .openApiConfigFile(openApiConfigFile)
                 .build();
@@ -360,7 +365,9 @@ public final class NullGuardCliApplication {
         System.out.println("  --classpath=<paths>           Dependency classpath (" + File.pathSeparator + " separated)");
         System.out.println("  --sast-classes=<paths>        Compiled class directories for SpotBugs + FindSecBugs");
         System.out.println("  --cve-input=<file>            External OSV/Trivy CVE JSON report to enrich with reachability");
-        System.out.println("  --cve-online                  Query OSV.dev REST API for project dependencies");
+        System.out.println("  --cve-offline                 Disable network advisory lookup");
+        System.out.println("  --jacoco-report=<path>        Import JaCoCo XML test coverage into its own dashboard tab");
+        System.out.println("  --cve-online                  Query OSV.dev for current advisories (default)");
         System.out.println("  --openapi-config=<file>        OpenAPI title/version, servers, security schemes and opt-in live requests");
     }
 }

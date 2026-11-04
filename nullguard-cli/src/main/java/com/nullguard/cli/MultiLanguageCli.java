@@ -20,8 +20,8 @@ final class MultiLanguageCli {
     try {
       PackManager packs = PackManager.standard();
       if (args[0].equals("packs")) return manage(args, packs);
-      Path root = null, output = Path.of("nullguard-out"), cve = null;
-      boolean online = false;
+      Path root = null, output = Path.of("nullguard-out"), cve = null, jacoco = null;
+      boolean online = Boolean.parseBoolean(System.getProperty("nullguard.cve.online", "true"));
       Duration timeout = Duration.ofMinutes(10);
       Set<Language> languages = new LinkedHashSet<>();
       List<Path> classpath = new ArrayList<>();
@@ -36,8 +36,10 @@ final class MultiLanguageCli {
           if (seconds < 1 || seconds > 86400)
             throw new IllegalArgumentException("Timeout must be 1..86400 seconds");
           timeout = Duration.ofSeconds(seconds);
-        } else if (arg.startsWith("--cve-input=")) cve = Path.of(arg.substring(12));
+        } else if (arg.startsWith("--jacoco-report=")) jacoco = Path.of(arg.substring(16));
+        else if (arg.startsWith("--cve-input=")) cve = Path.of(arg.substring(12));
         else if (arg.equals("--cve-online")) online = true;
+        else if (arg.equals("--cve-offline")) online = false;
         else if (arg.startsWith("--classpath=")) {
           for (String p :
               arg.substring(12).split(java.util.regex.Pattern.quote(java.io.File.pathSeparator)))
@@ -56,7 +58,7 @@ final class MultiLanguageCli {
               .run(
                   root,
                   languages,
-                  NullGuardConfig.defaults().classpathEntries(classpath).build(),
+                  NullGuardConfig.defaults().classpathEntries(classpath).jacocoReport(jacoco).cveInputFile(cve).osvOnlineLookup(online).build(),
                   cve,
                   online);
       new MultiLanguageReports().write(report, output);

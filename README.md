@@ -588,13 +588,18 @@ If a call cannot be resolved semantically, NullGuard keeps it external rather th
 
 ### CLI options
 
+Development source now enables online CVE lookup by default. Use `--cve-offline`
+for an offline scan. Published 2.0.0 artifacts retain their earlier opt-in behavior
+until a new release contains these changes. See [CVE lookup details](docs/cve-analysis.md).
+
 | Option | Default | Meaning |
 | --- | ---: | --- |
 | `--output=<dir>` | `./nullguard-out` | Directory for generated HTML, JSON, OpenAPI, SARIF and DOT reports. |
 | `--classpath=<paths>` | empty | Dependency JARs and class directories separated by the platform path separator. |
 | `--sast-classes=<paths>` | auto-discover | Explicit compiled class directories to scan with SpotBugs + FindSecBugs, separated by the platform path separator; overrides recursive `target/classes` discovery. |
 | `--cve-input=<file>` | none | Optional external OSV or Trivy JSON vulnerability report for 3-tier reachability classification (`NG401`–`NG403`). |
-| `--cve-online` | disabled | Query the OSV.dev batch API (`https://api.osv.dev/v1/querybatch`) in addition to the built-in Maven CVE catalog. |
+| `--cve-online` | enabled in development source | Query current OSV advisories for discovered dependency versions. |
+| `--cve-offline` | disabled | Disable network advisory lookup; report bundled-catalog coverage as limited. |
 | `--fail-build` | disabled | Return exit code `1` when the severity threshold is breached or an API-reachable CVE (`NG401`) is found. |
 | `--fail-threshold=<level>` | `CRITICAL` | Minimum failing hotspot severity: `LOW`, `MODERATE`, `HIGH`, or `CRITICAL`. |
 | `--decay-factor=<number>` | `0.85` | Risk propagation decay factor. |

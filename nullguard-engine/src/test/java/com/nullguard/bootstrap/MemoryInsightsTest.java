@@ -21,7 +21,7 @@ class MemoryInsightsTest {
                 }
             }
             """);
-        var result = new EngineBootstrap(NullGuardConfig.defaults().build()).run(dir);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).build()).run(dir);
         var report = new ObjectMapper().readTree(result.getVisualizations().getJsonGraph());
         var memory = report.path("memoryInsights");
         assertEquals("NOT_RUN", report.path("sastSummary").path("status").asText());

@@ -29,6 +29,13 @@ class AdvisoryAndDistributionTest {
     server.createContext(
         "/",
         exchange -> {
+          if (exchange.getRequestMethod().equals("GET")) {
+            byte[] detail = "{\"id\":\"OSV-1\",\"summary\":\"Current advisory detail\",\"modified\":\"2026-11-04T00:00:00Z\",\"affected\":[{\"package\":{\"ecosystem\":\"PyPI\",\"name\":\"example\"}}]}".getBytes();
+            exchange.sendResponseHeaders(200, detail.length);
+            exchange.getResponseBody().write(detail);
+            exchange.close();
+            return;
+          }
           var query = Protocol.JSON.readTree(exchange.getRequestBody());
           assertEquals("1.2.3", query.path("queries").get(0).path("version").asText());
           byte[] bytes =

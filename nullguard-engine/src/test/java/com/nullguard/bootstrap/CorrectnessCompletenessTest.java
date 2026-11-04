@@ -11,7 +11,7 @@ class CorrectnessCompletenessTest {
 
     private FinalAnalysisResult run(String source) throws Exception {
         Files.writeString(root.resolve("Example.java"), source);
-        return new EngineBootstrap(NullGuardConfig.defaults().outputDirectory(root.resolve("out")).build()).run(root);
+        return new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).outputDirectory(root.resolve("out")).build()).run(root);
     }
 
     @Test void manualConstructorNullsAreCheckedWithoutRejectingSafeOrNullableArguments() throws Exception {

@@ -25,7 +25,7 @@ class OpenApiCorrectnessTest {
               @HEAD @Path("/head") String header() { return "ok"; }
             }
             """);
-        var config = NullGuardConfig.defaults().build();
+        var config = NullGuardConfig.defaults().osvOnlineLookup(false).build();
         var result = new EngineBootstrap(config).run(root);
         JsonNode document = spec(result);
         Set<String> ids = new HashSet<>();
@@ -53,7 +53,7 @@ class OpenApiCorrectnessTest {
               @GetMapping("/ambiguous") User ambiguous() { return null; }
             }
             """);
-        var result = new EngineBootstrap(NullGuardConfig.defaults().build()).run(root);
+        var result = new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).build()).run(root);
         JsonNode document = spec(result);
         assertTrue(document.at("/components/schemas").has("a.User"));
         assertTrue(document.at("/components/schemas").has("b.User"));
@@ -77,7 +77,7 @@ class OpenApiCorrectnessTest {
 
     @Test void rejectsConflictingOperationsInsteadOfSilentlyOverwriting() throws Exception {
         source("Controller.java", "class Controller { @GetMapping(\"/same\") String one(){return \"a\";} @GetMapping(\"/same\") String two(){return \"b\";} }");
-        assertThrows(IllegalArgumentException.class, () -> new EngineBootstrap(NullGuardConfig.defaults().build()).run(root));
+        assertThrows(IllegalArgumentException.class, () -> new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).build()).run(root));
     }
 
     @Test void explicitServersAndAuthAreAppliedWithoutSecretsAndUnsafeOptionsFailFast() throws Exception {
@@ -89,7 +89,7 @@ class OpenApiCorrectnessTest {
              "security":[{"bearerAuth":[]}],"tryItOut":true}
             """);
         source("Controller.java", "class Controller { @GetMapping(\"/hello\") String hello(){return \"ok\";} }");
-        JsonNode document = spec(new EngineBootstrap(NullGuardConfig.defaults().openApiConfigFile(config).build()).run(root));
+        JsonNode document = spec(new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).openApiConfigFile(config).build()).run(root));
         assertEquals("Service API", document.at("/info/title").asText());
         assertEquals("2.0", document.at("/info/version").asText());
         assertEquals("bearer", document.at("/components/securitySchemes/bearerAuth/scheme").asText());
@@ -99,7 +99,7 @@ class OpenApiCorrectnessTest {
                 "{\"servers\":[{\"url\":\"javascript:alert(1)\"}]}", "{\"servers\":[{\"url\":\"https://user:secret@example.test\"}]}",
                 "{\"tryItOut\":\"yes\"}", "{\"securitySchemes\":{\"auth\":{\"type\":\"http\",\"scheme\":\"bearer\",\"token\":\"secret\"}}}")) {
             Files.writeString(config, invalid);
-            assertThrows(IllegalArgumentException.class, () -> NullGuardConfig.defaults().openApiConfigFile(config).build(), invalid);
+            assertThrows(IllegalArgumentException.class, () -> NullGuardConfig.defaults().osvOnlineLookup(false).openApiConfigFile(config).build(), invalid);
         }
     }
 
@@ -112,7 +112,7 @@ class OpenApiCorrectnessTest {
               @GetMapping("/nested") ResponseEntity<Mono<Map<String, List<User>>>> nested() { return null; }
             }
             """);
-        var document = spec(new EngineBootstrap(NullGuardConfig.defaults().build()).run(root));
+        var document = spec(new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).build()).run(root));
         assertTrue(document.at("/paths/~1missing/get/responses").has("404"));
         assertFalse(document.at("/paths/~1done/delete/responses/204").has("content"));
         assertEquals("array", document.at("/paths/~1nested/get/responses/200/content/application~1json/schema/additionalProperties/type").asText());
@@ -121,7 +121,7 @@ class OpenApiCorrectnessTest {
 
     @Test void jaxRsHeadWithoutMethodPathUsesClassPath() throws Exception {
         source("Resource.java", "@Path(\"/health\") class Resource { @HEAD String head(){ return \"ok\"; } }");
-        var document = spec(new EngineBootstrap(NullGuardConfig.defaults().build()).run(root));
+        var document = spec(new EngineBootstrap(NullGuardConfig.defaults().osvOnlineLookup(false).build()).run(root));
         assertTrue(document.at("/paths/~1health").has("head"));
         assertFalse(document.at("/paths/~1health/head/responses/200").has("content"));
     }

@@ -33,6 +33,20 @@ class CliIntegrationTest {
         assertTrue(Files.exists(output.resolve("reports/nullguard-report-latest.json")));
     }
 
+    @Test void cveLookupDefaultsOnlineAndOfflineFlagCanOverrideIt() throws Exception {
+        Path source = Files.createDirectories(output.resolve("source"));
+        Files.writeString(source.resolve("Safe.java"), "class Safe { int value() { return 1; } }");
+        for (boolean offline : new boolean[] {false, true}) {
+            Path reports = output.resolve(offline ? "offline" : "default");
+            var arguments = new java.util.ArrayList<>(List.of(source.toString(), "--output=" + reports));
+            if (offline) arguments.add("--cve-offline");
+            assertEquals(0, new NullGuardCliApplication().run(arguments.toArray(String[]::new)));
+            var report = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(reports.resolve("nullguard-report-latest.json").toFile());
+            assertEquals(!offline, report.path("cveSummary").path("onlineRequested").asBoolean());
+        }
+    }
+
     @Test void cliDiscoversCompiledClassesInNestedMavenModules() throws Exception {
         Path workspace = Files.createDirectories(output.resolve("workspace"));
         Path firstModuleClasses = Files.createDirectories(workspace.resolve("module-one/target/classes"));
@@ -106,13 +120,13 @@ class CliIntegrationTest {
     }
     @Test void failingPolicyReturnsOneAndStillWritesReports() {
         var cli = new NullGuardCliApplication();
-        assertEquals(1, cli.run(new String[] {"../examples/orders-service/src/main/java", "--fail-build", "--fail-threshold=HIGH", "--output=" + output}));
+        assertEquals(1, cli.run(new String[] {"../examples/orders-service/src/main/java", "--cve-offline", "--fail-build", "--fail-threshold=HIGH", "--output=" + output}));
         assertTrue(Files.exists(output.resolve("nullguard-report-latest.json")));
         assertTrue(Files.exists(output.resolve("nullguard-results.sarif")));
         assertTrue(Files.exists(output.resolve("nullguard-dashboard-latest.html")));
     }
     @Test void reportOnlyModePassesTheSameRiskyService() throws Exception {
-        assertEquals(0, new NullGuardCliApplication().run(new String[] {"../examples/orders-service/src/main/java", "--output=" + output}));
+        assertEquals(0, new NullGuardCliApplication().run(new String[] {"../examples/orders-service/src/main/java", "--cve-offline", "--output=" + output}));
         var report = new com.fasterxml.jackson.databind.ObjectMapper().readTree(output.resolve("nullguard-report-latest.json").toFile());
         assertTrue(report.has("analysisCompleteness"));
         assertFalse(report.path("analysisCompleteness").path("runtimeObserved").asBoolean(true));
@@ -125,6 +139,6 @@ class CliIntegrationTest {
         assertEquals(2, new NullGuardCliApplication().run(new String[] {output.toString(), "--max-iterations=oops"}));
     }
     @Test void safeServicePassesWithGateEnabled() {
-        assertEquals(0, new NullGuardCliApplication().run(new String[] {"../examples/catalog-service/src/main/java", "--fail-build", "--fail-threshold=LOW", "--output=" + output}));
+        assertEquals(0, new NullGuardCliApplication().run(new String[] {"../examples/catalog-service/src/main/java", "--cve-offline", "--fail-build", "--fail-threshold=LOW", "--output=" + output}));
     }
 }

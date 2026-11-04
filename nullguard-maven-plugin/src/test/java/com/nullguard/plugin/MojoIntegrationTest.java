@@ -21,6 +21,7 @@ class MojoIntegrationTest {
         project.setBuild(build);
         project.addCompileSourceRoot(sources.toString());
         var mojo = new NullGuardMojo();
+        set(mojo, "cveOnline", false);
         set(mojo, "project", project); set(mojo, "failBuild", fail); set(mojo, "failThreshold", "HIGH");
         set(mojo, "scoringDecayFactor", 0.85); set(mojo, "externalPenaltyMultiplier", 1.2);
         set(mojo, "convergenceThreshold", 0.001); set(mojo, "maxScoringIterations", 100); set(mojo, "highRiskThreshold", 60);

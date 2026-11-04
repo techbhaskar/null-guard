@@ -27,6 +27,11 @@ public abstract class NullGuardTask extends JavaExec {
     @Input public abstract Property<String> getFailThreshold();
     @Input public abstract ListProperty<String> getExcludes();
     @Input public abstract Property<String> getAnalyzerHeapSize();
+    @Input public abstract Property<Boolean> getCveOnline();
+    @Optional @InputFile @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract org.gradle.api.file.RegularFileProperty getCveInput();
+    @Optional @InputFile @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract org.gradle.api.file.RegularFileProperty getJacocoReport();
     @Optional @InputFile @PathSensitive(PathSensitivity.RELATIVE)
     public abstract org.gradle.api.file.RegularFileProperty getOpenApiConfig();
     @OutputDirectory public abstract DirectoryProperty getReportDirectory();
@@ -58,10 +63,14 @@ public abstract class NullGuardTask extends JavaExec {
         arguments.add("--output=" + getReportDirectory().get().getAsFile().getAbsolutePath());
         arguments.add("--fail-threshold=" + threshold);
         if (getOpenApiConfig().isPresent()) arguments.add("--openapi-config=" + getOpenApiConfig().get().getAsFile().getAbsolutePath());
+        if (getCveOnline().get()) arguments.add("--cve-online");
+        if (getJacocoReport().isPresent()) arguments.add("--jacoco-report=" + getJacocoReport().get().getAsFile().getAbsolutePath());
+        if (getCveInput().isPresent()) arguments.add("--cve-input=" + getCveInput().get().getAsFile().getAbsolutePath());
         if (getFailBuild().get()) arguments.add("--fail-build");
         setArgs(arguments);
         java.util.Map<String, Object> systemProperties = new java.util.HashMap<>(getSystemProperties());
         systemProperties.put("nullguard.sast.classes", sastClassPath);
+        systemProperties.put("nullguard.cve.online", getCveOnline().get().toString());
         setSystemProperties(systemProperties);
         setMaxHeapSize(getAnalyzerHeapSize().get());
         File reports = getReportDirectory().get().getAsFile();
