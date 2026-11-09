@@ -26,10 +26,10 @@ function RiskPath() {
 
 export default function Home() {
   const image = useBaseUrl('/img/social-card.svg', {absolute: true});
-  return <Layout title="Static analysis with context" description="Find null-handling risks with NullGuard. Java stability analysis, experimental Python, JavaScript, TypeScript, C#, Go and Rust packs, and a free coding-agent skill.">
+  return <Layout title="Code safety and software risk analysis" description="NullGuard connects code safety, architecture, API exposure, dependency advisories, coverage and memory insights with CI reporting and experimental multi-language analysis.">
     <Head><meta property="og:image" content={image} /><script type="application/ld+json">{JSON.stringify({
       '@context': 'https://schema.org', '@type': 'SoftwareSourceCode', name: 'NullGuard',
-      description: 'Static stability analysis for Java with experimental multi-language safety analyzers.',
+      description: 'Code safety and software risk analysis with Java architecture insights, dependency advisories, CI reporting and experimental multi-language analyzers.',
       codeRepository: 'https://github.com/techbhaskar/null-guard',
       license: 'https://opensource.org/license/mit',
       programmingLanguage: ['Java', 'Python', 'JavaScript', 'TypeScript', 'C#', 'Go', 'Rust'],
@@ -39,19 +39,19 @@ export default function Home() {
         <div className="hero-copy">
           <div className="eyebrow"><span /> OPEN SOURCE. SOURCE AWARE.</div>
           <h1>Follow the risk.<br /><span>Find the fix.</span></h1>
-          <p className="hero-lead">A null warning is a starting point.<br />Understand the path, inspect the evidence,<br className="desktop-break" /> and fix what matters.</p>
+          <p className="hero-lead">Code safety and software risk analysis.<br />Connect architecture, API exposure and security evidence<br className="desktop-break" /> to the fixes that matter.</p>
           <div className="hero-actions"><Link className="button button--primary button--lg" to="/docs/getting-started">Get started <span aria-hidden="true">↗</span></Link><Link className="hero-secondary" to="https://github.com/techbhaskar/null-guard">Explore the source <span aria-hidden="true">→</span></Link></div>
-          <div className="hero-meta"><span>MIT licensed</span><span>Runs statically</span><span>Your code stays local</span></div>
+          <div className="hero-meta"><span>MIT licensed</span><span>CI reporting</span><span>Source analyzed locally</span></div>
         </div>
         <RiskPath />
       </section>
       <div className="language-strip"><div className="home-shell"><span className="strip-label">ONE TOOLKIT. DIFFERENT CAPABILITIES.</span><p>Java <span>·</span> Python <span>·</span> JavaScript <span>·</span> TypeScript <span>·</span> C# <span>·</span> Go <span>·</span> Rust</p></div></div>
       <section className="home-section home-shell">
-        <div className="section-intro"><div><span className="eyebrow">BEYOND THE WARNING</span><h2>More context.<br />Better decisions.</h2></div><p>Java analysis follows risk across method boundaries. Optional language packs bring source evidence and coverage diagnostics to more of your repository.</p></div>
+        <div className="section-intro"><div><span className="eyebrow">BEYOND THE WARNING</span><h2>More context.<br />Better decisions.</h2></div><p>Review Java architecture, dependency advisories, test coverage and memory signals alongside code findings. Optional experimental packs extend source analysis to more of your repository.</p></div>
         <div className="principles">
           <article><span className="principle-number">01 / TRACE</span><h3>See the bigger path.</h3><p>Inspect Java call chains, supported API entry points and shared hotspots. Prioritize with caller exposure, alongside source evidence.</p><Link to="/docs/reference/java-guide">Explore Java analysis →</Link></article>
           <article><span className="principle-number">02 / VERIFY</span><h3>Keep the gaps visible.</h3><p>Failed files, unresolved symbols and missing dependencies stay in the report. Incomplete analysis is never evidence of safety.</p><Link to="/docs/reference/multilang">Read the report guide →</Link></article>
-          <article><span className="principle-number">03 / IMPROVE</span><h3>Turn evidence into action.</h3><p>Review the source, make a focused fix, add a regression test, and rerun. Bring the same workflow into your agent and CI.</p><Link to="/docs/agent-skill">Meet the agent skill →</Link></article>
+          <article><span className="principle-number">03 / IMPROVE</span><h3>Turn evidence into action.</h3><p>Use ranked suggestions, offline dashboards, SARIF reports and configurable Java hotspot gates. Review fixes with tests and agent-assisted workflows.</p><Link to="/docs/reference">Explore platform capabilities →</Link></article>
         </div>
       </section>
       <section className="language-section"><div className="home-shell language-layout"><div><span className="eyebrow">KNOW YOUR SCOPE</span><h2>Your repository.<br />Clearly defined coverage.</h2><p>Use the Java engine on its own, or install the packs your repository needs. Mixed projects are analyzed independently.</p><Link className="text-link" to="/docs/languages">Language support & limitations →</Link></div><div className="language-table">{languages.map(([name, status, description]) => <div className="language-row" key={name}><div><h3>{name}</h3><p>{description}</p></div><span className={status === 'Core engine' ? 'status-core' : 'status-preview'}>{status}</span></div>)}</div></div></section>

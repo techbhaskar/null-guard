@@ -31,7 +31,7 @@ module.exports = {
   themeConfig: {
     image: 'img/social-card.svg',
     metadata: [
-      {name: 'keywords', content: 'NullGuard, static analysis, null safety, Java, Python, TypeScript, JavaScript, C#, agent skill'},
+      {name: 'keywords', content: 'NullGuard, code safety, software risk analysis, architecture, CVE reachability, SAST, JaCoCo, SARIF, memory insights, Java, Python, TypeScript, JavaScript, C#, Go, Rust, CI, agent skill'},
       {name: 'theme-color', content: '#103c32'},
     ],
     colorMode: {defaultMode: 'light', respectPrefersColorScheme: false},
@@ -57,6 +57,7 @@ module.exports = {
           {label: 'Blog', to: '/blog'},
         ]},
         {title: 'Understand the analysis', items: [
+          {label: 'Platform capabilities', to: '/docs/reference'},
           {label: 'Java developer guide', to: '/docs/reference/java-guide'},
           {label: 'Multi-language guide', to: '/docs/reference/multilang'},
           {label: 'Accuracy and limitations', to: '/docs/reference/evaluation/accuracy-protocol'},

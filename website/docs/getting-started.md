@@ -1,6 +1,8 @@
 # Get started with NullGuard
 
-Find null-handling risks, inspect the source evidence, and decide which fixes matter first. NullGuard analyzes source statically; it does not run your application.
+NullGuard brings code safety, architectural risk, API exposure, dependency advisories, coverage context and memory insights into a shared review workflow. Inspect the evidence and prioritize fixes across your services and mixed-language repositories. See the [project overview and capability guides](../../docs/README.md) for feature scope and release boundaries.
+
+NullGuard analyzes source and supporting artifacts without running your application. Java provides the full native analysis workflow; optional language packs are experimental and report-only.
 
 Choose a Java build integration or the standalone CLI for a mixed-language repository. Start in report-only mode and review analysis completeness before interpreting a score or a quiet report.
 

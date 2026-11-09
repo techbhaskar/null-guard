@@ -8,7 +8,7 @@
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Static analysis for Java null-safety risks, with Maven and CLI reports.</description>
+    <description>Code safety and software risk analysis with Java architecture insights, dependency vulnerability context, CI reporting, and experimental multi-language analyzers.</description>
     <url>https://github.com/techbhaskar/null-guard</url>
     <licenses>
         <license>

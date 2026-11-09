@@ -5,7 +5,9 @@
 [![Build Status](https://github.com/techbhaskar/null-guard/actions/workflows/verify.yml/badge.svg)](https://github.com/techbhaskar/null-guard/actions/workflows/verify.yml)
 [![Coverage Status](https://codecov.io/gh/techbhaskar/null-guard/graph/badge.svg)](https://codecov.io/gh/techbhaskar/null-guard)
 
-NullGuard is a static stability-analysis engine for Java services, with optional experimental safety analyzers for Python, JavaScript/TypeScript, C#, Go and Rust. Its Java engine builds control-flow and call graphs, follows risk across method boundaries, identifies API-facing and high-blast-radius hotspots, calculates a project stability score, and produces prioritized remediation suggestions.
+NullGuard is an open-source code safety and software risk analysis platform for service teams and mixed-language repositories. It brings together null safety, architectural risk, API exposure, dependency vulnerability analysis, coverage-aware prioritization, memory and retention insights, and actionable reports for developer and CI workflows.
+
+The Java engine provides control-flow and call-graph analysis, risk propagation, stability scoring, and ranked remediation suggestions. Optional experimental packs extend source analysis to Python, JavaScript/TypeScript, C#, Go and Rust. Feature depth varies by language; Java capabilities are not implied for every pack.
 
 It is intended to answer questions that are difficult to answer with a method-level nullability warning alone:
 
@@ -15,11 +17,29 @@ It is intended to answer questions that are difficult to answer with a method-le
 - Which small set of fixes should a team prioritize first?
 - Should a build be allowed to pass when a critical architectural hotspot is present?
 
-NullGuard performs static analysis only. It does not instrument or run the analyzed application.
+NullGuard analyzes source and supporting artifacts without instrumenting or running the analyzed application. Runtime behavior, exploitability and memory leaks require separate verification. Online advisory lookup can send dependency coordinates to OSV; source code is not uploaded by that lookup.
 
 > **Release 2.0.0:** the signed CLI and language packs are [published on GitHub](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0). See the [release notes and verification results](docs/releases/2.0.0.md). New language analyzers remain experimental and report-only.
 
 > **Maven Central:** `2.0.0` publication is pending confirmation. Registry examples continue to use the last confirmed version, `1.1.1`.
+
+## Capabilities for enterprise workflows
+
+| Area | What NullGuard provides | Scope and reference |
+| --- | --- | --- |
+| Code safety and architecture | Null-state and contract checks, call graphs, propagated risk, shared hotspots, stability scores and ranked suggestions. | Java engine; [analysis details](#how-the-analysis-works). |
+| API exposure | Spring MVC and JAX-RS endpoint discovery, downstream call paths and OpenAPI output. | Supported Java annotations; [reading results](#reading-the-results). |
+| Dependency vulnerability analysis | Advisory matching and source reachability context; development source adds hydrated OSV metadata, freshness and lookup diagnostics. | [CVE analysis and release boundaries](docs/cve-analysis.md). Reachability is a review signal, not proof of exploitability. |
+| Coverage-aware prioritization | JaCoCo input adds test-coverage context to risk review. | [Coverage and quality](docs/coverage-and-quality.md). Coverage is distinct from analysis completeness. |
+| Security and code quality review | SpotBugs and FindSecBugs integration for compiled Java classes, plus reliability, security and maintainability finding groups. | [Coverage and quality](docs/coverage-and-quality.md); inspect scan status and supply compiled classes when needed. |
+| Memory and retention insights | Allocation-site inventory and review candidates for static collections, ThreadLocal fields and allocations in loops. | [Memory insights](docs/memory-insights.md). Source signals do not measure heap usage or confirm leaks. |
+| CI adoption and reporting | Maven, Gradle and CLI integrations, configurable Java hotspot gates, JSON, SARIF, DOT and offline HTML reports. | [CI adoption](#suggested-ci-adoption); experimental language packs remain report-only. |
+| Analysis transparency | Parse failures, missing inputs and capability limits remain visible so incomplete scans are not mistaken for clean results. | [Analysis completeness](docs/analysis-completeness.md) and [language capabilities](docs/multilang/README.md). |
+| Language-pack distribution | Optional signed packs and a shared CLI workflow for mixed repositories. | [Multi-language installation](docs/multilang/README.md); projects are analyzed independently. |
+| Agent-assisted remediation | An MIT audit skill guides source review, requested fixes, regression tests and CI setup. | [Agent skill](#agent-skill); binaries and packs are installed separately. |
+
+For a documentation map and adoption guidance, start with the [project overview](docs/README.md).
+Features described for the development source may require a source build; check the linked guides before relying on a published artifact.
 
 ## Multi-language analysis (experimental)
 
@@ -216,9 +236,9 @@ An empty analysis is reported as `N/A`, not as a perfect score. This prevents pa
 
 ## Requirements
 
-- JDK 17 or newer
+- JDK 21 or newer for the current source build and 2.0.0 JVM distribution
 - Maven 3.8+ (`3.9.x` recommended)
-- A Java source tree to analyze
+- A Java source tree for the native engine, or the appropriate runtime and signed pack for an experimental language (see [pack requirements](docs/multilang/README.md))
 - Graphviz only if you want to render the generated `.dot` graph as SVG or PNG
 
 Check the local toolchain:
