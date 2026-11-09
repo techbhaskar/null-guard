@@ -249,3 +249,22 @@ runtime conflict:
 The workaround changes the analyzer runtime only. Your application's dependencies
 and its analysis auxiliary classpath remain unchanged. Do not add scanner runtime
 libraries to application `implementation` dependencies to resolve this error.
+
+## Task is UP-TO-DATE and reports are not refreshed
+
+Gradle may skip the published 2.0.1 task when its inputs and outputs are unchanged.
+Existing reports remain in `build/reports/nullguard/`, but that invocation does
+not update their timestamps or fetch current advisory data.
+
+The development task now always executes, including when configuration cache is
+reused. Until that fix is released, add this to the consuming build:
+
+```kotlin
+tasks.named("nullguard") {
+    outputs.upToDateWhen { false }
+}
+```
+
+For a single forced refresh without changing the build, use
+`./gradlew nullguard --rerun-tasks`. This still analyzes sources directly and
+writes reports; it does not execute application tests.

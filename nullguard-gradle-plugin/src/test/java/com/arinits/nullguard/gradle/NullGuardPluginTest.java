@@ -86,6 +86,19 @@ class NullGuardPluginTest {
         assertFalse(invocation.contains("--fail-build"));
         assertTrue(runner("nullguard", "--configuration-cache", "--rerun-tasks").build().getOutput().contains("Reusing configuration cache"));
     }
+    @Test void unchangedSourcesStillProduceFreshReportsOnEveryExplicitRun() throws Exception {
+        source("src/main/java/demo/Main.java");
+        Files.writeString(project.resolve("build.gradle"), groovy());
+        var first = runner("nullguard", "--configuration-cache").build();
+        assertEquals(TaskOutcome.SUCCESS, first.task(":nullguard").getOutcome());
+        Path report = project.resolve("build/reports/nullguard/invocation.txt");
+        var firstWritten = Files.getLastModifiedTime(report);
+        var second = runner("nullguard", "--configuration-cache").build();
+        assertEquals(TaskOutcome.SUCCESS, second.task(":nullguard").getOutcome(), "An unchanged project must still refresh current advisory data and reports");
+        assertTrue(second.getOutput().contains("Reusing configuration cache"));
+        assertTrue(Files.getLastModifiedTime(report).compareTo(firstWritten) > 0, "The analyzer must actually rewrite its report");
+    }
+
     @Test void kotlinDslAndCustomReports() throws Exception {
         source("src/main/java/demo/Main.java");
         Files.writeString(project.resolve("build.gradle.kts"), """

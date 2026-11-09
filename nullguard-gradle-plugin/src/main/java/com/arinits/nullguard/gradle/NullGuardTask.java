@@ -17,6 +17,12 @@ import java.util.Locale;
 /** Runs the published CLI once over original Java source files. */
 @DisableCachingByDefault(because = "Reports include timestamps and absolute source URIs")
 public abstract class NullGuardTask extends JavaExec {
+    public NullGuardTask() {
+        // Build-cache disabling alone does not disable Gradle's up-to-date checks.
+        // Advisory data and report timestamps must refresh even when sources are unchanged.
+        getOutputs().upToDateWhen(task -> false);
+    }
+
     @InputFiles @SkipWhenEmpty @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getSourceFiles();
     @Internal public abstract DirectoryProperty getProjectDirectory();
