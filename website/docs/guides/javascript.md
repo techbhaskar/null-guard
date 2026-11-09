@@ -4,7 +4,7 @@ Use the ECMAScript pack to investigate null/undefined dereferences in JavaScript
 
 ## Requirements and installation
 
-Use a verified NullGuard 2.0.0 executable CLI, Java 21+, Node 22+ and GPG/GPGV for signed-pack installation. The pack carries its pinned TypeScript compiler API; it does not require globally installing TypeScript.
+Use a verified NullGuard 2.0.1 executable CLI, Java 21+, Node 22+ and GPG/GPGV for signed-pack installation. The pack carries its pinned TypeScript compiler API; it does not require globally installing TypeScript.
 
 ```bash
 node --version

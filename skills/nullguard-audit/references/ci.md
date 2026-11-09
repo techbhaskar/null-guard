@@ -2,7 +2,7 @@
 
 Adapt bundled workflow templates to the consuming repository. Merge jobs into existing CI when practical. Preserve application toolchains, dependency credentials and test commands. Templates assume repository-root projects; change working directories for nested projects and retain per-module outputs.
 
-- `assets/github-actions-maven.yml`: Java 21 analyzer, published plugin 2.0.0, report-only invocation and artifact retention.
+- `assets/github-actions-maven.yml`: Java 21 analyzer, published plugin 2.0.1, report-only invocation and artifact retention.
 - `assets/github-actions-gradle.yml`: configured native Java plugin, existing wrapper, report-only audit helper and artifact retention. Set the analyzer launcher to Java 21 as shown in setup; application compilation may use a separate toolchain.
 - `assets/github-actions-multilang.yml`: manual workflow on a provisioned self-hosted runner with an explicit executable CLI and installed signed packs. It does not invent release download URLs. Source scanning does not install Node/.NET/Python or restore application assets. Provision runtimes and compatible signed packs before use.
 
@@ -15,7 +15,7 @@ Start with report-only results and review coverage/findings. If enforcement is r
 Maven:
 
 ```sh
-./mvnw com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze -Dnullguard.failBuild=true -Dnullguard.failThreshold=CRITICAL
+./mvnw com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze -Dnullguard.failBuild=true -Dnullguard.failThreshold=CRITICAL
 ```
 
 Gradle: deliberately configure `nullguard { failBuild.set(true); failThreshold.set("CRITICAL") }`, then invoke `./gradlew nullguard` directly. In Groovy use single-quoted strings. Do not use the helper for enforcement because it intentionally forces report-only audit behavior.

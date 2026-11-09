@@ -4,7 +4,7 @@ Use the ECMAScript pack to investigate nullable values and unsafe operations in 
 
 ## Requirements and installation
 
-Use a verified NullGuard 2.0.0 executable CLI, Java 21+, Node 22+ and GPG/GPGV for signed-pack installation. This release's pack pins TypeScript 6.0.3; installing it does not require changing your application's TypeScript dependency.
+Use a verified NullGuard 2.0.1 executable CLI, Java 21+, Node 22+ and GPG/GPGV for signed-pack installation. This release's pack pins TypeScript 6.0.3; installing it does not require changing your application's TypeScript dependency.
 
 ```bash
 node --version

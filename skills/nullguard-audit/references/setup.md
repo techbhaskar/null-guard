@@ -1,13 +1,13 @@
 # Setup and native commands
 
-## Java: published 2.0.0
+## Java: published 2.0.1
 
 The analyzer needs **Java 21**, even when the application targets an older Java release. Check `java -version` and the JVM reported by the selected build tool. Prefer project wrappers. Keep the application's source target unchanged.
 
 Maven: run in the directory containing `pom.xml`:
 
 ```sh
-./mvnw com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze -Dnullguard.failBuild=false
+./mvnw com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze -Dnullguard.failBuild=false
 ```
 
 Use `mvn` if there is no wrapper. Reports normally appear under each module's `target/nullguard/`. Compile first when bytecode/SAST coverage is wanted; a source-only audit does not imply bytecode analysis ran. The fully qualified goal needs no POM edit.
@@ -18,9 +18,9 @@ Gradle: merge into existing configuration; do not replace blocks. Add `mavenCent
 // settings.gradle.kts
 pluginManagement { repositories { mavenCentral(); gradlePluginPortal() } }
 // build.gradle.kts
-plugins { id("com.arinits.nullguard") version "2.0.0" }
+plugins { id("com.arinits.nullguard") version "2.0.1" }
 repositories { mavenCentral() }
-nullguard { toolVersion.set("2.0.0"); failBuild.set(false) }
+nullguard { toolVersion.set("2.0.1"); failBuild.set(false) }
 tasks.named<com.arinits.nullguard.gradle.NullGuardTask>("nullguard") {
     javaLauncher.set(javaToolchains.launcherFor {
         languageVersion.set(JavaLanguageVersion.of(21))
@@ -34,9 +34,9 @@ The existing Java or Java-library plugin must already supply Java source sets; a
 // settings.gradle
 pluginManagement { repositories { mavenCentral(); gradlePluginPortal() } }
 // build.gradle
-plugins { id 'com.arinits.nullguard' version '2.0.0' }
+plugins { id 'com.arinits.nullguard' version '2.0.1' }
 repositories { mavenCentral() }
-nullguard { toolVersion.set('2.0.0'); failBuild.set(false) }
+nullguard { toolVersion.set('2.0.1'); failBuild.set(false) }
 tasks.named('nullguard') {
     javaLauncher.set(javaToolchains.launcherFor {
         languageVersion.set(JavaLanguageVersion.of(21))
@@ -48,7 +48,7 @@ Run `./gradlew nullguard`; use `gradlew.bat` on Windows. The helper enforces rep
 
 ## Python, JS/TS and C#/.NET packs
 
-The tested source distribution identifies the packs as **2.0.0-preview.1**. Java's published 2.0.0 coordinates do not prove signed pack publication. Obtain a compatible executable CLI and signed archives from a verified release, or explicitly build and qualify a multi-language source distribution using its own build instructions. A Java-only checkout is insufficient. Do not download a guessed executable classifier or disable signature checks.
+Native language packs remain at **2.0.0** and are compatible with the 2.0.1 JVM distribution. Java artifact coordinates alone do not establish installed pack availability. Obtain a compatible executable CLI and signed archives from a verified release, or explicitly build and qualify a multi-language source distribution using its own build instructions. A Java-only checkout is insufficient. Do not download a guessed executable classifier or disable signature checks.
 
 | Scope | CLI language | Pack ID | Additional runtime |
 | --- | --- | --- | --- |

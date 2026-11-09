@@ -4,7 +4,7 @@ Use the Python pack to investigate nullable values, unsafe attribute access and 
 
 ## Requirements and installation
 
-Use the signed NullGuard 2.0.0 executable CLI with Java 21+, Python 3.11+ and GPG/GPGV for signed-pack installation. Follow the [CLI setup guide](../getting-started.md) to obtain and verify the distribution. In the commands below, `nullguard-cli.jar` refers to that verified executable.
+Use the signed NullGuard 2.0.1 executable CLI with Java 21+, Python 3.11+ and GPG/GPGV for signed-pack installation. Follow the [CLI setup guide](../getting-started.md) to obtain and verify the distribution. In the commands below, `nullguard-cli.jar` refers to that verified executable.
 
 ```bash
 python3 --version

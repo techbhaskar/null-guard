@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      # Configure native plugin 2.0.0 and its Java 21 analyzer launcher first.
+      # Configure native plugin 2.0.1 and its Java 21 analyzer launcher first.
       # Application compilation/tests can use a separate existing toolchain.
       - name: Compile and test application
         run: |

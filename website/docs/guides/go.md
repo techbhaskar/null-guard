@@ -4,7 +4,7 @@ Use the Go pack to investigate nil-state risks in Go source. Findings include op
 
 ## Requirements and installation
 
-Use a verified NullGuard 2.0.0 executable CLI, Java 21+, a compatible local Go toolchain, and GPG/GPGV for signed-pack installation. The release manifest declares Go 1.26+ and local-toolchain use; the analyzer pins `golang.org/x/tools` v0.52.0.
+Use a verified NullGuard 2.0.1 executable CLI, Java 21+, a compatible local Go toolchain, and GPG/GPGV for signed-pack installation. The release manifest declares Go 1.26+ and local-toolchain use; the analyzer pins `golang.org/x/tools` v0.52.0.
 
 ```bash
 go version

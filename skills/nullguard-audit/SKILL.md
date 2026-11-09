@@ -13,7 +13,7 @@ Turn NullGuard output into source-verified findings and, when requested, tested 
 ## Select and run
 
 1. Inspect project manifests and the user's requested scope. Identify modules, language configurations, existing analyzer setup and test commands. Do not infer cross-service or cross-language calls from matching names.
-2. Read [setup](references/setup.md) for the selected language. Java uses the published Maven/Gradle integrations pinned to **2.0.0**, with analyzer Java 21. Non-Java and mixed-language analysis requires an explicitly supplied compatible CLI and installed signed packs; describe the preview capability limits. Do not infer pack availability from the Java release number.
+2. Read [setup](references/setup.md) for the selected language. Java uses the published Maven/Gradle integrations pinned to **2.0.1**, with analyzer Java 21. Non-Java and mixed-language analysis requires an explicitly supplied compatible CLI and installed signed packs; describe the preview capability limits. Do not infer pack availability from the Java release number.
 3. Use the helper from this skill's directory:
 
    ```sh

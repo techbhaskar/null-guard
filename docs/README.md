@@ -21,7 +21,7 @@ Optional signed language packs support experimental Python, JavaScript/TypeScrip
 | Configure Gradle integration | [Gradle guide](../nullguard-gradle-plugin/README.md) |
 | Use agent-assisted audits and requested fixes | [NullGuard audit skill](../skills/nullguard-audit/SKILL.md) |
 | Evaluate accuracy and known limitations | [Accuracy protocol](evaluation/accuracy-protocol.md) |
-| Check artifact availability and version scope | [2.0.0 release notes](releases/2.0.0.md) |
+| Check artifact availability and version scope | [2.0.1 release notes](releases/2.0.1.md) |
 | Understand architecture history | [Architecture reference](versions/nullguard_architecture_v1_1.md) |
 
 ## Adoption workflow
@@ -36,6 +36,6 @@ Optional signed language packs support experimental Python, JavaScript/TypeScrip
 
 Static analysis does not run the target application. Memory insights describe source sites and retention candidates, not measured heap usage or confirmed leaks. Advisory matching and call-path evidence do not establish exploitability or a complete dependency inventory. JaCoCo coverage describes supplied test execution data; it does not establish that all source was analyzed.
 
-The CVE guide identifies changes made after the published 2.0.0 artifacts, including online lookup enabled by default in development source. Online lookup sends dependency ecosystems, package names and versions to OSV, without uploading source. Offline mode is available. Check each guide's release scope and installation requirements when selecting an artifact.
+The CVE guide identifies changes included in 2.0.1, including online lookup enabled by default. Online lookup sends dependency ecosystems, package names and versions to OSV, without uploading source. Offline mode is available. Check each guide's release scope and installation requirements when selecting an artifact.
 
 Architecture snapshots, dated evaluations and release notes preserve historical context. Use the current developer and capability guides for present behavior.

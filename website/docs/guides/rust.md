@@ -4,7 +4,7 @@ Use the Rust pack to investigate panic risks such as unguarded `unwrap`/`expect`
 
 ## Requirements and installation
 
-Use a verified NullGuard 2.0.0 executable CLI, Java 21+, a compatible stable Cargo toolchain and GPG/GPGV for signed-pack installation. The pack uses locked `syn` and `cargo_metadata` dependencies without `rustc_private`.
+Use a verified NullGuard 2.0.1 executable CLI, Java 21+, a compatible stable Cargo toolchain and GPG/GPGV for signed-pack installation. The pack uses locked `syn` and `cargo_metadata` dependencies without `rustc_private`.
 
 ```bash
 cargo --version

@@ -4,7 +4,7 @@ Use the C# pack to investigate nullable values and unsafe dereferences in SDK-st
 
 ## Requirements and installation
 
-Use a verified NullGuard 2.0.0 executable CLI, Java 21+, .NET SDK 10 and GPG/GPGV for signed-pack installation:
+Use a verified NullGuard 2.0.1 executable CLI, Java 21+, .NET SDK 10 and GPG/GPGV for signed-pack installation:
 
 ```bash
 dotnet --version

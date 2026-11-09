@@ -1,6 +1,6 @@
 # GitHub Releases and Packages
 
-[Release v2.0.0](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0)
+[Release v2.0.1](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.1)
 provides the standalone CLI JAR, its GPG signature and a SHA-256 checksum. GitHub
 also supplies source archives for the tag.
 

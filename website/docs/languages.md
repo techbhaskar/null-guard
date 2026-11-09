@@ -30,7 +30,7 @@ Non-Java packs report language-specific findings with source evidence, confidenc
 - **Go:** module, build-tag and platform configuration affect coverage; tests are excluded and dependencies are not automatically downloaded.
 - **Rust:** no macro expansion, raw-pointer/borrow verification or complete trait-dispatch resolution. Unknown targets remain unknown.
 
-Review the [multi-language reference](../../docs/multilang/README.md), [qualification record](../../docs/multilang/qualification/README.md) and [release notes](../../docs/releases/2.0.0.md). Experimental findings are leads for source review, not independently verified defects or a general precision/recall claim.
+Review the [multi-language reference](../../docs/multilang/README.md), [qualification record](../../docs/multilang/qualification/README.md) and [release notes](../../docs/releases/2.0.1.md). Experimental findings are leads for source review, not independently verified defects or a general precision/recall claim.
 
 ## Analyze a mixed repository
 
