@@ -239,7 +239,10 @@ configurations.named("nullguardTool") {
 }
 ```
 
-Alternatively, if you have a NullGuard checkout, run without editing the service:
+Alternatively, with a NullGuard checkout and a CLI built from that checkout, run
+without editing the service. This helper now selects the local plugin and CLI
+and analyzes original sources directly, removing source staging as well as the
+runtime conflict:
 
 ```sh
 ./gradlew -I /path/to/null-guard/nullguard-gradle-plugin/scripts/isolated-runtime.gradle nullguard

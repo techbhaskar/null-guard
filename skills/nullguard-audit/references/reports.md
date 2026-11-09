@@ -16,7 +16,7 @@ Inspect `summary`, `graph`, `findings`, `apiEndpoints`, `hotspots`, `suggestions
 
 Show unresolved calls, unmodeled bodies, parse problems and dependency boundaries relevant to conclusions. `NaN`, missing or nonfinite scores are unavailable, not a perfect grade. Report `sastSummary` separately; missing compiled classes mean SAST may not have run. A native hotspot gate does not fail on every null warning. API-reachable CVE checks may also affect Java's policy when such inputs are enabled.
 
-Gradle stages sources under task temporary directories. Match reported package-relative paths to original configured source roots and resolve ambiguity before editing. Separate module reports do not establish cross-module flow.
+The development Gradle integration and Java multi-language adapter analyze original source files directly. Resolve relative finding paths against the reported original project root. Published 2.0.0 Gradle reports still reference a temporary staged source tree; map those locations to original roots before editing. Separate module reports do not establish cross-module flow.
 
 ## Multi-language schema 2.0
 

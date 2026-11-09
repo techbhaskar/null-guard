@@ -42,6 +42,35 @@ public final class NullGuardConfig {
     private final boolean osvOnlineLookup;
     private final OpenApiOptions openApiOptions;
 
+    /** Derive a project-specific file selection without changing scoring, runtime or output options. */
+    public NullGuardConfig withSelectedSourceFiles(List<Path> files) {
+        return new NullGuardConfig(this, files);
+    }
+
+    private NullGuardConfig(NullGuardConfig original, List<Path> files) {
+        this.propagationDepthLimit = original.propagationDepthLimit;
+        this.propagationDecayExponent = original.propagationDecayExponent;
+        this.apiRiskWeights = original.apiRiskWeights;
+        this.hotspotRiskThreshold = original.hotspotRiskThreshold;
+        this.hotspotReachThreshold = original.hotspotReachThreshold;
+        this.scoringDecayFactor = original.scoringDecayFactor;
+        this.externalPenaltyMultiplier = original.externalPenaltyMultiplier;
+        this.convergenceThreshold = original.convergenceThreshold;
+        this.maxScoringIterations = original.maxScoringIterations;
+        this.highRiskThreshold = original.highRiskThreshold;
+        this.failBuild = original.failBuild;
+        this.failThreshold = original.failThreshold;
+        this.outputDirectory = original.outputDirectory;
+        this.sourceRoots = original.sourceRoots;
+        this.selectedSourceFiles = List.copyOf(files);
+        this.classpathEntries = original.classpathEntries;
+        this.sastClassDirectories = original.sastClassDirectories;
+        this.cveInputFile = original.cveInputFile;
+        this.jacocoReport = original.jacocoReport;
+        this.osvOnlineLookup = original.osvOnlineLookup;
+        this.openApiOptions = original.openApiOptions;
+    }
+
     private NullGuardConfig(Builder builder) {
         this.propagationDepthLimit   = builder.propagationDepthLimit;
         this.propagationDecayExponent = builder.propagationDecayExponent;

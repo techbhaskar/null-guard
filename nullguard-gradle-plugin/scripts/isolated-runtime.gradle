@@ -1,13 +1,9 @@
-// Workaround for published plugins that resolve the CLI's transitive dependencies.
-// Run: ./gradlew -I /path/to/isolated-runtime.gradle nullguard
-allprojects { consumer ->
-    consumer.plugins.withId('com.arinits.nullguard') {
-        def tool = consumer.configurations.getByName('nullguardTool')
-        tool.transitive = false
-        tool.dependencies.clear()
-        def extension = consumer.extensions.getByName('nullguard')
-        consumer.dependencies.addProvider('nullguardTool', extension.toolVersion.map { version ->
-            "com.arinits.nullguard:nullguard-cli:${version}:jar-with-dependencies"
-        })
-    }
-}
+// Compatibility entry point: use the matching local plugin and isolated CLI,
+// including direct analysis of original sources (no source staging).
+// Run: ./gradlew -I /path/to/null-guard/nullguard-gradle-plugin/scripts/isolated-runtime.gradle nullguard
+File initFile = gradle.startParameter.initScripts.find { it.name == 'isolated-runtime.gradle' }
+if (initFile == null) throw new GradleException('Cannot locate isolated-runtime.gradle in the supplied init scripts')
+File checkout = initFile.canonicalFile.parentFile.parentFile.parentFile
+gradle.ext.nullguardDevelopmentCheckout = checkout.absolutePath
+logger.lifecycle('NullGuard development runtime: original project sources (no staging)')
+apply from: new File(checkout, 'nullguard-gradle-plugin/scripts/development-runtime.gradle')

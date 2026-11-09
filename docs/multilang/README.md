@@ -126,3 +126,15 @@ See `qualification/README.md` for the current record.
 Run `python3 scripts/smoke_multilang.py --assets dist-packs` to verify a clean
 signed installation, and `python3 scripts/validate_multilang.py REPORT.json` to
 validate schema and coverage accounting (requires jsonschema).
+
+## Source locations in development builds
+
+The development Java adapter analyzes each project's selected original files in
+place. It does not copy sources or dependency manifests into temporary directories.
+Parent and nested modules keep separate file selections, and SARIF links point to
+the original project root. An empty selection is reported as failed rather than
+silently scanning all files. Published 2.0.0 retains its earlier implementation.
+
+The non-Java packs also receive original project paths and selected file lists.
+Temporary pack-run directories contain protocol requests and scanner logs, not
+copies of the application's source tree.
