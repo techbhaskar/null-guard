@@ -1,0 +1,18 @@
+// Use the matching local plugin and CLI without modifying the consuming project.
+// First build the CLI: mvn -pl nullguard-cli -am package
+// Then: ./gradlew -Dnullguard.checkout=/path/to/null-guard -I /path/to/null-guard/nullguard-gradle-plugin/scripts/development-runtime.gradle nullguard
+String checkout = System.getProperty('nullguard.checkout')
+if (!checkout) throw new GradleException('Set -Dnullguard.checkout to the NullGuard source checkout')
+settingsEvaluated { settings ->
+    settings.pluginManagement.includeBuild(new File(checkout, 'nullguard-gradle-plugin').absolutePath)
+}
+allprojects { consumer ->
+    consumer.plugins.withId('com.arinits.nullguard') {
+        consumer.tasks.named('nullguard') {
+            def version = consumer.extensions.getByName('nullguard').toolVersion.get()
+            def cli = new File(checkout, "nullguard-cli/target/nullguard-cli-${version}-jar-with-dependencies.jar")
+            if (!cli.isFile()) throw new GradleException('Build the matching local CLI first: ' + cli)
+            classpath = consumer.files(cli)
+        }
+    }
+}

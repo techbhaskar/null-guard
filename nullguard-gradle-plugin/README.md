@@ -113,11 +113,30 @@ or global CLI JAR is needed in consuming projects.
 
 ## Multiple roots and generated sources
 
-All main Java source roots are staged together, preserving package-relative
-paths. Identical relative paths across roots fail rather than silently overwriting
-source. Reports use the staged root under `build/tmp/nullguard/sources` in source
-URIs; relative package/file paths still correspond to the original roots.
-Do not delete that staged tree while inspecting SARIF source locations.
+In the development integration, main Java sources are analyzed **in place**.
+The CLI receives the original project directory and a small
+`build/tmp/nullguard/source-manifest.properties` file containing selected source
+paths and source roots. No Java source contents are copied. Exclusions are applied
+before that list is written, and reports link to the original files. Multiple roots
+retain their own paths, including generated source folders outside the project.
+
+This requires the matching development CLI and Gradle plugin. Published 2.0.0
+still uses source staging; a new release is required to change that behavior for
+registry installations. Existing old `build/tmp/nullguard/sources` folders are not
+used by the development integration and may be removed as ordinary build output.
+
+To try this with an existing service without editing its build file, first build
+this checkout's CLI with `mvn -pl nullguard-cli -am package`, then run in the service:
+
+```sh
+./gradlew -Dnullguard.checkout=/path/to/null-guard \
+  -I /path/to/null-guard/nullguard-gradle-plugin/scripts/development-runtime.gradle nullguard
+```
+
+That development helper selects both the local plugin and its matching standalone
+CLI. The analyzer logs the original service directory as `Source path`; only the
+source-path manifest and analysis reports are generated under `build/`.
+
 
 Custom source roots declared in `sourceSets.main.java` are picked up automatically.
 For a separate generator, wire its task explicitly and add its file tree:
@@ -126,6 +145,7 @@ For a separate generator, wire its task explicitly and add its file tree:
 tasks.named<com.arinits.nullguard.gradle.NullGuardTask>("nullguard") {
     dependsOn("generateJava")
     sourceFiles.from(fileTree(layout.buildDirectory.dir("generated/custom-java")))
+    sourceRoots.from(layout.buildDirectory.dir("generated/custom-java"))
 }
 ```
 
@@ -173,7 +193,7 @@ disabled. Gradle input/output tracking and configuration-cache reuse are support
 ## Verification and product follow-ups
 
 Functional tests cover Groovy and Kotlin DSL, multiple roots, exclusions, compile
-classpath forwarding, duplicate paths, per-subproject reports, no-source projects,
+classpath forwarding, original source paths across multiple roots, per-subproject reports, no-source projects,
 opt-in check wiring, policy failure propagation and configuration-cache reuse.
 An integration test resolves the published 1.0.0 CLI from Maven Central and checks
 that a seeded null dereference appears in SARIF. An HTML test covers unsafe

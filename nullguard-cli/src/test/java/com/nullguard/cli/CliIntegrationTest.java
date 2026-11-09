@@ -8,6 +8,45 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class CliIntegrationTest {
     @TempDir Path output;
+    @Test void sourceManifestReadsOriginalFilesAcrossRootsAndLeavesOtherSourcesOut() throws Exception {
+        Path root = Files.createDirectories(output.resolve("project with spaces"));
+        Path first = Files.createDirectories(root.resolve("src/main/java/left")).resolve("Main.java");
+        Path second = Files.createDirectories(output.resolve("generated/right")).resolve("Main.java");
+        String original = "package left; class Main { int bad() { String x=null; return x.length(); } }";
+        Files.writeString(first, original);
+        Files.writeString(second, "package right; class Main { int safe() { return 1; } }");
+        Files.writeString(root.resolve("Excluded.java"), "class Excluded { broken syntax");
+        var manifest = new java.util.Properties();
+        manifest.setProperty("file.0", first.toString()); manifest.setProperty("file.1", second.toString());
+        manifest.setProperty("root.0", root.resolve("src/main/java").toString());
+        manifest.setProperty("root.1", output.resolve("generated").toString());
+        Path file=output.resolve("sources.properties");
+        try (var writer=Files.newBufferedWriter(file)) { manifest.store(writer, "Original paths only"); }
+        Path reports=output.resolve("reports");
+        assertEquals(0,new NullGuardCliApplication().run(new String[]{root.toString(),"--source-manifest="+file,"--cve-offline","--output="+reports}));
+        var report=new com.fasterxml.jackson.databind.ObjectMapper().readTree(reports.resolve("nullguard-report-latest.json").toFile());
+        assertEquals(2,report.path("analysisCompleteness").path("sourceFilesDiscovered").asInt());
+        assertEquals(2,report.path("analysisCompleteness").path("sourceFilesParsed").asInt());
+        String sarif=Files.readString(reports.resolve("nullguard-results.sarif"));
+        var sarifRun = new com.fasterxml.jackson.databind.ObjectMapper().readTree(sarif).path("runs").get(0);
+        var base = java.net.URI.create(sarifRun.path("originalUriBaseIds").path("SOURCE_ROOT").path("uri").asText());
+        assertEquals(first.toUri(), base.resolve(sarifRun.path("results").get(0).path("locations").get(0).path("physicalLocation").path("artifactLocation").path("uri").asText()));
+        assertFalse(sarif.contains("build/tmp/nullguard/sources"));
+        assertEquals(original,Files.readString(first));
+    }
+
+    @Test void missingEmptyAndUnavailableSourceManifestsFailClearly() throws Exception {
+        Path root=Files.createDirectories(output.resolve("project"));
+        var cli=new NullGuardCliApplication();
+        Path manifest=output.resolve("missing.properties");
+        String[] args={root.toString(),"--source-manifest="+manifest,"--cve-offline"};
+        assertEquals(2,cli.run(args));
+        Files.writeString(manifest,"");
+        assertEquals(2,cli.run(args));
+        Files.writeString(manifest,"file.0=missing.java");
+        assertEquals(2,cli.run(args));
+    }
+
     @Test void usageAndMissingPositionalSourceReturnBadArguments() {
         var cli = new NullGuardCliApplication();
         assertEquals(2, cli.run(new String[0]));

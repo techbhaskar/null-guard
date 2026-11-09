@@ -42,6 +42,8 @@ public final class NullGuardPlugin implements Plugin<Project> {
                 task.getMainClass().set("com.nullguard.cli.NullGuardCliApplication");
                 task.setClasspath(tool);
                 task.getJavaLauncher().convention(toolchains.launcherFor(java.getToolchain()));
+                task.getProjectDirectory().convention(project.getLayout().getProjectDirectory());
+                task.getSourceRoots().from(main.getJava().getSrcDirs());
                 task.getSourceFiles().from(main.getAllJava());
                 task.getAnalysisClasspath().from(main.getCompileClasspath());
                 task.getSastClassDirectories().from(main.getOutput().getClassesDirs().getFiles());

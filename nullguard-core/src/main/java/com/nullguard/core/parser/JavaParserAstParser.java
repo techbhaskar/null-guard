@@ -50,12 +50,19 @@ public final class JavaParserAstParser implements AstParser {
 
     private final List<Path> configuredSourceRoots;
     private final List<Path> classpathEntries;
+    private final List<Path> selectedSourceFiles;
 
     public JavaParserAstParser() {
         this(List.of(), List.of());
     }
 
     public JavaParserAstParser(Collection<Path> sourceRoots, Collection<Path> classpathEntries) {
+        this(sourceRoots, classpathEntries, List.of());
+    }
+
+    /** Analyze exactly the selected original files, without copying source contents. */
+    public JavaParserAstParser(Collection<Path> sourceRoots, Collection<Path> classpathEntries, Collection<Path> sourceFiles) {
+        this.selectedSourceFiles = normalizedPaths(sourceFiles);
         this.configuredSourceRoots = normalizedPaths(sourceRoots);
         this.classpathEntries = normalizedPaths(classpathEntries);
     }
@@ -72,7 +79,7 @@ public final class JavaParserAstParser implements AstParser {
         List<String> problemPaths = new ArrayList<>();
 
         try (ParserEnvironment environment = createParser(normalizedRoot);
-             Stream<Path> paths = Files.walk(normalizedRoot)) {
+             Stream<Path> paths = selectedSourceFiles.isEmpty() ? Files.walk(normalizedRoot) : selectedSourceFiles.stream()) {
             List<Path> javaFiles = paths
                     .filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".java"))

@@ -31,8 +31,12 @@ class NullGuardPluginTest {
                         List<String> lines = new ArrayList<>(Arrays.asList(args));
                         lines.add("SAST_CLASSES:" + System.getProperty("nullguard.sast.classes", ""));
                         lines.add("CVE_ONLINE:" + System.getProperty("nullguard.cve.online", ""));
-                        try (var paths = Files.walk(root)) {
-                            paths.filter(p -> p.toString().endsWith(".java")).forEach(p -> lines.add("SOURCE:" + root.relativize(p).toString().replace('\\\\', '/')));
+                        var manifest = new Properties();
+                        String manifestPath = Arrays.stream(args).filter(a -> a.startsWith("--source-manifest=")).findFirst().orElseThrow().substring(18);
+                        try (var reader = Files.newBufferedReader(Path.of(manifestPath))) { manifest.load(reader); }
+                        for (int i=0; manifest.containsKey("file."+i); i++) {
+                            Path original = Path.of(manifest.getProperty("file."+i));
+                            lines.add("SOURCE:" + root.relativize(original).toString().replace('\\\\', '/'));
                         }
                         Files.write(output.resolve("invocation.txt"), lines);
                         Files.writeString(output.resolve("nullguard-report-latest.json"), "{}");
@@ -71,9 +75,9 @@ class NullGuardPluginTest {
         var result = runner("nullguard", "--configuration-cache", "--stacktrace").build();
         assertEquals(TaskOutcome.SUCCESS, result.task(":nullguard").getOutcome());
         String invocation = Files.readString(project.resolve("build/reports/nullguard/invocation.txt"));
-        assertTrue(invocation.contains("SOURCE:demo/Main.java"));
-        assertTrue(invocation.contains("SOURCE:demo/Extra.java"));
-        assertFalse(invocation.contains("SOURCE:demo/Excluded.java"));
+        assertTrue(invocation.contains("SOURCE:src/main/java/demo/Main.java"));
+        assertTrue(invocation.contains("SOURCE:extra/demo/Extra.java"));
+        assertFalse(invocation.contains("SOURCE:extra/demo/Excluded.java"));
         String classpath = invocation.lines().filter(line -> line.startsWith("--classpath=")).findFirst().orElseThrow().substring(12);
         assertTrue(java.util.Arrays.stream(classpath.split(java.util.regex.Pattern.quote(java.io.File.pathSeparator)))
                 .anyMatch(path -> Path.of(path).toAbsolutePath().normalize().toString().endsWith("analyzer.jar")), invocation);
@@ -139,12 +143,16 @@ class NullGuardPluginTest {
         assertEquals(TaskOutcome.NO_SOURCE, runner("nullguard").build().task(":nullguard").getOutcome());
         assertNull(runner("check").build().task(":nullguard"));
     }
-    @Test void duplicateRelativeSourcePathsFailClearly() throws Exception {
+    @Test void originalPathsWithTheSameRelativeNameAreNotFlattenedOrCopied() throws Exception {
         source("src/main/java/demo/Main.java"); source("extra/demo/Main.java");
         Files.writeString(project.resolve("build.gradle"), groovy() + "tasks.named('nullguard') { sourceFiles.from(fileTree('extra')) }\n");
-        var result = runner("nullguard").buildAndFail();
-        assertEquals(TaskOutcome.FAILED, result.task(":nullguard").getOutcome());
-        assertTrue(result.getOutput().replace('\\', '/').contains("demo/Main.java"), result.getOutput());
+        var result = runner("nullguard").build();
+        assertEquals(TaskOutcome.SUCCESS, result.task(":nullguard").getOutcome());
+        String invocation = Files.readString(project.resolve("build/reports/nullguard/invocation.txt"));
+        assertTrue(invocation.contains("SOURCE:src/main/java/demo/Main.java"));
+        assertTrue(invocation.contains("SOURCE:extra/demo/Main.java"));
+        assertFalse(Files.exists(project.resolve("build/tmp/nullguard/sources")));
+        assertEquals("package demo; class Sample {}\n", Files.readString(project.resolve("src/main/java/demo/Main.java")));
     }
     @Test void subprojectsHaveSeparateTasksAndReports() throws Exception {
         Files.writeString(project.resolve("settings.gradle"), "rootProject.name='consumer'\ninclude 'service'\n");
@@ -188,7 +196,7 @@ class NullGuardPluginTest {
         assertTrue(runner("verifyToolRuntime", "nullguard", "--configuration-cache").build().getOutput().contains("Reusing configuration cache"));
     }
 
-    @Test void publishedCliAnalyzesJavaWithoutCompilingTheApplication() throws Exception {
+    @Test void builtCliAnalyzesOriginalFilesWithoutCompilingTheApplication() throws Exception {
         source("src/main/java/demo/Main.java");
         Files.writeString(project.resolve("src/main/java/demo/Main.java"), """
                 package demo;
@@ -198,14 +206,20 @@ class NullGuardPluginTest {
                 """);
         Files.writeString(project.resolve("build.gradle"), """
                 plugins { id 'java'; id 'com.arinits.nullguard' }
-                repositories { mavenCentral() }
-                nullguard { toolVersion.set("1.0.0"); cveOnline.set(false) }
+                nullguard { cveOnline.set(false) }
+                tasks.named('nullguard') { classpath = files('analyzer.jar') }
                 """);
+        Path cli = Path.of("../nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar").toAbsolutePath().normalize();
+        assertTrue(Files.isRegularFile(cli), "Build the current CLI with mvn -pl nullguard-cli -am package first");
+        Files.copy(cli, project.resolve("analyzer.jar"), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         var result = runner("nullguard", "--configuration-cache").build();
         assertEquals(TaskOutcome.SUCCESS, result.task(":nullguard").getOutcome());
         String sarif = Files.readString(project.resolve("build/reports/nullguard/nullguard-results.sarif"));
         assertTrue(sarif.contains("Receiver 'missing' may be null"), sarif);
         assertTrue(Files.exists(project.resolve("build/reports/nullguard/nullguard-dashboard-latest.html")));
         assertNull(result.task(":compileJava"));
+        assertTrue(sarif.contains("src/main/java/demo/Main.java"), sarif);
+        assertFalse(sarif.contains("build/tmp/nullguard/sources"));
+        assertFalse(Files.exists(project.resolve("build/tmp/nullguard/sources")));
     }
 }

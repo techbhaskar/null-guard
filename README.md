@@ -545,8 +545,9 @@ its own `build/reports/nullguard/`. There is no combined cross-module dashboard 
 source-level cross-module graph in this release. Projects without main Java
 inputs are `NO-SOURCE`, not evidence that their application code is null-safe.
 
-Multiple main Java roots are staged together with relative package paths
-preserved. Duplicate relative paths fail rather than overwrite source. See
+The development integration analyzes original files across main Java roots,
+preserving exclusions and source locations without copying source contents.
+Published 2.0.0 still stages sources; direct analysis requires the matching development CLI and plugin. See
 [the integration guide](nullguard-gradle-plugin/README.md#multiple-roots-and-generated-sources)
 for custom/generated roots, toolchains and development builds.
 
@@ -915,10 +916,10 @@ if (name == null) return 0;
 return name.length();
 ```
 
-Rerun analysis and check the specific `NG001` finding. For Gradle, SARIF source
-URIs point into the staged tree under `build/tmp/nullguard/sources`; the relative
-package/file path corresponds to the original Java source roots. Keep the staged
-tree while inspecting those locations, or open the original file manually.
+Rerun analysis and check the specific `NG001` finding. The development Gradle
+integration writes SARIF source URIs for the original files. Published 2.0.0 uses
+the staged tree under `build/tmp/nullguard/sources`; retain that tree when
+inspecting reports produced by that release.
 
 #### Scores are different from build-gate decisions
 

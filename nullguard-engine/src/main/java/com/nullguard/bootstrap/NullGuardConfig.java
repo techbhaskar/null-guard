@@ -34,6 +34,7 @@ public final class NullGuardConfig {
     // Output & CVE parameters
     private final Path outputDirectory;
     private final List<Path> sourceRoots;
+    private final List<Path> selectedSourceFiles;
     private final List<Path> classpathEntries;
     private final List<Path> sastClassDirectories;
     private final Path cveInputFile;
@@ -56,6 +57,7 @@ public final class NullGuardConfig {
         this.failThreshold           = Objects.requireNonNull(builder.failThreshold);
         this.outputDirectory         = builder.outputDirectory;
         this.sourceRoots             = List.copyOf(builder.sourceRoots);
+        this.selectedSourceFiles = List.copyOf(builder.selectedSourceFiles);
         this.classpathEntries        = List.copyOf(builder.classpathEntries);
         this.sastClassDirectories   = List.copyOf(builder.sastClassDirectories);
         this.cveInputFile            = builder.cveInputFile;
@@ -101,6 +103,7 @@ public final class NullGuardConfig {
     public boolean isFailBuild()       { return failBuild; }
     public String getFailThreshold()   { return failThreshold; }
     public Path getOutputDirectory()   { return outputDirectory; }
+    public List<Path> getSelectedSourceFiles() { return selectedSourceFiles; }
     public List<Path> getSourceRoots() { return sourceRoots; }
     public List<Path> getClasspathEntries() { return classpathEntries; }
     public List<Path> getSastClassDirectories() { return sastClassDirectories; }
@@ -143,6 +146,7 @@ public final class NullGuardConfig {
         // Output & CVE
         private Path outputDirectory = null;
         private List<Path> sourceRoots = List.of();
+        private List<Path> selectedSourceFiles = List.of();
         private List<Path> classpathEntries = List.of();
         private List<Path> sastClassDirectories = List.of();
         private Path cveInputFile = null;
@@ -163,6 +167,7 @@ public final class NullGuardConfig {
         public Builder failBuild(boolean v)            { this.failBuild               = v; return this; }
         public Builder failThreshold(String v)         { this.failThreshold           = v; return this; }
         public Builder outputDirectory(Path v)         { this.outputDirectory         = v; return this; }
+        public Builder selectedSourceFiles(List<Path> v) { selectedSourceFiles = List.copyOf(v); return this; }
         public Builder sourceRoots(List<Path> v) {
             this.sourceRoots = v == null ? List.of() : List.copyOf(v);
             return this;

@@ -3,7 +3,6 @@ package com.nullguard.analysis.api;
 import com.nullguard.analysis.config.AnalysisConfig;
 import com.nullguard.analysis.model.APIFlowTrace;
 import com.nullguard.analysis.model.ApiEndpointModel;
-import com.nullguard.analysis.model.ReachData;
 import com.nullguard.core.model.ClassModel;
 import com.nullguard.core.model.MethodModel;
 import com.nullguard.core.model.ModuleModel;

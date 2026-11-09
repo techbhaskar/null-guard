@@ -114,6 +114,7 @@ public final class NullGuardCliApplication {
         }
         Path    cveInputFile    = null;
         Path jacocoReport = null;
+        Path sourceManifest = null;
         boolean osvOnline       = Boolean.parseBoolean(System.getProperty("nullguard.cve.online", "true"));
         Path openApiConfigFile = null;
 
@@ -137,6 +138,8 @@ public final class NullGuardCliApplication {
                     outputDir = Paths.get(arg.substring("--output=".length()));
                 } else if (arg.startsWith("--openapi-config=")) {
                     openApiConfigFile = Paths.get(arg.substring("--openapi-config=".length()));
+                } else if (arg.startsWith("--source-manifest=")) {
+                    sourceManifest = Paths.get(arg.substring("--source-manifest=".length()));
                 } else if (arg.startsWith("--jacoco-report=")) {
                     jacocoReport = Paths.get(arg.substring("--jacoco-report=".length()));
                 } else if (arg.startsWith("--cve-input=")) {
@@ -192,6 +195,23 @@ public final class NullGuardCliApplication {
         }
 
         // ── Build configuration ───────────────────────────────────────────────
+        List<Path> selectedFiles = new ArrayList<>();
+        List<Path> sourceRoots = new ArrayList<>(List.of(sourcePath));
+        if (sourceManifest != null) {
+            var manifest = new java.util.Properties();
+            try (var reader = java.nio.file.Files.newBufferedReader(sourceManifest)) { manifest.load(reader); }
+            catch (java.io.IOException failure) { throw new IllegalArgumentException("Cannot read source manifest: " + sourceManifest, failure); }
+            for (int i = 0; manifest.containsKey("file." + i); i++) {
+                Path file = Paths.get(manifest.getProperty("file." + i)).toAbsolutePath().normalize();
+                if (!java.nio.file.Files.isRegularFile(file) || !file.toString().endsWith(".java"))
+                    throw new IllegalArgumentException("Selected Java source is unavailable: " + file);
+                selectedFiles.add(file);
+            }
+            if (selectedFiles.isEmpty()) throw new IllegalArgumentException("Source manifest contains no Java files");
+            for (int i = 0; manifest.containsKey("root." + i); i++)
+                sourceRoots.add(Paths.get(manifest.getProperty("root." + i)));
+        }
+
         NullGuardConfig config = NullGuardConfig.defaults()
                 .failBuild(failBuild)
                 .failThreshold(failThreshold)
@@ -201,7 +221,7 @@ public final class NullGuardCliApplication {
                 .maxScoringIterations(maxIterations)
                 .highRiskThreshold(highRiskThresh)
                 .outputDirectory(outputDir)
-                .sourceRoots(List.of(sourcePath))
+                .sourceRoots(sourceRoots).selectedSourceFiles(selectedFiles)
                 .classpathEntries(classpathEntries)
                 .sastClassDirectories(sastClassDirectories)
                 .jacocoReport(jacocoReport).cveInputFile(cveInputFile)
@@ -366,6 +386,7 @@ public final class NullGuardCliApplication {
         System.out.println("  --sast-classes=<paths>        Compiled class directories for SpotBugs + FindSecBugs");
         System.out.println("  --cve-input=<file>            External OSV/Trivy CVE JSON report to enrich with reachability");
         System.out.println("  --cve-offline                 Disable network advisory lookup");
+        System.out.println("  --source-manifest=<path>      Analyze selected original files from a Gradle-generated manifest");
         System.out.println("  --jacoco-report=<path>        Import JaCoCo XML test coverage into its own dashboard tab");
         System.out.println("  --cve-online                  Query OSV.dev for current advisories (default)");
         System.out.println("  --openapi-config=<file>        OpenAPI title/version, servers, security schemes and opt-in live requests");

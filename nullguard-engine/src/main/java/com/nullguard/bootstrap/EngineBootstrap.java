@@ -70,7 +70,7 @@ public final class EngineBootstrap {
 
         // ── Layer 1: Core ────────────────────────────────────────────────────
         JavaParserAstParser coreParser = new JavaParserAstParser(
-                config.getSourceRoots(), config.getClasspathEntries());
+                config.getSourceRoots(), config.getClasspathEntries(), config.getSelectedSourceFiles());
 
         // ── Layer 2: Call Graph (depends on core IR from analysis) ───────────
         BasicCallGraphBuilder callGraphBuilder = new BasicCallGraphBuilder();

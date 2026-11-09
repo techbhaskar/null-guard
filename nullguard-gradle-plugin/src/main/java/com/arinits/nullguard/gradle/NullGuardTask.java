@@ -3,7 +3,6 @@ package com.arinits.nullguard.gradle;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
-import org.gradle.api.file.DuplicatesStrategy;
 import org.gradle.api.file.FileSystemOperations;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
@@ -15,11 +14,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** Runs the published CLI once over staged Java source roots. */
+/** Runs the published CLI once over original Java source files. */
 @DisableCachingByDefault(because = "Reports include timestamps and absolute source URIs")
 public abstract class NullGuardTask extends JavaExec {
     @InputFiles @SkipWhenEmpty @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getSourceFiles();
+    @Internal public abstract DirectoryProperty getProjectDirectory();
+    @Internal public abstract ConfigurableFileCollection getSourceRoots();
     @Classpath public abstract ConfigurableFileCollection getAnalysisClasspath();
     @InputFiles @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getSastClassDirectories();
@@ -45,16 +46,25 @@ public abstract class NullGuardTask extends JavaExec {
             throw new GradleException("NullGuard failThreshold must be LOW, MEDIUM, MODERATE, HIGH or CRITICAL");
         if (getJavaLauncher().get().getMetadata().getLanguageVersion().asInt() < 17)
             throw new GradleException("NullGuard requires a Java 17+ launcher. Configure the Java toolchain or nullguard task javaLauncher.");
-        File staged = new File(getTemporaryDir(), "sources");
-        getFileSystemOperations().sync(copy -> {
-            copy.from(getSourceFiles());
-            copy.into(staged);
-            copy.include("**/*.java");
-            copy.exclude(getExcludes().get());
-            copy.setDuplicatesStrategy(DuplicatesStrategy.FAIL);
-        });
+        var selected = getSourceFiles().getAsFileTree().matching(patterns -> {
+            patterns.include("**/*.java");
+            patterns.exclude(getExcludes().get());
+        }).getFiles().stream().map(File::toPath).map(path -> path.toAbsolutePath().normalize()).sorted().toList();
+        if (selected.isEmpty()) { setDidWork(false); return; }
+        var manifest = new java.util.Properties();
+        for (int i = 0; i < selected.size(); i++) manifest.setProperty("file." + i, selected.get(i).toString());
+        var roots = getSourceRoots().getFiles().stream().map(File::getAbsolutePath).sorted().toList();
+        for (int i = 0; i < roots.size(); i++) manifest.setProperty("root." + i, roots.get(i));
+        File manifestFile = new File(getTemporaryDir(), "source-manifest.properties");
+        try {
+            java.nio.file.Files.createDirectories(manifestFile.toPath().getParent());
+            try (var writer = java.nio.file.Files.newBufferedWriter(manifestFile.toPath())) {
+                manifest.store(writer, "Original Java source paths; source contents are not copied");
+            }
+        } catch (java.io.IOException failure) { throw new GradleException("Cannot write source path manifest", failure); }
         List<String> arguments = new ArrayList<>();
-        arguments.add(staged.getAbsolutePath());
+        arguments.add(getProjectDirectory().get().getAsFile().getAbsolutePath());
+        arguments.add("--source-manifest=" + manifestFile.getAbsolutePath());
         arguments.add("--classpath=" + getAnalysisClasspath().getAsPath());
         String sastClassPath = getSastClassDirectories().getFiles().stream()
                 .filter(File::isDirectory)
