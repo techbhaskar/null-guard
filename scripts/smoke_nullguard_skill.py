@@ -1,6 +1,6 @@
 """Opt-in real Maven/Gradle qualification of the distributable NullGuard skill.
 
-Uses published NullGuard 2.0.0 in temporary consumer projects. Requires network
+Uses published NullGuard 2.0.1 in temporary consumer projects. Requires network
 access to Maven Central, Java 21+, Maven, and optionally Gradle 8.14+.
 Run: python3 scripts/smoke_nullguard_skill.py --gradle /path/to/gradle
 """
@@ -17,7 +17,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "skills/nullguard-audit/scripts/run_nullguard.py"
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 UNSAFE = """package sample;
 public final class NullExample {
     private static String nullable() { return null; }
@@ -62,7 +62,7 @@ POM = """<project xmlns="http://maven.apache.org/POM/4.0.0">
 """
 GRADLE_GROOVY = """plugins {
     id 'java'
-    id 'com.arinits.nullguard' version '2.0.0'
+    id 'com.arinits.nullguard' version '2.0.1'
 }
 repositories { mavenCentral() }
 java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
@@ -72,7 +72,7 @@ nullguard { failBuild.set(true); failThreshold.set('LOW') }
 """
 GRADLE_KOTLIN = """plugins {
     java
-    id("com.arinits.nullguard") version "2.0.0"
+    id("com.arinits.nullguard") version "2.0.1"
 }
 repositories { mavenCentral() }
 java { toolchain { languageVersion.set(JavaLanguageVersion.of(21)) } }

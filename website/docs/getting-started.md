@@ -9,13 +9,13 @@ Choose a Java build integration or the standalone CLI for a mixed-language repos
 ## Choose the Java integration
 
 Use **Java 21 or newer to run NullGuard** and keep your application's compilation
-target unchanged. Both integrations below use published version **2.0.0** from
+target unchanged. Both integrations below use published version **2.0.1** from
 Maven Central; no GitHub token or NullGuard checkout is needed.
 
 | Build | What to configure | Where |
 | --- | --- | --- |
-| Maven | `com.arinits.nullguard:nullguard-maven-plugin:2.0.0` | Optional plugin under `pom.xml` → `<build>` → `<plugins>`; the one-off command needs no edit |
-| Gradle | Plugin ID `com.arinits.nullguard`, version `2.0.0` | Maven Central in `settings.gradle(.kts)` plugin resolution, plus the plugin in `build.gradle(.kts)` |
+| Maven | `com.arinits.nullguard:nullguard-maven-plugin:2.0.1` | Optional plugin under `pom.xml` → `<build>` → `<plugins>`; the one-off command needs no edit |
+| Gradle | Plugin ID `com.arinits.nullguard`, version `2.0.1` | Maven Central in `settings.gradle(.kts)` plugin resolution, plus the plugin in `build.gradle(.kts)` |
 
 ## Maven: one command or a build plugin
 
@@ -24,7 +24,7 @@ For a one-off scan, run this from the directory containing **your service's
 command needs no POM change:
 
 ```bash
-mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze -Dnullguard.failBuild=false
+mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze -Dnullguard.failBuild=false
 ```
 
 To keep the configuration in the project, merge this plugin into
@@ -36,7 +36,7 @@ To keep the configuration in the project, merge this plugin into
         <plugin>
             <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-maven-plugin</artifactId>
-            <version>2.0.0</version>
+            <version>2.0.1</version>
             <configuration>
                 <failBuild>false</failBuild>
             </configuration>
@@ -72,7 +72,7 @@ Then merge this into **`build.gradle.kts`** for the Java project being analyzed:
 ```kotlin
 plugins {
     java
-    id("com.arinits.nullguard") version "2.0.0"
+    id("com.arinits.nullguard") version "2.0.1"
 }
 
 repositories {
@@ -100,9 +100,9 @@ Run from your Gradle project:
 
 On Windows, use `gradlew.bat nullguard`. No `implementation(...)` dependency or
 manual CLI download is required: the plugin resolves
-`com.arinits.nullguard:nullguard-cli:2.0.0` in a separate tool configuration.
+`com.arinits.nullguard:nullguard-cli:2.0.1` in a separate tool configuration.
 Its Gradle plugin marker is
-`com.arinits.nullguard:com.arinits.nullguard.gradle.plugin:2.0.0`; the `plugins`
+`com.arinits.nullguard:com.arinits.nullguard.gradle.plugin:2.0.1`; the `plugins`
 block resolves this automatically.
 
 Open `build/reports/nullguard/nullguard-dashboard-latest.html`.
@@ -114,7 +114,7 @@ are reported.
 
 ## Mixed languages with the CLI
 
-Download the signed CLI for your platform from the [2.0.0 release](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0). Verify the checksum and signature using the release's instructions. You need Java 21 and the runtimes for the language packs you select.
+Download the signed CLI for your platform from the [2.0.1 release](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.1). Verify the checksum and signature using the release's instructions. You need Java 21 and the runtimes for the language packs you select.
 
 ```bash
 # Installation is explicit; scanning does not install language packs.

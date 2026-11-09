@@ -167,12 +167,12 @@ class NullGuardPluginTest {
 
     @Test void applicationDependencyOverridesCannotDowngradeTheAnalyzerRuntime() throws Exception {
         source("src/main/java/demo/Main.java");
-        Path repo = project.resolve("repo/com/arinits/nullguard/nullguard-cli/2.0.0");
+        Path repo = project.resolve("repo/com/arinits/nullguard/nullguard-cli/2.0.1");
         Files.createDirectories(repo);
-        Files.copy(project.resolve("analyzer.jar"), repo.resolve("nullguard-cli-2.0.0-jar-with-dependencies.jar"));
-        Files.writeString(repo.resolve("nullguard-cli-2.0.0.pom"), """
+        Files.copy(project.resolve("analyzer.jar"), repo.resolve("nullguard-cli-2.0.1-jar-with-dependencies.jar"));
+        Files.writeString(repo.resolve("nullguard-cli-2.0.1.pom"), """
                 <project><modelVersion>4.0.0</modelVersion><groupId>com.arinits.nullguard</groupId>
-                <artifactId>nullguard-cli</artifactId><version>2.0.0</version><dependencies>
+                <artifactId>nullguard-cli</artifactId><version>2.0.1</version><dependencies>
                 <dependency><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><version>3.21.0</version></dependency>
                 </dependencies></project>
                 """);
@@ -186,7 +186,7 @@ class NullGuardPluginTest {
                 tasks.register('verifyToolRuntime') {
                     inputs.files(configurations.nullguardTool)
                     doLast {
-                        assert inputs.files.files*.name == ['nullguard-cli-2.0.0-jar-with-dependencies.jar']
+                        assert inputs.files.files*.name == ['nullguard-cli-2.0.1-jar-with-dependencies.jar']
                     }
                 }
                 """);
@@ -209,7 +209,7 @@ class NullGuardPluginTest {
                 nullguard { cveOnline.set(false) }
                 tasks.named('nullguard') { classpath = files('analyzer.jar') }
                 """);
-        Path cli = Path.of("../nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar").toAbsolutePath().normalize();
+        Path cli = Path.of("../nullguard-cli/target/nullguard-cli-2.0.1-jar-with-dependencies.jar").toAbsolutePath().normalize();
         assertTrue(Files.isRegularFile(cli), "Build the current CLI with mvn -pl nullguard-cli -am package first");
         Files.copy(cli, project.resolve("analyzer.jar"), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         var result = runner("nullguard", "--configuration-cache").build();

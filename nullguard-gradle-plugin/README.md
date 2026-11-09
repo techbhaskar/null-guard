@@ -1,16 +1,16 @@
 # NullGuard for Gradle
 
-Release `2.0.0` is published on Maven Central. The integration resolves the CLI
+Use release `2.0.1` from Maven Central. The integration resolves the CLI
 and its runtime dependencies separately. An authenticated GitHub Packages mirror
 of `2.0.0` is also available; see [registry setup](../docs/github-packages.md).
 
 ## Install from Maven Central
 
-Use **plugin ID `com.arinits.nullguard`, version `2.0.0`** in your Java
+Use **plugin ID `com.arinits.nullguard`, version `2.0.1`** in your Java
 project's `plugins` block. It is a build tool; no application `implementation`
 dependency is needed. Gradle resolves the marker
-`com.arinits.nullguard:com.arinits.nullguard.gradle.plugin:2.0.0` automatically,
-then the plugin resolves `com.arinits.nullguard:nullguard-cli:2.0.0` separately.
+`com.arinits.nullguard:com.arinits.nullguard.gradle.plugin:2.0.1` automatically,
+then the plugin resolves `com.arinits.nullguard:nullguard-cli:2.0.1` separately.
 Both plugin resolution and tool dependency resolution need Maven Central.
 
 Merge Maven Central into plugin resolution in `settings.gradle.kts`:
@@ -26,7 +26,7 @@ Then in `build.gradle.kts`:
 ```kotlin
 plugins {
     java
-    id("com.arinits.nullguard") version "2.0.0"
+    id("com.arinits.nullguard") version "2.0.1"
 }
 repositories { mavenCentral() }
 nullguard {
@@ -46,7 +46,7 @@ pluginManagement {
 ```groovy
 plugins {
     id 'java'
-    id 'com.arinits.nullguard' version '2.0.0'
+    id 'com.arinits.nullguard' version '2.0.1'
 }
 repositories { mavenCentral() }
 nullguard {
@@ -68,8 +68,8 @@ are not analyzed by this integration.
 
 ## Development/composite builds
 
-The source project currently uses version `2.0.0`; unreleased source changes are
-not part of the published 2.0.0 artifacts. To test development changes locally, run
+The source project currently uses version `2.0.1`; unreleased source changes are
+not part of the published release artifacts. To test development changes locally, run
 `mvn install` at the repository root first to install the matching CLI. Add
 `mavenLocal()` to the consuming project's dependency repositories so it can resolve
 that CLI. For this source integration build, replace the settings plugin repository
@@ -81,7 +81,7 @@ in the integration directory and configure `mavenLocal()` for plugin resolution.
 
 | Option | Default | Purpose |
 | --- | --- | --- |
-| `toolVersion` | `2.0.0` | CLI artifact version to resolve |
+| `toolVersion` | `2.0.1` | CLI artifact version to resolve |
 | `failBuild` | `false` | Enable the hotspot build gate |
 | `failThreshold` | `CRITICAL` | LOW, MEDIUM/MODERATE, HIGH, CRITICAL |
 | `runOnCheck` | `false` | Include analysis in `check` |
@@ -113,17 +113,15 @@ or global CLI JAR is needed in consuming projects.
 
 ## Multiple roots and generated sources
 
-In the development integration, main Java sources are analyzed **in place**.
+Since release 2.0.1, main Java sources are analyzed **in place**.
 The CLI receives the original project directory and a small
 `build/tmp/nullguard/source-manifest.properties` file containing selected source
 paths and source roots. No Java source contents are copied. Exclusions are applied
 before that list is written, and reports link to the original files. Multiple roots
 retain their own paths, including generated source folders outside the project.
 
-This requires the matching development CLI and Gradle plugin. Published 2.0.0
-still uses source staging; a new release is required to change that behavior for
-registry installations. Existing old `build/tmp/nullguard/sources` folders are not
-used by the development integration and may be removed as ordinary build output.
+Use CLI and Gradle plugin 2.0.1 together. Published 2.0.0 still uses source staging. Existing old `build/tmp/nullguard/sources` folders are not
+used by 2.0.1 and may be removed as ordinary build output.
 
 To try this with an existing service without editing its build file, first build
 this checkout's CLI with `mvn -pl nullguard-cli -am package`, then run in the service:
@@ -221,11 +219,11 @@ Application dependency management can affect the published 2.0.0 plugin's
 can downgrade the Commons Lang version required by SpotBugs/BCEL. This is an
 analyzer runtime conflict, not a finding in your application's code.
 
-The development plugin now selects the standalone CLI classifier with transitive
+Release 2.0.1 selects the standalone CLI classifier with transitive
 resolution disabled. Its bundled dependencies are isolated from application BOMs.
-This change requires a new plugin release; published 2.0.0 remains unchanged.
+Upgrade the plugin to 2.0.1 to use this fix; published 2.0.0 remains unchanged.
 
-With the published plugin, merge this workaround into `build.gradle.kts`:
+If you must keep plugin 2.0.0, merge this workaround into `build.gradle.kts`:
 
 ```kotlin
 configurations.named("nullguardTool") {
@@ -233,7 +231,7 @@ configurations.named("nullguardTool") {
     withDependencies {
         clear()
         add(project.dependencies.create(
-            "com.arinits.nullguard:nullguard-cli:2.0.0:jar-with-dependencies"
+            "com.arinits.nullguard:nullguard-cli:2.0.1:jar-with-dependencies"
         ))
     }
 }

@@ -104,6 +104,8 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: gradle
           cache-dependency-path: nullguard-gradle-plugin/*.gradle.kts
+      - name: Build matching CLI for Gradle integration tests
+        run: mvn --batch-mode -pl nullguard-cli -am package -DskipTests
       - name: Verify Gradle integration
         working-directory: nullguard-gradle-plugin
         run: ./gradlew check --no-daemon -PtestGradleVersion=${{ matrix.gradle }}

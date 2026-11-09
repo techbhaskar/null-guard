@@ -21,7 +21,7 @@ public final class MultiLanguageRunner {
       throws Exception {
     ObjectNode report = Protocol.JSON.createObjectNode();
     report.put("schemaVersion", "2.0");
-    report.put("analyzerVersion", Protocol.ANALYZER_VERSION);
+    report.put("analyzerVersion", Protocol.RELEASE_VERSION);
     report.put("preview", true);
     report.put("status", "complete");
     report.putArray("projects");

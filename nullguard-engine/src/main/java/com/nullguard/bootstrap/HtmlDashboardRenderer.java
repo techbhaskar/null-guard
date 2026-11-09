@@ -238,7 +238,7 @@ public final class HtmlDashboardRenderer {
                 <div class="brand-logo">NG</div>
                 <div>
                   <div class="brand-title">NullGuard</div>
-                  <div class="brand-sub">Static Intelligence v1.1</div>
+                  <div class="brand-sub">Static Intelligence v2.0.1</div>
                 </div>
               </div>
 

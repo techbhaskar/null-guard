@@ -7,7 +7,7 @@ also supplies source archives for the tag.
 All 13 release components are published as public GitHub Maven packages.
 The Maven registry mirror is
 `https://maven.pkg.github.com/techbhaskar/null-guard`. It uses the same
-`com.arinits.nullguard` coordinates and version `2.0.0` as Maven Central, including
+`com.arinits.nullguard` coordinates and version `2.0.1` as Maven Central, including
 the Gradle implementation and plugin marker. Artifacts are downloaded from Maven Central and their SHA-256 checksums and
 release-key signatures are verified before mirroring, rather than rebuilding them.
 
@@ -36,7 +36,7 @@ URL `https://maven.pkg.github.com/techbhaskar/null-guard`. Keep Maven Central fo
 third-party dependencies.
 
 ```sh
-mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze
+mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze
 ```
 
 ## Gradle
@@ -55,7 +55,7 @@ maven {
 ```
 
 Keep `mavenCentral()` in both places for third-party dependencies, then apply
-`id("com.arinits.nullguard") version "2.0.0"`. The plugin resolves its CLI tool
+`id("com.arinits.nullguard") version "2.0.1"`. The plugin resolves its CLI tool
 through the normal repository block, so configuring only plugin repositories is
 insufficient. Run `./gradlew nullguard` as described in the main README.
 
@@ -76,7 +76,7 @@ No current development binaries are published under an existing release version.
 For a local verification without publishing:
 
 ```sh
-python3 scripts/mirror_github_packages.py --version 2.0.0 --directory /tmp/nullguard-central-mirror
+python3 scripts/mirror_github_packages.py --version 2.0.1 --directory /tmp/nullguard-central-mirror
 ```
 
 Local publication adds `--publish` and reads `GITHUB_PACKAGES_USERNAME` and

@@ -1,6 +1,6 @@
-# Test coverage and code quality dashboard (development)
+# Test coverage and code quality dashboard (2.0.1)
 
-These features are in the development source and require a new CLI/plugin release.
+These features are included in CLI and plugins version 2.0.1.
 
 The generated dashboard has separate **JaCoCo Coverage** and **Code Quality & Fixes** tabs. Existing null analysis, architecture, memory, API, CVE and SAST tabs remain available and are refreshed on each analysis run.
 

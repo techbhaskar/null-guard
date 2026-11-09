@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 REPORT = "nullguard-report-latest.json"
 LANGUAGES = ["java", "python", "javascript", "typescript", "csharp"]
 SKIP = {".git", "node_modules", ".venv", "venv", "vendor", ".gradle"}
@@ -198,7 +198,7 @@ def main(argv=None):
   allprojects { p ->
     if (p.plugins.hasPlugin('com.arinits.nullguard')) {
       p.extensions.getByName('nullguard').failBuild.set(false)
-      p.extensions.getByName('nullguard').toolVersion.set('2.0.0')
+      p.extensions.getByName('nullguard').toolVersion.set('2.0.1')
       p.tasks.withType(JavaExec).configureEach { t ->
         if (t.name == 'nullguard') {
           t.failBuild.set(false)

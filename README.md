@@ -19,9 +19,9 @@ It is intended to answer questions that are difficult to answer with a method-le
 
 NullGuard analyzes source and supporting artifacts without instrumenting or running the analyzed application. Runtime behavior, exploitability and memory leaks require separate verification. Online advisory lookup can send dependency coordinates to OSV; source code is not uploaded by that lookup.
 
-> **Release 2.0.0:** the signed CLI and language packs are [published on GitHub](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0). See the [release notes and verification results](docs/releases/2.0.0.md). New language analyzers remain experimental and report-only.
+> **Release 2.0.1:** see the [release notes](docs/releases/2.0.1.md) for direct source analysis, isolated Gradle runtime, coverage and quality tabs, and current advisory lookup. Native 2.0.0 language packs remain compatible, experimental and report-only.
 
-> **Maven Central:** Maven and Gradle integration artifacts for `2.0.0` are published. Use the exact plugin coordinates in [First run](#first-run).
+> **Maven Central:** Maven and Gradle integration artifacts for `2.0.1` are published. Use the exact plugin coordinates in [First run](#first-run).
 
 ## Capabilities for enterprise workflows
 
@@ -81,11 +81,12 @@ an overall precision estimate.
 - [CI adoption](#suggested-ci-adoption)
 - [Troubleshooting](#troubleshooting)
 
-Installation examples use **2.0.0**, published on Maven Central and mirrored to
+Installation examples use **2.0.1**, published on Maven Central and mirrored to
 [GitHub Packages](docs/github-packages.md). Maven Central requires no GitHub token.
-The signed standalone CLI is on the [2.0.0 GitHub release page](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.0).
-New dashboard features in development source require a subsequent release; the
-published 2.0.0 artifacts retain their original behavior.
+The signed standalone CLI is on the [2.0.1 GitHub release page](https://github.com/techbhaskar/null-guard/releases/tag/v2.0.1).
+Release 2.0.1 includes the JaCoCo and Code Quality & Fixes tabs, current OSV
+lookup by default, and direct source analysis without staging. Published 2.0.0
+artifacts retain their original behavior.
 
 ## Why use NullGuard in microservices?
 
@@ -238,7 +239,7 @@ An empty analysis is reported as `N/A`, not as a perfect score. This prevents pa
 
 ## Requirements
 
-- JDK 21 or newer for the current source build and 2.0.0 JVM distribution
+- JDK 21 or newer for the current source build and 2.0.1 JVM distribution
 - Maven 3.8+ (`3.9.x` recommended)
 - A Java source tree for the native engine, or the appropriate runtime and signed pack for an experimental language (see [pack requirements](docs/multilang/README.md))
 - Graphviz only if you want to render the generated `.dot` graph as SVG or PNG
@@ -258,9 +259,9 @@ no NullGuard checkout or source build is required.
 
 | Your project | Plugin or artifact to use | Reports |
 | --- | --- | --- |
-| Maven (`pom.xml`) | Build plugin `com.arinits.nullguard:nullguard-maven-plugin:2.0.0`, goal `analyze` | `target/nullguard/` |
-| Gradle (`build.gradle` / `build.gradle.kts`) | Plugin ID `com.arinits.nullguard`, version `2.0.0` | `build/reports/nullguard/` |
-| Source folder or custom script | Standalone `nullguard-cli-2.0.0-jar-with-dependencies.jar` from GitHub Releases | `nullguard-out/` or `--output` |
+| Maven (`pom.xml`) | Build plugin `com.arinits.nullguard:nullguard-maven-plugin:2.0.1`, goal `analyze` | `target/nullguard/` |
+| Gradle (`build.gradle` / `build.gradle.kts`) | Plugin ID `com.arinits.nullguard`, version `2.0.1` | `build/reports/nullguard/` |
+| Source folder or custom script | Standalone `nullguard-cli-2.0.1-jar-with-dependencies.jar` from GitHub Releases | `nullguard-out/` or `--output` |
 
 ### Maven: one command or a build plugin
 
@@ -269,7 +270,7 @@ For a one-off scan, run this from the directory containing **your service's
 command needs no POM change:
 
 ```bash
-mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze -Dnullguard.failBuild=false
+mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze -Dnullguard.failBuild=false
 ```
 
 To keep the configuration in the project, merge this plugin into
@@ -281,7 +282,7 @@ To keep the configuration in the project, merge this plugin into
         <plugin>
             <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-maven-plugin</artifactId>
-            <version>2.0.0</version>
+            <version>2.0.1</version>
             <configuration>
                 <failBuild>false</failBuild>
             </configuration>
@@ -317,7 +318,7 @@ Then merge this into **`build.gradle.kts`** for the Java project being analyzed:
 ```kotlin
 plugins {
     java
-    id("com.arinits.nullguard") version "2.0.0"
+    id("com.arinits.nullguard") version "2.0.1"
 }
 
 repositories {
@@ -345,9 +346,9 @@ Run from your Gradle project:
 
 On Windows, use `gradlew.bat nullguard`. No `implementation(...)` dependency or
 manual CLI download is required: the plugin resolves
-`com.arinits.nullguard:nullguard-cli:2.0.0` in a separate tool configuration.
+`com.arinits.nullguard:nullguard-cli:2.0.1` in a separate tool configuration.
 Its Gradle plugin marker is
-`com.arinits.nullguard:com.arinits.nullguard.gradle.plugin:2.0.0`; the `plugins`
+`com.arinits.nullguard:com.arinits.nullguard.gradle.plugin:2.0.1`; the `plugins`
 block resolves this automatically.
 
 Open `build/reports/nullguard/nullguard-dashboard-latest.html`.
@@ -378,11 +379,11 @@ mvn clean verify
 The build runs all module tests and creates the standalone CLI at:
 
 ```text
-nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar
+nullguard-cli/target/nullguard-cli-2.0.1-jar-with-dependencies.jar
 ```
 
-For development, install `2.0.0` into your local Maven repository. Use
-`com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze` to try the
+For development, install `2.0.1` into your local Maven repository. Use
+`com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze` to try the
 GitHub source release from another project (it is not yet on Maven Central):
 
 ```bash
@@ -415,7 +416,7 @@ In `build.gradle.kts`:
 ```kotlin
 plugins {
     java
-    id("com.arinits.nullguard") version "2.0.0"
+    id("com.arinits.nullguard") version "2.0.1"
 }
 
 repositories {
@@ -451,7 +452,7 @@ In `build.gradle`:
 ```groovy
 plugins {
     id 'java'
-    id 'com.arinits.nullguard' version '2.0.0'
+    id 'com.arinits.nullguard' version '2.0.1'
 }
 
 repositories {
@@ -488,7 +489,7 @@ JSON, including when an enabled hotspot gate fails after successful analysis.
 
 | Setting | Default | What it controls |
 | --- | --- | --- |
-| `toolVersion` | `2.0.0` (Central) / `2.0.0` (source) | Analyzer version, independent of the Gradle plugin version |
+| `toolVersion` | `2.0.1` | Analyzer version, independent of the Gradle plugin version |
 | `failBuild` | `false` | Fail on an architectural hotspot at the configured threshold |
 | `failThreshold` | `CRITICAL` | `LOW`, `MEDIUM`/`MODERATE`, `HIGH`, or `CRITICAL` |
 | `runOnCheck` | `false` | Make the existing Gradle `check` task depend on analysis |
@@ -520,7 +521,7 @@ Declare the plugin version once in the root build:
 
 ```kotlin
 plugins {
-    id("com.arinits.nullguard") version "2.0.0" apply false
+    id("com.arinits.nullguard") version "2.0.1" apply false
 }
 ```
 
@@ -545,9 +546,9 @@ its own `build/reports/nullguard/`. There is no combined cross-module dashboard 
 source-level cross-module graph in this release. Projects without main Java
 inputs are `NO-SOURCE`, not evidence that their application code is null-safe.
 
-The development integration analyzes original files across main Java roots,
+Release 2.0.1 analyzes original files across main Java roots,
 preserving exclusions and source locations without copying source contents.
-Published 2.0.0 still stages sources; direct analysis requires the matching development CLI and plugin. See
+Direct analysis requires matching CLI and plugin versions 2.0.1 or later; published 2.0.0 still stages sources. See
 [the integration guide](nullguard-gradle-plugin/README.md#multiple-roots-and-generated-sources)
 for custom/generated roots, toolchains and development builds.
 
@@ -560,13 +561,13 @@ The Maven plugin is the simplest and most accurate way to analyze a Maven-based 
 Run this command from the Java service you want to analyze:
 
 ```bash
-mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze
+mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze
 ```
 
 To analyze one NullGuard module as a smoke test:
 
 ```bash
-mvn -f nullguard-core/pom.xml com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze -Dnullguard.failBuild=false
+mvn -f nullguard-core/pom.xml com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze -Dnullguard.failBuild=false
 ```
 
 ### Add it to a service build
@@ -579,7 +580,7 @@ Add the plugin to the target service's `pom.xml`:
         <plugin>
             <groupId>com.arinits.nullguard</groupId>
             <artifactId>nullguard-maven-plugin</artifactId>
-            <version>2.0.0</version>
+            <version>2.0.1</version>
             <executions>
                 <execution>
                     <id>nullguard-analysis</id>
@@ -637,13 +638,13 @@ Use the CLI for local exploration, scripts, or source trees that are not being i
 From the NullGuard repository:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar path/to/service/src/main/java
+java -jar nullguard-cli/target/nullguard-cli-2.0.1-jar-with-dependencies.jar path/to/service/src/main/java
 ```
 
 Choose a report directory and enable a CI-style failure policy:
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-2.0.1-jar-with-dependencies.jar \
   path/to/service/src/main/java \
   --output=build/nullguard \
   --fail-build \
@@ -653,7 +654,7 @@ java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar \
 PowerShell uses a backtick for line continuation:
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-2.0.1-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   --output=C:\work\orders-service\target\nullguard `
   --fail-build `
@@ -665,13 +666,13 @@ java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar `
 For best results, supply the service's compiled classes and dependency JARs with `--classpath`. Entries use the operating system's path separator: `;` on Windows and `:` on Linux/macOS.
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-2.0.1-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   "--classpath=C:\work\orders-service\target\classes;C:\libs\shared-contracts.jar"
 ```
 
 ```bash
-java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar \
+java -jar nullguard-cli/target/nullguard-cli-2.0.1-jar-with-dependencies.jar \
   /work/orders-service/src/main/java \
   --classpath=/work/orders-service/target/classes:/work/libs/shared-contracts.jar
 ```
@@ -679,7 +680,7 @@ java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar \
 The dashboard's dedicated SAST section runs SpotBugs with FindSecBugs against compiled classes. The Maven integration scans its main output after compilation. Gradle supplies its main output directory when it exists but does not compile the application just to run NullGuard; run `classes` before `nullguard` for a SAST result. For the standalone CLI, compiled Maven outputs (`target/classes`) are discovered recursively beneath the supplied project path. You can use `--sast-classes` to explicitly select directories instead; this is separate from `--classpath`, which supplies types for source analysis:
 
 ```powershell
-java -jar nullguard-cli/target/nullguard-cli-2.0.0-jar-with-dependencies.jar `
+java -jar nullguard-cli/target/nullguard-cli-2.0.1-jar-with-dependencies.jar `
   C:\work\orders-service\src\main\java `
   "--sast-classes=C:\work\orders-service\target\classes"
 ```
@@ -727,7 +728,7 @@ HTML generation is automatic across Maven, Gradle, and the standalone CLI:
 
 | Integration | Generate reports | HTML file to open |
 | --- | --- | --- |
-| Maven, one-off | `mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze` | `target/nullguard/nullguard-dashboard-latest.html` |
+| Maven, one-off | `mvn com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze` | `target/nullguard/nullguard-dashboard-latest.html` |
 | Maven, configured in `verify` | `mvn verify` | `target/nullguard/nullguard-dashboard-latest.html` |
 | Gradle, plugin configured | `./gradlew nullguard` | `build/reports/nullguard/nullguard-dashboard-latest.html` |
 | Gradle, `runOnCheck=true` | `./gradlew check` | `build/reports/nullguard/nullguard-dashboard-latest.html` |
@@ -916,7 +917,7 @@ if (name == null) return 0;
 return name.length();
 ```
 
-Rerun analysis and check the specific `NG001` finding. The development Gradle
+Rerun analysis and check the specific `NG001` finding. Gradle 2.0.1
 integration writes SARIF source URIs for the original files. Published 2.0.0 uses
 the staged tree under `build/tmp/nullguard/sources`; retain that tree when
 inspecting reports produced by that release.
@@ -1210,7 +1211,7 @@ python scripts/validate_sarif.py nullguard-cli/target/ci-reports/nullguard-resul
 Run the checked-in sample service after installing NullGuard:
 
 ```bash
-mvn -f examples/orders-service/pom.xml com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze -Dnullguard.failBuild=true -Dnullguard.failThreshold=HIGH
+mvn -f examples/orders-service/pom.xml com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze -Dnullguard.failBuild=true -Dnullguard.failThreshold=HIGH
 ```
 
 This intentionally risky fixture should fail the gate while writing reports. It uses minimal annotation stand-ins for testing source analysis, rather than running an HTTP server.
@@ -1282,7 +1283,7 @@ The Maven goal requires a Maven project. Run it in the directory containing
 `pom.xml`, or point Maven at it:
 
 ```bash
-mvn -f path/to/pom.xml com.arinits.nullguard:nullguard-maven-plugin:2.0.0:analyze
+mvn -f path/to/pom.xml com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze
 ```
 
 If the project has `build.gradle` or `build.gradle.kts`, use the Gradle integration.
