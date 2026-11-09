@@ -1,0 +1,13 @@
+// Workaround for published plugins that resolve the CLI's transitive dependencies.
+// Run: ./gradlew -I /path/to/isolated-runtime.gradle nullguard
+allprojects { consumer ->
+    consumer.plugins.withId('com.arinits.nullguard') {
+        def tool = consumer.configurations.getByName('nullguardTool')
+        tool.transitive = false
+        tool.dependencies.clear()
+        def extension = consumer.extensions.getByName('nullguard')
+        consumer.dependencies.addProvider('nullguardTool', extension.toolVersion.map { version ->
+            "com.arinits.nullguard:nullguard-cli:${version}:jar-with-dependencies"
+        })
+    }
+}

@@ -193,3 +193,38 @@ also analyzed successfully (5 modeled methods, 2 findings using analyzer 1.0.0),
 with JSON/SARIF/HTML output. The local Maven plugin marker/implementation can be
 consumed through the normal versioned plugins DSL without a composite build.
 CI additionally checks JDK 17/21 against both Gradle versions.
+
+## SpotBugs fails with `NoClassDefFoundError: org/apache/commons/lang3/Strings`
+
+Application dependency management can affect the published 2.0.0 plugin's
+`nullguardTool` configuration. For example, Spring's dependency-management plugin
+can downgrade the Commons Lang version required by SpotBugs/BCEL. This is an
+analyzer runtime conflict, not a finding in your application's code.
+
+The development plugin now selects the standalone CLI classifier with transitive
+resolution disabled. Its bundled dependencies are isolated from application BOMs.
+This change requires a new plugin release; published 2.0.0 remains unchanged.
+
+With the published plugin, merge this workaround into `build.gradle.kts`:
+
+```kotlin
+configurations.named("nullguardTool") {
+    isTransitive = false
+    withDependencies {
+        clear()
+        add(project.dependencies.create(
+            "com.arinits.nullguard:nullguard-cli:2.0.0:jar-with-dependencies"
+        ))
+    }
+}
+```
+
+Alternatively, if you have a NullGuard checkout, run without editing the service:
+
+```sh
+./gradlew -I /path/to/null-guard/nullguard-gradle-plugin/scripts/isolated-runtime.gradle nullguard
+```
+
+The workaround changes the analyzer runtime only. Your application's dependencies
+and its analysis auxiliary classpath remain unchanged. Do not add scanner runtime
+libraries to application `implementation` dependencies to resolve this error.

@@ -110,7 +110,7 @@ class NullGuardPluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, runner("nullguard").build().task(":nullguard").getOutcome());
         String invocation = Files.readString(project.resolve("build/reports/nullguard/invocation.txt"));
-        assertTrue(invocation.contains("SAST_CLASSES:" + classes), invocation);
+        assertTrue(invocation.contains("SAST_CLASSES:" + classes.toRealPath()), invocation);
     }
     @Test void defaultsToOnlineLookupAndSupportsAnExplicitOfflineSetting() throws Exception {
         source("src/main/java/demo/Main.java");
@@ -155,6 +155,37 @@ class NullGuardPluginTest {
         runner(":service:nullguard").build();
         assertTrue(Files.exists(service.resolve("build/reports/nullguard/invocation.txt")));
         assertFalse(Files.exists(project.resolve("build/reports/nullguard/invocation.txt")));
+    }
+
+    @Test void applicationDependencyOverridesCannotDowngradeTheAnalyzerRuntime() throws Exception {
+        source("src/main/java/demo/Main.java");
+        Path repo = project.resolve("repo/com/arinits/nullguard/nullguard-cli/2.0.0");
+        Files.createDirectories(repo);
+        Files.copy(project.resolve("analyzer.jar"), repo.resolve("nullguard-cli-2.0.0-jar-with-dependencies.jar"));
+        Files.writeString(repo.resolve("nullguard-cli-2.0.0.pom"), """
+                <project><modelVersion>4.0.0</modelVersion><groupId>com.arinits.nullguard</groupId>
+                <artifactId>nullguard-cli</artifactId><version>2.0.0</version><dependencies>
+                <dependency><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><version>3.21.0</version></dependency>
+                </dependencies></project>
+                """);
+        Files.writeString(project.resolve("build.gradle"), """
+                plugins { id 'java'; id 'com.arinits.nullguard' }
+                repositories { maven { url = uri('repo') } }
+                configurations.configureEach {
+                    resolutionStrategy.force 'org.apache.commons:commons-lang3:3.17.0'
+                }
+                assert !configurations.nullguardTool.transitive
+                tasks.register('verifyToolRuntime') {
+                    inputs.files(configurations.nullguardTool)
+                    doLast {
+                        assert inputs.files.files*.name == ['nullguard-cli-2.0.0-jar-with-dependencies.jar']
+                    }
+                }
+                """);
+        var result = runner("verifyToolRuntime", "nullguard", "--configuration-cache").build();
+        assertEquals(TaskOutcome.SUCCESS, result.task(":nullguard").getOutcome());
+        assertTrue(Files.exists(project.resolve("build/reports/nullguard/invocation.txt")));
+        assertTrue(runner("verifyToolRuntime", "nullguard", "--configuration-cache").build().getOutput().contains("Reusing configuration cache"));
     }
 
     @Test void publishedCliAnalyzesJavaWithoutCompilingTheApplication() throws Exception {
