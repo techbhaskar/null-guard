@@ -1,10 +1,17 @@
 # NullGuard for Gradle
 
-Release `1.1.1` is published on Maven Central. The integration resolves the CLI
+Release `2.0.0` is published on Maven Central. The integration resolves the CLI
 and its runtime dependencies separately. An authenticated GitHub Packages mirror
-of `1.1.0` is also available; see [registry setup](../docs/github-packages.md).
+of `2.0.0` is also available; see [registry setup](../docs/github-packages.md).
 
 ## Install from Maven Central
+
+Use **plugin ID `com.arinits.nullguard`, version `2.0.0`** in your Java
+project's `plugins` block. It is a build tool; no application `implementation`
+dependency is needed. Gradle resolves the marker
+`com.arinits.nullguard:com.arinits.nullguard.gradle.plugin:2.0.0` automatically,
+then the plugin resolves `com.arinits.nullguard:nullguard-cli:2.0.0` separately.
+Both plugin resolution and tool dependency resolution need Maven Central.
 
 Merge Maven Central into plugin resolution in `settings.gradle.kts`:
 
@@ -19,7 +26,7 @@ Then in `build.gradle.kts`:
 ```kotlin
 plugins {
     java
-    id("com.arinits.nullguard") version "1.1.1"
+    id("com.arinits.nullguard") version "2.0.0"
 }
 repositories { mavenCentral() }
 nullguard {
@@ -39,7 +46,7 @@ pluginManagement {
 ```groovy
 plugins {
     id 'java'
-    id 'com.arinits.nullguard' version '1.1.1'
+    id 'com.arinits.nullguard' version '2.0.0'
 }
 repositories { mavenCentral() }
 nullguard {
@@ -55,13 +62,14 @@ entry is required.
 
 Open `build/reports/nullguard/nullguard-dashboard-latest.html`. The integration
 creates a searchable offline HTML report from the CLI JSON; JSON and SARIF are
-in the same directory. Use Java 17 or newer. Existing Java-library/Spring Boot
+in the same directory. Use Java 21 or newer to run the analyzer. Existing Java-library/Spring Boot
 plugins can supply the Java source sets; do not apply Java twice. Kotlin sources
 are not analyzed by this integration.
 
 ## Development/composite builds
 
-The current source version is `1.1.2`, not yet published to Maven Central. Run
+The source project currently uses version `2.0.0`; unreleased source changes are
+not part of the published 2.0.0 artifacts. To test development changes locally, run
 `mvn install` at the repository root first to install the matching CLI. Add
 `mavenLocal()` to the consuming project's dependency repositories so it can resolve
 that CLI. For this source integration build, replace the settings plugin repository
@@ -73,7 +81,7 @@ in the integration directory and configure `mavenLocal()` for plugin resolution.
 
 | Option | Default | Purpose |
 | --- | --- | --- |
-| `toolVersion` | `1.1.2` (source) / `1.1.1` (Central release) | CLI artifact version to resolve |
+| `toolVersion` | `2.0.0` | CLI artifact version to resolve |
 | `failBuild` | `false` | Enable the hotspot build gate |
 | `failThreshold` | `CRITICAL` | LOW, MEDIUM/MODERATE, HIGH, CRITICAL |
 | `runOnCheck` | `false` | Include analysis in `check` |
