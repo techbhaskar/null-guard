@@ -1,5 +1,5 @@
-> Release 2.0.0 is published on Maven Central and GitHub Packages. Release 2.0.1
-> is being prepared; confirm its publication before announcing availability.
+> Releases 2.0.0 and 2.0.1 are published on Maven Central and GitHub Packages.
+> The 2.0.1 deployment reached `PUBLISHED`; see [release verification](releases/2.0.1.md).
 
 # Publishing to Maven Central
 
