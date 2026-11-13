@@ -209,6 +209,7 @@ public class NullGuardMojo extends AbstractMojo {
         Path htmlLatest = outputDir.resolve("nullguard-dashboard-latest.html");
         HtmlDashboardRenderer.write(htmlLatest, result, timestamp, project.getName());
         Files.copy(htmlLatest, htmlFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        com.nullguard.bootstrap.RunHistory.write(outputDir);
 
         getLog().info("JSON report    → " + jsonLatest.toAbsolutePath());
         getLog().info("OpenAPI spec   → " + openApiLatest.toAbsolutePath());

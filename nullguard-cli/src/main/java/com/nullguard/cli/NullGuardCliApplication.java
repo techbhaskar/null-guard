@@ -358,6 +358,11 @@ public final class NullGuardCliApplication {
             Path name = sourcePath == null ? null : sourcePath.toAbsolutePath().normalize().getFileName();
             Path htmlFile = outputDir.resolve("nullguard-dashboard-latest.html");
             HtmlDashboardRenderer.write(htmlFile, result, timestamp, name == null ? "project" : name.toString());
+            Files.copy(jsonFile, outputDir.resolve("nullguard-report-" + timestamp + ".json"),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(htmlFile, outputDir.resolve("nullguard-dashboard-" + timestamp + ".html"),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            com.nullguard.bootstrap.RunHistory.write(outputDir);
             System.out.println("Reports written to: " + outputDir.toAbsolutePath());
         } catch (Exception e) {
             System.err.println("[NullGuard] WARNING: Failed to write reports – " + e.getMessage());

@@ -314,7 +314,8 @@ public final class HtmlDashboardRenderer {
                   </div>
                   <button class="btn btn-ghost" onclick="toggleTheme()" id="themeBtn" title="Switch Light / Dark Theme">Light Theme</button>
                   <a class="btn btn-ghost" href="nullguard-openapi.json" download="nullguard-openapi.json">OpenAPI JSON</a>
-                  <a class="btn" href="nullguard-report-latest.json" download="nullguard-report-latest.json">Full Report JSON</a>
+                  <a class="btn" id="fullReportJson" href="nullguard-report-latest.json" download="nullguard-report-latest.json">Full Report JSON</a>
+                  <a class="btn btn-ghost" href="nullguard-history.html">Run History</a>
                 </div>
               </header>
 
@@ -503,6 +504,12 @@ public final class HtmlDashboardRenderer {
             </main>
 
             <script>
+            const archive = location.pathname.split('/').pop().match(/^nullguard-dashboard-([0-9]{8}_[0-9]{6}(?:_[0-9]+)?)[.]html$/);
+            if (archive) {
+              const link = document.getElementById('fullReportJson');
+              link.download = 'nullguard-report-' + archive[1] + '.json';
+              link.href = link.download;
+            }
             const data = """.formatted(safeProject, safeProject, safeTimestamp, cycleSection.toString()));
 
         result.getVisualizations().writeJsonForScript(out);

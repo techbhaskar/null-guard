@@ -974,6 +974,55 @@ nullguard {
 Archive `target/nullguard/` (Maven) or `**/build/reports/nullguard/` (Gradle) as CI
 artifacts **even on failure**.
 
+### Review previous scans
+
+Open **Run History** from the Java dashboard or open `nullguard-history.html`
+in the report directory. The page shows the finding trend, links to timestamped
+HTML and JSON reports, and compares two runs by exact finding contents. Runs
+with only an HTML dashboard still appear with their original dashboard link.
+Run NullGuard again to refresh the page from saved reports in that directory.
+
+### Find similar findings with SochDB
+
+Search saved NullGuard JSON reports by describing a finding. The optional Python
+command accepts both Java and multi-language JSON reports and returns matches
+with their original finding details, report paths, and vector distances. From
+the repository root, scan the bundled orders service to create a first report:
+
+```sh
+mvn -f examples/orders-service/pom.xml com.arinits.nullguard:nullguard-maven-plugin:2.0.1:analyze "-Dnullguard.failBuild=false"
+python -m pip install -r scripts/requirements-sochdb.txt
+python scripts/find_similar_findings.py examples/orders-service/target/nullguard/nullguard-report-latest.json --query "Possible null dereference after a lookup" --limit 3
+```
+
+The first search downloads the embedding model. Embedding and SochDB search run
+locally. The command builds an in-memory index from the supplied reports on each
+invocation. Smaller distances indicate closer matches.
+Identical findings for the same project appear once, with their source reports
+listed in `reports`. The `report` field gives the first source report.
+
+#### Search from Run History on Windows
+
+Generate `nullguard-history.html` by running the updated analyzer. From the
+repository root in PowerShell, install the dependencies and start the server
+with the directory containing that page and your timestamped JSON reports:
+
+```powershell
+python -m pip install -r scripts/requirements-sochdb.txt
+python scripts/find_similar_findings.py --serve "examples/orders-service/target/nullguard"
+```
+
+Keep PowerShell running. Open [Run History](http://127.0.0.1:8765/) in your
+browser and enter a finding description under **Find similar findings**.
+Results link to the saved scans where each finding appeared. The server indexes
+timestamped JSON reports on the first search and refreshes when those files change.
+
+Opening `nullguard-history.html` directly lets you browse and compare runs
+offline. Use the server URL for SochDB search. If Electron or Chromium warns
+that `serve` is an unknown option, PowerShell opened the script using the
+`.py` file association. Run the full command above, starting with `python`
+and supplying the report directory after `--serve`.
+
 ### Baselines and independent gates
 
 With a source build containing these changes, run in report-only mode and copy

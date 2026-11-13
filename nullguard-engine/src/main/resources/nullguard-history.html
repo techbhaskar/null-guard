@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run History | NullGuard</title>
+<style>
+  :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #0c1320; color: #eef3fa; }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  main { max-width: 1180px; margin: auto; padding: 32px clamp(16px, 4vw, 48px); }
+  a { color: #87d9ff; text-underline-offset: 3px; }
+  h1 { font-size: clamp(2rem, 6vw, 3rem); margin: 18px 0 8px; letter-spacing: -.04em; }
+  h2 { margin: 0; font-size: 1.15rem; }
+  p { color: #afbed1; line-height: 1.5; }
+  section { background: #131e2e; border: 1px solid #2a3b51; border-radius: 14px; margin: 20px 0; padding: clamp(14px, 3vw, 24px); }
+  .section-head, .controls { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+  .controls { justify-content: flex-start; }
+  select, .bar { font: inherit; color: inherit; background: #1c2b3f; border: 1px solid #465d78; border-radius: 6px; }
+  select { padding: 6px 10px; }
+  #lookup input, #lookup button { font: inherit; color: inherit; background: #1c2b3f; border: 1px solid #465d78; border-radius: 6px; padding: 8px 12px; }
+  #lookup input { flex: 1; min-width: 12rem; }
+  #lookup button { cursor: pointer; }
+  #lookup-results li { margin: 12px 0; overflow-wrap: anywhere; }
+  #lookup-results a { margin-right: 12px; }
+  .chart-scroll, .table-scroll { overflow-x: auto; }
+  .chart { display: flex; gap: 12px; min-height: 184px; margin-top: 16px; }
+  .bar { display: grid; grid-template-rows: 18px 120px auto; align-items: end; justify-items: center; gap: 5px; padding: 8px; min-width: 105px; cursor: pointer; flex: 1; }
+  .bar span { width: min(56px, 100%); background: #57baf0; border-radius: 5px 5px 0 0; }
+  .bar small { color: #c6d3e3; }
+  .bar[aria-pressed="true"], tr.selected { background: #25445e; }
+  .bar:focus-visible, a:focus-visible, select:focus-visible { outline: 2px solid #a0deff; outline-offset: 2px; }
+  table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 10px; }
+  th, td { padding: 11px 10px; border-bottom: 1px solid #2a3b51; white-space: nowrap; }
+  th { color: #afbed1; font-size: .85rem; }
+  td a + a { margin-left: 12px; }
+  #comparison details { margin: 10px 0; }
+  #comparison summary { cursor: pointer; }
+  #comparison li { margin: 6px 0; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<main>
+  <a id="latest-dashboard" href="nullguard-dashboard-latest.html">Latest dashboard</a>
+  <h1>Run History</h1>
+  <p id="overview"></p>
+  <section aria-labelledby="trend-title">
+    <div class="section-head">
+      <h2 id="trend-title">Findings over time</h2>
+      <label>Metric
+        <select id="metric">
+          <option value="">Total findings</option><option value="error">Errors</option>
+          <option value="warning">Warnings</option><option value="note">Notes</option>
+        </select>
+      </label>
+    </div>
+    <div class="chart-scroll"><div id="trend" class="chart"></div></div>
+  </section>
+  <section aria-labelledby="runs-title">
+    <h2 id="runs-title">Saved runs</h2>
+    <div class="table-scroll"><table>
+      <thead><tr><th scope="col">Run timestamp</th><th scope="col">Total</th>
+        <th scope="col">Errors</th><th scope="col">Warnings</th><th scope="col">Notes</th>
+        <th scope="col">Change</th><th scope="col">Reports</th></tr></thead>
+      <tbody id="runs"></tbody>
+    </table></div>
+  </section>
+  <section aria-labelledby="compare-title">
+    <div class="section-head">
+      <h2 id="compare-title">Compare runs</h2>
+      <div class="controls">
+        <label>Base run <select id="base"></select></label>
+        <label>Compare with <select id="target"></select></label>
+      </div>
+    </div>
+    <div id="comparison"></div>
+  </section>
+  <section id="lookup" aria-labelledby="lookup-title">
+    <h2 id="lookup-title">Find similar findings</h2>
+    <p id="lookup-status" role="status"></p>
+    <form id="lookup-form" class="controls">
+      <label for="lookup-query">Finding description</label>
+      <input id="lookup-query" type="search" required maxlength="500">
+      <button type="submit">Search with SochDB</button>
+    </form>
+    <ol id="lookup-results"></ol>
+  </section>
+</main>
+<script type="application/json" id="run-data">{{RUN_DATA}}</script>
+<script>
+  const rawData = document.getElementById('run-data').textContent;
+  const sourceTemplate = !rawData.startsWith('[');
+  const runs = sourceTemplate ? [] : JSON.parse(rawData);
+  const available = runs.filter(run => Array.isArray(run.findings));
+  const metric = document.getElementById('metric');
+  const trend = document.getElementById('trend');
+  const base = document.getElementById('base');
+  const target = document.getElementById('target');
+  const comparison = document.getElementById('comparison');
+  const rows = new Map();
+  let selectedRun;
+
+  function element(tag, text, parent) {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    parent.append(node);
+    return node;
+  }
+
+  function timestamp(id) {
+    const [date, time, suffix] = id.split('_');
+    const label = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6)} ${time.match(/../g).join(':')}`;
+    return suffix ? `${label} (${suffix})` : label;
+  }
+
+  function count(run, severity = '') {
+    if (!Array.isArray(run?.findings)) return null;
+    return severity ? run.findings.filter(finding => finding?.severity === severity).length : run.findings.length;
+  }
+
+  document.getElementById('overview').textContent = runs.length
+    ? `${runs.length} saved ${runs.length === 1 ? 'run' : 'runs'}. Change compares each run with the immediately preceding scan.`
+    : 'No saved runs found in this report directory.';
+  if (sourceTemplate) {
+    const overview = document.getElementById('overview');
+    overview.textContent = 'This is the Run History source template. Open nullguard-history.html in your scan output directory, usually target/nullguard for Maven.';
+    document.getElementById('latest-dashboard').hidden = true;
+    for (const section of document.querySelectorAll('main > section')) section.hidden = true;
+  }
+
+  runs.forEach((run, index) => {
+    const row = element('tr', '', document.getElementById('runs'));
+    rows.set(run.id, row);
+    const heading = element('th', timestamp(run.id), row);
+    heading.scope = 'row';
+    const total = count(run);
+    const previous = count(runs[index + 1]);
+    const change = total === null || previous === null ? null : total - previous;
+    for (const value of [total, count(run, 'error'), count(run, 'warning'), count(run, 'note')]) {
+      element('td', value ?? 'Unavailable', row);
+    }
+    element('td', change === null ? '—' : change > 0 ? `+${change}` : change, row);
+    const actions = element('td', '', row);
+    if (run.dashboard) element('a', 'Open dashboard', actions).href = run.dashboard;
+    if (run.report) {
+      const link = element('a', 'Download JSON', actions);
+      link.href = run.report;
+      link.download = run.report;
+    }
+  });
+
+  function drawTrend() {
+    trend.replaceChildren();
+    if (!available.length) {
+      element('p', 'Finding counts are unavailable for these runs.', trend);
+      return;
+    }
+    const counts = available.map(run => count(run, metric.value));
+    const max = counts.reduce((highest, value) => Math.max(highest, value), 1);
+    for (let index = available.length - 1; index >= 0; index--) {
+      const run = available[index];
+      const bar = element('button', '', trend);
+      bar.type = 'button';
+      bar.className = 'bar';
+      bar.setAttribute('aria-label', `${timestamp(run.id)}, ${counts[index]} ${metric.selectedOptions[0].text.toLowerCase()}`);
+      bar.setAttribute('aria-pressed', String(run.id === selectedRun));
+      element('strong', counts[index], bar);
+      element('span', '', bar).style.height = `${100 * counts[index] / max}%`;
+      element('small', timestamp(run.id), bar);
+      bar.addEventListener('click', () => {
+        selectedRun = run.id;
+        for (const [id, row] of rows) row.classList.toggle('selected', id === selectedRun);
+        for (const button of trend.children) button.setAttribute('aria-pressed', String(button === bar));
+        rows.get(run.id).scrollIntoView({block: 'nearest', inline: 'nearest'});
+      });
+    }
+  }
+
+  function findingKey(finding) {
+    return JSON.stringify(finding, (_, value) => value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]]))
+      : value);
+  }
+
+  function compare() {
+    comparison.replaceChildren();
+    if (available.length < 2 || base.value === target.value) {
+      element('p', available.length < 2 ? 'Two runs with finding data are needed.' : 'Choose two different runs.', comparison);
+      return;
+    }
+    const from = new Map(available.find(run => run.id === base.value).findings.map(f => [findingKey(f), f]));
+    const to = new Map(available.find(run => run.id === target.value).findings.map(f => [findingKey(f), f]));
+    const added = [...to].filter(([key]) => !from.has(key));
+    const removed = [...from].filter(([key]) => !to.has(key));
+    for (const [label, entries] of [['Appeared', added], ['Disappeared', removed],
+      ['Present in both', [...to].filter(([key]) => from.has(key))]]) {
+      const details = element('details', '', comparison);
+      element('summary', `${label} (${entries.length})`, details);
+      if (!entries.length) continue;
+      const list = element('ul', '', details);
+      for (const [, finding] of entries) {
+        const location = finding?.location;
+        const source = location?.path ? ` · ${location.path}:${location.startLine ?? '?'}` : '';
+        element('li', `${finding?.ruleId ?? ''} ${finding?.message ?? ''}${source}`, list);
+      }
+    }
+  }
+
+  for (const control of [base, target]) {
+    for (const run of available) element('option', timestamp(run.id), control).value = run.id;
+    control.disabled = available.length < 2;
+    control.addEventListener('change', compare);
+  }
+  if (available.length > 1) base.selectedIndex = 1;
+  metric.addEventListener('change', drawTrend);
+  drawTrend();
+  compare();
+
+  const lookupForm = document.getElementById('lookup-form');
+  const lookupStatus = document.getElementById('lookup-status');
+  const lookupResults = document.getElementById('lookup-results');
+  if (location.protocol === 'file:') {
+    lookupForm.hidden = true;
+    lookupForm.style.display = 'none';
+    const reportDirectory = decodeURIComponent(location.pathname.replace(/\/[^/]*$/, '')).replace(/^\/([A-Za-z]:\/)/, '$1');
+    lookupStatus.textContent = 'From the NullGuard repository root, run the command below, then open the URL it prints.';
+    const command = element('pre', '', document.getElementById('lookup'));
+    command.style.whiteSpace = 'pre-wrap';
+    element('code', 'python scripts/find_similar_findings.py --serve "' + reportDirectory + '"', command);
+  }
+  lookupForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const query = document.getElementById('lookup-query').value.trim();
+    if (!query) return;
+    const button = lookupForm.querySelector('button');
+    button.disabled = true;
+    lookupResults.replaceChildren();
+    lookupStatus.textContent = 'Searching saved runs. The first search may download the embedding model.';
+    try {
+      const response = await fetch('/api/similar-findings?' + new URLSearchParams({q: query}));
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      lookupStatus.textContent = result.matches.length ? 'Closest matches across saved runs' : 'No findings available to search.';
+      for (const match of result.matches) {
+        const item = element('li', '', lookupResults);
+        const finding = match.finding;
+        element('strong', [finding.ruleId, finding.message].filter(Boolean).join(' '), item);
+        const location = finding.location;
+        if (location?.path) element('div', location.path + ':' + (location.startLine ?? '?'), item);
+        const links = element('div', '', item);
+        for (const report of match.reports) {
+          const run = runs.find(run => run.report === report);
+          const link = element('a', run ? timestamp(run.id) : report, links);
+          link.href = run?.dashboard || report;
+        }
+      }
+    } catch (error) {
+      lookupStatus.textContent = 'SochDB lookup failed. ' + error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
