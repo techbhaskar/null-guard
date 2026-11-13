@@ -66,7 +66,8 @@ public final class ReachableCveScanner {
             List<String> classOrMethodTokens
     ) {}
 
-    public record ScanOutcome(List<Finding> findings, Map<String, Object> cveSummary) {}
+    public record ScanOutcome(List<Finding> findings, Map<String, Object> cveSummary,
+                              List<BuildPolicy.Candidate> gateCandidates) {}
 
     private static final List<AdvisoryEntry> BUILTIN_CATALOG = List.of(
             new AdvisoryEntry(
@@ -184,7 +185,7 @@ public final class ReachableCveScanner {
                         matched.add(new MatchedVulnerability(id, name, match.dependency().version(),
                                 fixes.isEmpty() ? "Not provided; review advisory" : String.join(", ", fixes),
                                 detail.path("severity").asText("UNKNOWN"), null,
-                                detail.path("summary").asText(), List.of(name.substring(0, name.indexOf(':'))), List.of()));
+                                detail.path("summary").asText(), List.of(), List.of()));
                         metadata.put(id + "@" + name + "@" + match.dependency().version(),
                                 new ObjectMapper().convertValue(detail, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}));
                     }
@@ -227,7 +228,8 @@ public final class ReachableCveScanner {
         // Deduplicate by CVE ID + dependency
         Map<String, MatchedVulnerability> uniqueVulns = new LinkedHashMap<>();
         for (MatchedVulnerability v : matched) {
-            uniqueVulns.putIfAbsent(v.cveId() + "@" + v.dependency() + "@" + v.version(), v);
+            uniqueVulns.merge(v.cveId() + "@" + v.dependency() + "@" + v.version(), v,
+                    (first, next) -> next.affectedMethods().isEmpty() ? first : next);
         }
 
         // Build method index and fallback location for project-level findings
@@ -249,6 +251,7 @@ public final class ReachableCveScanner {
 
         List<Finding> cveFindings = new ArrayList<>();
         List<Map<String, Object>> vulnRecords = new ArrayList<>();
+        List<BuildPolicy.Candidate> gateCandidates = new ArrayList<>();
         int apiReachableCount = 0;
         int codeReachableCount = 0;
         int unreachableCount = 0;
@@ -256,9 +259,34 @@ public final class ReachableCveScanner {
         for (MatchedVulnerability vuln : uniqueVulns.values()) {
             Set<String> directCallerMethods = findDirectCallers(vuln, methodById, callGraph);
             List<String> affectedEndpoints = new ArrayList<>();
+            Map<String, Set<String>> exactCalls = new LinkedHashMap<>();
+            Set<String> resolvedEndpoints = new LinkedHashSet<>();
+            if (!vuln.affectedMethods().isEmpty()) {
+                methodById.forEach((id, method) -> {
+                    for (SemanticCallSite site : method.getSemanticCallSites()) {
+                        var target = site.getResolvedTarget().orElse(null);
+                        if (target == null) continue;
+                        String signature = target.declaringType() + MethodIds.SIGNATURE_SEPARATOR
+                                + target.canonicalSignature().replace(" ", "");
+                        if (vuln.affectedMethods().contains(signature)) {
+                            exactCalls.computeIfAbsent(id, ignored -> new LinkedHashSet<>()).add(signature);
+                        }
+                    }
+                });
+                directCallerMethods.addAll(exactCalls.keySet());
+            }
             for (ApiEndpointModel ep : endpoints) {
                 boolean hitsChain = ep.getPropagationChain().stream().anyMatch(node ->
                         directCallerMethods.contains(node) || matchesExternalNode(node, vuln));
+                for (String caller : ep.getPropagationChain()) {
+                    for (String signature : exactCalls.getOrDefault(caller, Set.of())) {
+                        String route = ep.getHttpMethod() + " " + ep.getPath();
+                        resolvedEndpoints.add(route);
+                        gateCandidates.add(new BuildPolicy.Candidate("NG401|" + vuln.cveId() + "|" + vuln.dependency()
+                                + "|" + vuln.version() + "|" + route + "|" + ep.getPropagationChain().getFirst()
+                                + "|" + signature, "CRITICAL"));
+                    }
+                }
                 if (hitsChain) {
                     affectedEndpoints.add(ep.getHttpMethod() + " " + ep.getPath());
                 }
@@ -318,9 +346,12 @@ public final class ReachableCveScanner {
             rec.put("severity", vuln.severity());
             rec.put("cvssScore", vuln.cvssScore());
             rec.put("reachability", reachability);
+            rec.put("reachabilityEvidence", !exactCalls.isEmpty() ? "RESOLVED_AFFECTED_METHOD"
+                    : directCallerMethods.isEmpty() && affectedEndpoints.isEmpty() ? "NO_OBSERVED_PATH" : "HEURISTIC");
             rec.put("ruleId", ruleId);
             rec.put("summary", vuln.summary());
-            rec.put("affectedEndpoints", affectedEndpoints);
+            rec.put("affectedEndpoints", affectedEndpoints.stream().distinct().toList());
+            rec.put("resolvedAffectedMethodEndpoints", List.copyOf(resolvedEndpoints));
             rec.put("callerMethods", List.copyOf(directCallerMethods));
             vulnRecords.add(rec);
         }
@@ -357,7 +388,7 @@ public final class ReachableCveScanner {
                         .thenComparing(Finding::message))
                 .toList();
 
-        return new ScanOutcome(sortedFindings, cveSummary);
+        return new ScanOutcome(sortedFindings, cveSummary, List.copyOf(gateCandidates));
     }
 
     static List<DependencyCoordinate> discoverDependencies(Path projectRoot, NullGuardConfig config) {
@@ -476,15 +507,22 @@ public final class ReachableCveScanner {
                 String summary = v.path("summary").asText(v.path("title").asText("Reported vulnerability"));
                 List<String> prefixes = new ArrayList<>();
                 if (v.path("packagePrefixes").isArray()) {
-                    v.path("packagePrefixes").forEach(p -> prefixes.add(p.asText()));
-                } else if (dep.contains(":")) {
-                    prefixes.add(dep.substring(0, dep.indexOf(':')));
+                    v.path("packagePrefixes").forEach(p -> { if (p.isTextual() && !p.asText().isBlank()) prefixes.add(p.asText()); });
                 }
                 List<String> tokens = new ArrayList<>();
                 if (v.path("symbols").isArray()) {
-                    v.path("symbols").forEach(s -> tokens.add(s.asText()));
+                    v.path("symbols").forEach(s -> { if (s.isTextual() && !s.asText().isBlank()) tokens.add(s.asText()); });
                 }
-                result.add(new MatchedVulnerability(id, dep, ver, fix, sev, cvss, summary, prefixes, tokens));
+                Set<String> affectedMethods = new LinkedHashSet<>();
+                if (v.has("affectedMethods")) {
+                    if (!v.path("affectedMethods").isArray()) throw new IOException("Expected affectedMethods array");
+                    for (JsonNode method : v.path("affectedMethods")) {
+                        if (!method.isTextual() || !method.asText().matches("[\\w.$]+#[\\w$<>]+\\([^()]*\\)"))
+                            throw new IOException("Expected affected method in owner#method(parameter.types) form");
+                        affectedMethods.add(method.asText().replace(" ", ""));
+                    }
+                }
+                result.add(new MatchedVulnerability(id, dep, ver, fix, sev, cvss, summary, prefixes, tokens, Set.copyOf(affectedMethods)));
             }
         }
         // Trivy Results[].Vulnerabilities[] format
@@ -497,8 +535,7 @@ public final class ReachableCveScanner {
                     String fix = v.path("FixedVersion").asText("Not provided; review advisory");
                     String sev = v.path("Severity").asText("UNKNOWN").toUpperCase(Locale.ROOT);
                     String title = v.path("Title").asText("Trivy vulnerability finding");
-                    List<String> prefixes = pkg.contains(":") ? List.of(pkg.substring(0, pkg.indexOf(':'))) : List.of(pkg);
-                    result.add(new MatchedVulnerability(id, pkg, ver, fix, sev, null, title, prefixes, List.of()));
+                    result.add(new MatchedVulnerability(id, pkg, ver, fix, sev, null, title, List.of(), List.of()));
                 }
             }
         }
@@ -520,7 +557,7 @@ public final class ReachableCveScanner {
                 if (callSite.getResolvedTarget().isPresent()) {
                     String declaringType = callSite.getResolvedTarget().get().declaringType();
                     String qualified = callSite.getResolvedTarget().get().qualifiedSignature();
-                    if (vuln.packagePrefixes().stream().anyMatch(declaringType::startsWith)
+                    if (vuln.packagePrefixes().stream().anyMatch(prefix -> !prefix.isBlank() && declaringType.startsWith(prefix + "."))
                             || vuln.classOrMethodTokens().stream().anyMatch(qualified::contains)) {
                         callsVuln = true;
                         break;
@@ -559,8 +596,7 @@ public final class ReachableCveScanner {
 
     private static boolean matchesExternalNode(String nodeId, MatchedVulnerability vuln) {
         if (nodeId == null) return false;
-        return vuln.packagePrefixes().stream().anyMatch(nodeId::contains)
-                || vuln.classOrMethodTokens().stream().anyMatch(nodeId::contains);
+        return nodeId.startsWith(MethodIds.EXTERNAL_PREFIX) && vuln.classOrMethodTokens().stream().anyMatch(nodeId::contains);
     }
 
     private static boolean matchesCoordinate(DependencyCoordinate dep, String groupId, String artifactId) {
@@ -596,6 +632,14 @@ public final class ReachableCveScanner {
             Double cvssScore,
             String summary,
             List<String> packagePrefixes,
-            List<String> classOrMethodTokens
-    ) {}
+            List<String> classOrMethodTokens,
+            Set<String> affectedMethods
+    ) {
+        MatchedVulnerability(String cveId, String dependency, String version, String fixedVersion,
+                             String severity, Double cvssScore, String summary, List<String> packagePrefixes,
+                             List<String> classOrMethodTokens) {
+            this(cveId, dependency, version, fixedVersion, severity, cvssScore, summary,
+                    packagePrefixes, classOrMethodTokens, Set.of());
+        }
+    }
 }

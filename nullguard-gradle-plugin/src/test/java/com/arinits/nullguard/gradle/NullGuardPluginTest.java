@@ -110,14 +110,27 @@ class NullGuardPluginTest {
         assertTrue(Files.exists(project.resolve("build/custom-nullguard/invocation.txt")));
     }
 
-    @Test void forwardsOpenApiConfigurationFile() throws Exception {
+    @Test void forwardsOpenApiAndCiPolicySettings() throws Exception {
         source("src/main/java/demo/Main.java");
         Files.writeString(project.resolve("api-docs.json"), "{}");
-        Files.writeString(project.resolve("build.gradle"), groovy() + "\nnullguard { openApiConfig = layout.projectDirectory.file('api-docs.json') }\n");
+        Files.writeString(project.resolve("baseline.json"), "{\"version\":1,\"accepted\":[]}");
+        Files.writeString(project.resolve("build.gradle"), groovy() + """
+                nullguard {
+                    openApiConfig.set(layout.projectDirectory.file('api-docs.json'))
+                    baseline.set(layout.projectDirectory.file('baseline.json'))
+                    failOnApiCve.set(true)
+                    failOnIncomplete.set(true)
+                }
+                """);
         assertEquals(TaskOutcome.SUCCESS, runner("nullguard").build().task(":nullguard").getOutcome());
         String invocation = Files.readString(project.resolve("build/reports/nullguard/invocation.txt"));
         String configured = invocation.lines().filter(line -> line.startsWith("--openapi-config=")).findFirst().orElseThrow().substring(17);
         assertEquals(project.resolve("api-docs.json").toRealPath(), Path.of(configured).toRealPath());
+        assertTrue(invocation.lines().anyMatch("--fail-on-api-cve"::equals));
+        assertTrue(invocation.lines().anyMatch("--fail-on-incomplete"::equals));
+        String baselinePath = invocation.lines().filter(line -> line.startsWith("--baseline="))
+                .findFirst().orElseThrow().substring("--baseline=".length());
+        assertEquals(project.resolve("baseline.json").toRealPath(), Path.of(baselinePath).toRealPath());
     }
     @Test void forwardsExistingCompiledClassesForSastWithoutCompilingTheProject() throws Exception {
         source("src/main/java/demo/Main.java");
@@ -153,7 +166,11 @@ class NullGuardPluginTest {
     }
     @Test void projectsWithoutSourcesSkipAndCheckIsOptIn() throws Exception {
         Files.writeString(project.resolve("build.gradle"), groovy());
-        assertEquals(TaskOutcome.NO_SOURCE, runner("nullguard").build().task(":nullguard").getOutcome());
+        assertNotNull(runner("nullguard").build().task(":nullguard"));
+        assertFalse(Files.exists(project.resolve("build/reports/nullguard/invocation.txt")));
+        Files.writeString(project.resolve("build.gradle"), groovy() + "nullguard { failOnIncomplete.set(true) }\n");
+        var failure = runner("nullguard").buildAndFail();
+        assertTrue(failure.getOutput().contains("source analysis status: NO_SOURCE"), failure.getOutput());
         assertNull(runner("check").build().task(":nullguard"));
     }
     @Test void originalPathsWithTheSameRelativeNameAreNotFlattenedOrCopied() throws Exception {

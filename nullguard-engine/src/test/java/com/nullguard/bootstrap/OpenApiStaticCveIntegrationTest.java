@@ -69,7 +69,15 @@ class OpenApiStaticCveIntegrationTest {
                       "cvssScore": 9.8,
                       "summary": "Custom auth token bypass",
                       "packagePrefixes": ["demo.ext"],
-                      "symbols": ["AuthClient.verify"]
+                      "symbols": ["AuthClient.verify"],
+                      "affectedMethods": ["demo.ext.AuthClient#verify(java.lang.String)"]
+                    },
+                    {
+                      "id": "CVE-2026-9998",
+                      "dependency": "demo.ext:custom-auth",
+                      "version": "1.0.0",
+                      "symbols": ["AuthClient.verify"],
+                      "affectedMethods": ["demo.ext.AuthClient#verify(int)"]
                     }
                   ],
                   "Results": [
@@ -86,6 +94,15 @@ class OpenApiStaticCveIntegrationTest {
                       ]
                     }
                   ]
+                }
+                """);
+
+        Path authPackage = Files.createDirectories(srcDir.resolve("demo/ext"));
+        Files.writeString(authPackage.resolve("AuthClient.java"), """
+                package demo.ext;
+                public class AuthClient {
+                    public static void verify(String input) {}
+                    public static void verify(int input) {}
                 }
                 """);
 
@@ -182,6 +199,7 @@ class OpenApiStaticCveIntegrationTest {
                             // Trigger API-reachable Log4j CVE (NG401)
                             String msg = "LogManager.getLogger";
                             LogManager.log(msg);
+                            demo.ext.AuthClient.verify(msg);
                         } catch (Exception e) {
                         }
                         return cycleA();
@@ -292,6 +310,13 @@ class OpenApiStaticCveIntegrationTest {
         assertTrue(ruleIds.contains("NG401"), "Expected NG401 (API-reachable CVE): " + ruleIds);
         assertTrue(ruleIds.contains("NG402"), "Expected NG402 (Code-reachable CVE): " + ruleIds);
         assertTrue(ruleIds.contains("NG403"), "Expected NG403 (Unreachable CVE): " + ruleIds);
+
+        var cveViolations = new BuildPolicy(false, "CRITICAL", true, false, null).violations(result);
+        assertFalse(cveViolations.isEmpty());
+        assertTrue(cveViolations.stream().allMatch(id -> id.startsWith("NG401|CVE-2026-9999|")
+                && id.endsWith("demo.ext.AuthClient#verify(java.lang.String)")), cveViolations.toString());
+        assertTrue(new BuildPolicy(true, "CRITICAL", false, false, null).violations(result).stream()
+                .noneMatch(id -> id.startsWith("NG401|")));
 
         // Verify OpenAPI 3.0 output and JSON report sections
         Path openApiOut = root.resolve("out/nullguard-openapi.json");

@@ -212,6 +212,12 @@ public final class AnalysisPipeline {
             report.put("architectureSummary", archSummary);
             report.put("memoryInsights", MemoryInsights.describe(projectModel));
             report.put("cveSummary", cveOutcome.cveSummary());
+            List<BuildPolicy.Candidate> gateCandidates = new ArrayList<>();
+            hotspots.forEach(h -> gateCandidates.add(new BuildPolicy.Candidate(
+                    "NG005|" + h.getSeverity() + "|" + h.getMethodRef(), h.getSeverity())));
+            gateCandidates.addAll(cveOutcome.gateCandidates());
+            report.put("gateCandidates", gateCandidates.stream().distinct()
+                    .sorted(java.util.Comparator.comparing(BuildPolicy.Candidate::id)).toList());
             report.put("sastSummary", sastSummary);
             report.put("coverageSummary", JacocoCoverage.read(projectRoot, config.getJacocoReport()));
             return new VisualizationBundle(report, jsonGraphExporter, dot, exporter.sarif(findings, projectRoot), findings);

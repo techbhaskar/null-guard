@@ -49,7 +49,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jackson.version>2.18.11</jackson.version>
-        <javaparser.version>3.25.8</javaparser.version>
+        <javaparser.version>3.26.4</javaparser.version>
         <spotbugs.version>4.10.5</spotbugs.version>
         <findsecbugs.version>1.14.0</findsecbugs.version>
         <!--

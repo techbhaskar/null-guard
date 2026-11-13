@@ -23,7 +23,7 @@ public abstract class NullGuardTask extends JavaExec {
         getOutputs().upToDateWhen(task -> false);
     }
 
-    @InputFiles @SkipWhenEmpty @PathSensitive(PathSensitivity.RELATIVE)
+    @InputFiles @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getSourceFiles();
     @Internal public abstract DirectoryProperty getProjectDirectory();
     @Internal public abstract ConfigurableFileCollection getSourceRoots();
@@ -31,6 +31,10 @@ public abstract class NullGuardTask extends JavaExec {
     @InputFiles @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getSastClassDirectories();
     @Input public abstract Property<Boolean> getFailBuild();
+    @Input public abstract Property<Boolean> getFailOnApiCve();
+    @Input public abstract Property<Boolean> getFailOnIncomplete();
+    @Optional @InputFile @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract org.gradle.api.file.RegularFileProperty getBaseline();
     @Input public abstract Property<String> getFailThreshold();
     @Input public abstract ListProperty<String> getExcludes();
     @Input public abstract Property<String> getAnalyzerHeapSize();
@@ -50,13 +54,23 @@ public abstract class NullGuardTask extends JavaExec {
         if (threshold.equals("MEDIUM")) threshold = "MODERATE";
         if (!List.of("LOW", "MODERATE", "HIGH", "CRITICAL").contains(threshold))
             throw new GradleException("NullGuard failThreshold must be LOW, MEDIUM, MODERATE, HIGH or CRITICAL");
-        if (getJavaLauncher().get().getMetadata().getLanguageVersion().asInt() < 17)
-            throw new GradleException("NullGuard requires a Java 17+ launcher. Configure the Java toolchain or nullguard task javaLauncher.");
+        if (getJavaLauncher().get().getMetadata().getLanguageVersion().asInt() < 21)
+            throw new GradleException("NullGuard requires a Java 21+ launcher. Configure the Java toolchain or nullguard task javaLauncher.");
         var selected = getSourceFiles().getAsFileTree().matching(patterns -> {
             patterns.include("**/*.java");
             patterns.exclude(getExcludes().get());
         }).getFiles().stream().map(File::toPath).map(path -> path.toAbsolutePath().normalize()).sorted().toList();
-        if (selected.isEmpty()) { setDidWork(false); return; }
+        File reports = getReportDirectory().get().getAsFile();
+        // Remove only known analyzer outputs so a failed run cannot appear to be a fresh clean report.
+        getFileSystemOperations().delete(spec -> spec.delete(
+                new File(reports, "nullguard-report-latest.json"), new File(reports, "nullguard-results.sarif"),
+                new File(reports, "nullguard-graph-latest.dot"), new File(reports, "nullguard-dashboard-latest.html"),
+                new File(reports, "nullguard-openapi.json")));
+        if (selected.isEmpty()) {
+            if (getFailOnIncomplete().get()) throw new GradleException("NullGuard source analysis status: NO_SOURCE");
+            setDidWork(false);
+            return;
+        }
         var manifest = new java.util.Properties();
         for (int i = 0; i < selected.size(); i++) manifest.setProperty("file." + i, selected.get(i).toString());
         var roots = getSourceRoots().getFiles().stream().map(File::getAbsolutePath).sorted().toList();
@@ -83,18 +97,15 @@ public abstract class NullGuardTask extends JavaExec {
         if (getJacocoReport().isPresent()) arguments.add("--jacoco-report=" + getJacocoReport().get().getAsFile().getAbsolutePath());
         if (getCveInput().isPresent()) arguments.add("--cve-input=" + getCveInput().get().getAsFile().getAbsolutePath());
         if (getFailBuild().get()) arguments.add("--fail-build");
+        if (getFailOnApiCve().get()) arguments.add("--fail-on-api-cve");
+        if (getFailOnIncomplete().get()) arguments.add("--fail-on-incomplete");
+        if (getBaseline().isPresent()) arguments.add("--baseline=" + getBaseline().get().getAsFile().getAbsolutePath());
         setArgs(arguments);
         java.util.Map<String, Object> systemProperties = new java.util.HashMap<>(getSystemProperties());
         systemProperties.put("nullguard.sast.classes", sastClassPath);
         systemProperties.put("nullguard.cve.online", getCveOnline().get().toString());
         setSystemProperties(systemProperties);
         setMaxHeapSize(getAnalyzerHeapSize().get());
-        File reports = getReportDirectory().get().getAsFile();
-        // Remove only known analyzer outputs so a failed run cannot appear to be a fresh clean report.
-        getFileSystemOperations().delete(spec -> spec.delete(
-                new File(reports, "nullguard-report-latest.json"), new File(reports, "nullguard-results.sarif"),
-                new File(reports, "nullguard-graph-latest.dot"), new File(reports, "nullguard-dashboard-latest.html"),
-                new File(reports, "nullguard-openapi.json")));
         setIgnoreExitValue(true);
         super.exec();
         int exit = getExecutionResult().get().getExitValue();

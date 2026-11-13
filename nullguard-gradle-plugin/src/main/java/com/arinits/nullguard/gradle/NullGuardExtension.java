@@ -8,6 +8,9 @@ import org.gradle.api.provider.Property;
 public abstract class NullGuardExtension {
     public abstract Property<String> getToolVersion();
     public abstract Property<Boolean> getFailBuild();
+    public abstract Property<Boolean> getFailOnApiCve();
+    public abstract Property<Boolean> getFailOnIncomplete();
+    public abstract org.gradle.api.file.RegularFileProperty getBaseline();
     public abstract Property<String> getFailThreshold();
     public abstract Property<Boolean> getRunOnCheck();
     public abstract DirectoryProperty getReportDirectory();

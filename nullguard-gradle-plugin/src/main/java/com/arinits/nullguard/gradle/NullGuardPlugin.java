@@ -16,6 +16,8 @@ public final class NullGuardPlugin implements Plugin<Project> {
         NullGuardExtension extension = project.getExtensions().create("nullguard", NullGuardExtension.class);
         extension.getToolVersion().convention("2.0.1");
         extension.getFailBuild().convention(false);
+        extension.getFailOnApiCve().convention(false);
+        extension.getFailOnIncomplete().convention(false);
         extension.getFailThreshold().convention("CRITICAL");
         extension.getRunOnCheck().convention(false);
         extension.getReportDirectory().convention(project.getLayout().getBuildDirectory().dir("reports/nullguard"));
@@ -41,7 +43,8 @@ public final class NullGuardPlugin implements Plugin<Project> {
                 task.setDescription("Analyze main Java sources and write NullGuard reports");
                 task.getMainClass().set("com.nullguard.cli.NullGuardCliApplication");
                 task.setClasspath(tool);
-                task.getJavaLauncher().convention(toolchains.launcherFor(java.getToolchain()));
+                task.getJavaLauncher().convention(toolchains.launcherFor(spec ->
+                        spec.getLanguageVersion().set(org.gradle.jvm.toolchain.JavaLanguageVersion.of(21))));
                 task.getProjectDirectory().convention(project.getLayout().getProjectDirectory());
                 task.getSourceRoots().from(main.getJava().getSrcDirs());
                 task.getSourceFiles().from(main.getAllJava());
@@ -49,6 +52,9 @@ public final class NullGuardPlugin implements Plugin<Project> {
                 task.getSastClassDirectories().from(main.getOutput().getClassesDirs().getFiles());
                 task.getReportDirectory().convention(extension.getReportDirectory());
                 task.getFailBuild().convention(extension.getFailBuild());
+                task.getFailOnApiCve().convention(extension.getFailOnApiCve());
+                task.getFailOnIncomplete().convention(extension.getFailOnIncomplete());
+                task.getBaseline().convention(extension.getBaseline());
                 task.getFailThreshold().convention(extension.getFailThreshold());
                 task.getExcludes().convention(extension.getExcludes());
                 task.getAnalyzerHeapSize().convention(extension.getMaxHeapSize());

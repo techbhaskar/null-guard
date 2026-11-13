@@ -703,7 +703,10 @@ until a new release contains these changes. See [CVE lookup details](docs/cve-an
 | `--cve-input=<file>` | none | Optional external OSV or Trivy JSON vulnerability report for 3-tier reachability classification (`NG401`–`NG403`). |
 | `--cve-online` | enabled in development source | Query current OSV advisories for discovered dependency versions. |
 | `--cve-offline` | disabled | Disable network advisory lookup; report bundled-catalog coverage as limited. |
-| `--fail-build` | disabled | Return exit code `1` when the severity threshold is breached or an API-reachable CVE (`NG401`) is found. |
+| `--fail-build` | disabled | Fail on hotspots at or above the configured threshold. |
+| `--fail-on-api-cve` | disabled | Fail on endpoint paths to explicitly reviewed and symbol-resolved affected methods. |
+| `--fail-on-incomplete` | disabled | Fail when Java source analysis is incomplete, unavailable, or has no source. |
+| `--baseline=<file>` | none | Accept listed gate candidate IDs. Findings remain visible. |
 | `--fail-threshold=<level>` | `CRITICAL` | Minimum failing hotspot severity: `LOW`, `MODERATE`, `HIGH`, or `CRITICAL`. |
 | `--decay-factor=<number>` | `0.85` | Risk propagation decay factor. |
 | `--ext-penalty=<number>` | `1.2` | External-call penalty multiplier. |
@@ -716,7 +719,7 @@ CLI exit codes:
 | Exit code | Meaning |
 | ---: | --- |
 | `0` | Analysis completed and no enabled policy was breached. |
-| `1` | `--fail-build` was enabled and the hotspot threshold was breached or an API-reachable CVE (`NG401`) was detected. |
+| `1` | An enabled build policy was breached. |
 | `2` | Invalid arguments or a missing source path. |
 | `3` | Analysis failed with an exception. |
 
@@ -969,8 +972,30 @@ nullguard {
 ```
 
 Archive `target/nullguard/` (Maven) or `**/build/reports/nullguard/` (Gradle) as CI
-artifacts **even on failure**. Report-only mode is the initial adoption setting;
-baseline/suppression files and automatic PR comments are not implemented.
+artifacts **even on failure**.
+
+### Baselines and independent gates
+
+With a source build containing these changes, run in report-only mode and copy
+reviewed IDs from `gateCandidates` in the JSON report into a checked-in baseline:
+
+```json
+{"version": 1, "accepted": ["NG005|CRITICAL|sample.Services.Risky#load()"]}
+```
+
+Use `--baseline=baseline.json`, `-Dnullguard.baseline=baseline.json`, or Gradle's
+`baseline.set(layout.projectDirectory.file("baseline.json"))`. Keep a baseline
+per service or module. IDs survive line movement and score changes within a
+severity band. A severity change produces a new hotspot ID. Accepted IDs affect
+CI decisions while JSON, SARIF and HTML continue to show findings.
+
+The hotspot gate and CVE gate are separate. Set `--fail-on-api-cve`,
+`-Dnullguard.failOnApiCve=true`, or Gradle's `failOnApiCve.set(true)` to enable
+the [reviewed affected-method policy](docs/cve-analysis.md#reviewed-affected-methods).
+Pin the reviewed input alongside the baseline. `--fail-on-incomplete`,
+`-Dnullguard.failOnIncomplete=true`, and Gradle's `failOnIncomplete.set(true)`
+independently fail on `INCOMPLETE`, `UNAVAILABLE` or `NO_SOURCE`. `LIMITED` remains
+visible as a report status. Published 2.0.1 retains its original gate behavior.
 The [volunteer study](docs/usability/README.md) describes how to collect unaided
 first-run feedback instead of treating automated tests as human usability proof.
 
@@ -1136,7 +1161,7 @@ and the [volunteer usability study](docs/usability/README.md).
 
 Version 1.1.0 adds branch-sensitive checks inside ternary and short-circuit
 expressions, Java 17 pattern-variable refinements, and non-null catch parameters.
-The source parser, type solver and CFG expression parser now use Java 17 syntax.
+The 1.1.0 parser targeted Java 17 syntax. The current source build parses Java 21 syntax. Unsupported analysis constructs remain subject to the source completeness report.
 
 Framework assumptions cover required Spring constructor/field injection in
 recognized beans, Lombok `@Slf4j` loggers and final fields initialized through resolved
@@ -1192,7 +1217,7 @@ Keep the README focused on how developers use the tool, and keep detailed archit
 
 ## Development workflow
 
-`mvn verify` generates JaCoCo HTML/XML coverage reports under each module's `target/site/jacoco/` and an aggregate report at `nullguard-coverage/target/site/jacoco-aggregate/index.html`. The aggregate includes coverage of upstream modules exercised by integration tests. GitHub Actions enforces at least 85% fully covered source lines, 80% aggregate instruction coverage, and 60% branch coverage, defines JDK 17 and 21 builds on Linux and Windows, tests the packaged CLI and Maven goal, validates SARIF against the OASIS schema, and archives reports. A fully covered line has executed instructions with no missed instructions or branches; partially covered lines do not count toward the 85% gate. Local Maven builds measure coverage; run `python scripts/summarize_coverage.py --min-instruction=80 --min-branch=60 --min-full-line=85` to enforce the CI gate locally.
+`mvn verify` generates JaCoCo HTML/XML coverage reports under each module's `target/site/jacoco/` and an aggregate report at `nullguard-coverage/target/site/jacoco-aggregate/index.html`. The aggregate includes coverage of upstream modules exercised by integration tests. GitHub Actions enforces at least 85% fully covered source lines, 80% aggregate instruction coverage, and 60% branch coverage, runs JDK 21 builds on Linux and Windows, tests the packaged CLI and Maven goal, validates SARIF against the OASIS schema, and archives reports. A fully covered line has executed instructions with no missed instructions or branches; partially covered lines do not count toward the 85% gate. Local Maven builds measure coverage; run `python scripts/summarize_coverage.py --min-instruction=80 --min-branch=60 --min-full-line=85` to enforce the CI gate locally.
 
 After `mvn install`, run the process-level smoke tests and coverage summary locally:
 
@@ -1331,7 +1356,6 @@ High-value next steps include:
 - Broader OpenAPI framework/schema coverage and OAuth2/OpenID Connect support
 - More precise framework metadata and class-level API path composition
 - Framework-aware dependency-injection and proxy resolution
-- Baseline/diff mode so CI can gate only newly introduced risk
 - Multi-module aggregation and cross-service contract modeling
 - IDE integrations and source-linked navigation
 - Incremental analysis and caching for large repositories

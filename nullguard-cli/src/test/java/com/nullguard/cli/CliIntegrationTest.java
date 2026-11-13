@@ -72,6 +72,42 @@ class CliIntegrationTest {
         assertTrue(Files.exists(output.resolve("reports/nullguard-report-latest.json")));
     }
 
+    @Test void baselineAcceptsOnlyListedHotspotsAndPreservesReports() throws Exception {
+        Path source = Path.of("../examples/orders-service/src/main/java");
+        Path reports = output.resolve("reports");
+        Path baseline = output.resolve("baseline.json");
+        var cli = new NullGuardCliApplication();
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var args = new java.util.ArrayList<>(List.of(source.toString(), "--cve-offline", "--fail-build",
+                "--output=" + reports));
+        assertEquals(1, cli.run(args.toArray(String[]::new)));
+        Path reportFile = reports.resolve("nullguard-report-latest.json");
+        var candidates = mapper.readTree(reportFile.toFile()).path("gateCandidates");
+        var accepted = new java.util.ArrayList<String>();
+        for (var candidate : candidates) {
+            if (candidate.path("severity").asText().equals("CRITICAL")) accepted.add(candidate.path("id").asText());
+        }
+        assertTrue(accepted.size() > 1);
+        args.add("--baseline=" + baseline);
+        mapper.writeValue(baseline.toFile(), java.util.Map.of("version", 1, "accepted", accepted.subList(0, 1)));
+        assertEquals(1, cli.run(args.toArray(String[]::new)));
+        mapper.writeValue(baseline.toFile(), java.util.Map.of("version", 1, "accepted", accepted));
+        assertEquals(0, cli.run(args.toArray(String[]::new)));
+        assertEquals(candidates, mapper.readTree(reportFile.toFile()).path("gateCandidates"));
+        assertTrue(Files.exists(reports.resolve("nullguard-results.sarif")));
+        Files.writeString(baseline, "{broken");
+        assertEquals(2, cli.run(args.toArray(String[]::new)));
+    }
+
+    @Test void incompletePolicyCanFailWithReportsEvenWithHotspotGateDisabled() throws Exception {
+        Path source = Files.createDirectory(output.resolve("empty-source"));
+        Path reports = output.resolve("reports");
+        assertEquals(1, new NullGuardCliApplication().run(new String[] {
+                source.toString(), "--cve-offline", "--fail-on-incomplete", "--output=" + reports
+        }));
+        assertTrue(Files.exists(reports.resolve("nullguard-report-latest.json")));
+    }
+
     @Test void cveLookupDefaultsOnlineAndOfflineFlagCanOverrideIt() throws Exception {
         Path source = Files.createDirectories(output.resolve("source"));
         Files.writeString(source.resolve("Safe.java"), "class Safe { int value() { return 1; } }");

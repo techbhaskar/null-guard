@@ -84,6 +84,9 @@ in the integration directory and configure `mavenLocal()` for plugin resolution.
 | `toolVersion` | `2.0.1` | CLI artifact version to resolve |
 | `failBuild` | `false` | Enable the hotspot build gate |
 | `failThreshold` | `CRITICAL` | LOW, MEDIUM/MODERATE, HIGH, CRITICAL |
+| `baseline` | unset | Reviewed gate IDs in a version 1 JSON baseline (source build) |
+| `failOnApiCve` | `false` | Gate reviewed affected methods on endpoint paths (source build) |
+| `failOnIncomplete` | `false` | Fail when Java source analysis is incomplete or missing (source build) |
 | `runOnCheck` | `false` | Include analysis in `check` |
 | `reportDirectory` | `build/reports/nullguard` | Per-project report location |
 | `excludes` | empty | Ant patterns relative to Java source roots |

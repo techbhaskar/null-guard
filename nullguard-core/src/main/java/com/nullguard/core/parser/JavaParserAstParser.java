@@ -26,6 +26,7 @@ import com.nullguard.core.model.PackageModel;
 import com.nullguard.core.model.ProjectModel;
 import com.nullguard.core.model.ResolvedCallTarget;
 import com.nullguard.core.model.SemanticCallSite;
+import com.nullguard.core.model.SourceLocation;
 
 import java.io.IOException;
 import java.net.URL;
@@ -77,6 +78,7 @@ public final class JavaParserAstParser implements AstParser {
         LinkedHashMap<String, PackageModel.Builder> packageMap = new LinkedHashMap<>();
         int[] counts = new int[4];
         List<String> problemPaths = new ArrayList<>();
+        List<SourceLocation> unsupportedExecutables = new ArrayList<>();
 
         try (ParserEnvironment environment = createParser(normalizedRoot);
              Stream<Path> paths = selectedSourceFiles.isEmpty() ? Files.walk(normalizedRoot) : selectedSourceFiles.stream()) {
@@ -112,8 +114,17 @@ public final class JavaParserAstParser implements AstParser {
 
                 result.getResult().ifPresent(compilationUnit -> {
                     counts[1]++;
-                    counts[3] += compilationUnit.findAll(MethodDeclaration.class).size()
-                            + compilationUnit.findAll(ConstructorDeclaration.class).size();
+                    String relativePath = normalizedRoot.relativize(path).toString().replace('\\', '/');
+                    var executables = Stream.<Class<? extends com.github.javaparser.ast.Node>>of(MethodDeclaration.class, ConstructorDeclaration.class,
+                                    com.github.javaparser.ast.body.CompactConstructorDeclaration.class)
+                            .flatMap(type -> compilationUnit.findAll(type).stream()).toList();
+                    counts[3] += executables.size();
+                    executables.stream()
+                            .filter(declaration -> declaration.getParentNode()
+                                    .filter(ClassOrInterfaceDeclaration.class::isInstance).isEmpty())
+                            .forEach(declaration -> declaration.getRange().ifPresent(range ->
+                                    unsupportedExecutables.add(new SourceLocation(relativePath, range.begin.line,
+                                            range.begin.column, range.end.line, range.end.column))));
                     units.put(path, compilationUnit);
                 });
             }
@@ -145,7 +156,7 @@ public final class JavaParserAstParser implements AstParser {
         packageMap.values().forEach(builder -> moduleBuilder.addPackage(builder.build()));
         projectBuilder.addModule(moduleBuilder.build());
         projectBuilder.parseDiagnostics(new com.nullguard.core.model.ParseDiagnostics(
-                counts[0], counts[1], counts[2], counts[3], problemPaths));
+                counts[0], counts[1], counts[2], counts[3], problemPaths, unsupportedExecutables));
         return projectBuilder.build();
     }
 
@@ -518,7 +529,7 @@ public final class JavaParserAstParser implements AstParser {
 
         for (Path sourceRoot : discoverSourceRoots(projectRoot)) {
             try {
-                typeSolver.add(new JavaParserTypeSolver(sourceRoot, new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)));
+                typeSolver.add(new JavaParserTypeSolver(sourceRoot, new ParserConfiguration().setLanguageLevel(SourceExpressions.LANGUAGE_LEVEL)));
             } catch (RuntimeException invalidSourceRoot) {
                 LOG.warn("Ignoring invalid source root {}: {}",
                         sourceRoot, invalidSourceRoot.getMessage());
@@ -551,7 +562,7 @@ public final class JavaParserAstParser implements AstParser {
         typeSolver.add(new ReflectionTypeSolver());
 
         ParserConfiguration configuration = new ParserConfiguration()
-                .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+                .setLanguageLevel(SourceExpressions.LANGUAGE_LEVEL)
                 .setSymbolResolver(new JavaSymbolSolver(typeSolver));
         return new ParserEnvironment(new JavaParser(configuration), dependencyLoader, typeSolver, memory);
     }

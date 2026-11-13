@@ -89,6 +89,20 @@ public final class VisualizationBundle {
     }
     private static final JsonGraphExporter SCRIPT_JSON = new JsonGraphExporter();
 
+    public String getAnalysisStatus() {
+        if (report instanceof java.util.Map<?, ?> map
+                && map.get("analysisCompleteness") instanceof java.util.Map<?, ?> completeness
+                && completeness.get("status") instanceof String status) return status;
+        return "UNKNOWN";
+    }
+
+    public java.util.List<BuildPolicy.Candidate> getGateCandidates() {
+        if (report instanceof java.util.Map<?, ?> map && map.get("gateCandidates") instanceof java.util.List<?> candidates) {
+            return candidates.stream().map(BuildPolicy.Candidate.class::cast).toList();
+        }
+        return java.util.List.of();
+    }
+
     /** DOT/Graphviz graph export for visual rendering. */
     public String getDotGraph()  { return dotGraph; }
     public String getSarif() { return sarif; }

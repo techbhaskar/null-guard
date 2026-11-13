@@ -1,6 +1,7 @@
 package com.nullguard.plugin;
 
 import com.nullguard.analysis.model.ArchitecturalHotspot;
+import com.nullguard.bootstrap.BuildPolicy;
 import com.nullguard.bootstrap.EngineBootstrap;
 import com.nullguard.bootstrap.FinalAnalysisResult;
 import com.nullguard.bootstrap.HtmlDashboardRenderer;
@@ -55,6 +56,15 @@ public class NullGuardMojo extends AbstractMojo {
     @Parameter(property = "nullguard.failBuild", defaultValue = "false")
     private boolean failBuild;
 
+    @Parameter(property = "nullguard.failOnApiCve", defaultValue = "false")
+    private boolean failOnApiCve;
+
+    @Parameter(property = "nullguard.failOnIncomplete", defaultValue = "false")
+    private boolean failOnIncomplete;
+
+    @Parameter(property = "nullguard.baseline")
+    private File baseline;
+
     /** Scoring: decay factor for risk propagation (0–1). */
     @Parameter(property = "nullguard.scoringDecayFactor", defaultValue = "0.85")
     private double scoringDecayFactor;
@@ -105,6 +115,7 @@ public class NullGuardMojo extends AbstractMojo {
 
         Path sourcePath = Paths.get(project.getBuild().getSourceDirectory());
         if (!Files.exists(sourcePath)) {
+            if (failOnIncomplete) throw new MojoFailureException("NullGuard source analysis status: NO_SOURCE");
             getLog().info("Source directory does not exist – skipping analysis: " + sourcePath);
             return;
         }
@@ -112,6 +123,8 @@ public class NullGuardMojo extends AbstractMojo {
         try {
             // ── 1. Build configuration ──────────────────────────────────────
             Path outputDir = Paths.get(project.getBuild().getDirectory(), "nullguard");
+            BuildPolicy policy = new BuildPolicy(failBuild, failThreshold, failOnApiCve, failOnIncomplete,
+                    baseline == null ? null : baseline.toPath());
             NullGuardConfig config = NullGuardConfig.defaults()
                     .failBuild(failBuild)
                     .failThreshold(failThreshold)
@@ -148,7 +161,10 @@ public class NullGuardMojo extends AbstractMojo {
             printSummary(result);
 
             // ── 5. Apply hotspot fail policy ────────────────────────────────
-            applyFailPolicy(result);
+            var violations = policy.violations(result);
+            if (!violations.isEmpty()) {
+                throw new MojoFailureException("NullGuard policy violations:\n  " + String.join("\n  ", violations));
+            }
 
         } catch (MojoFailureException policyFailure) {
             throw policyFailure;
@@ -234,26 +250,6 @@ public class NullGuardMojo extends AbstractMojo {
             getLog().info("Top Suggestions:");
             result.getSuggestions().stream().limit(3).forEach(s ->
                 getLog().info("  → " + s.getMessage()));
-        }
-    }
-
-    /**
-     * Fails the Maven build if {@code failBuild=true} AND the result contains
-     * at least one hotspot at or above the configured {@code failThreshold} severity
-     * or an API-reachable CVE (NG401).
-     */
-    private void applyFailPolicy(FinalAnalysisResult result) throws MojoFailureException {
-        if (!failBuild) {
-            return;
-        }
-        boolean apiCveBreach = result.getFindings().stream().anyMatch(f -> "NG401".equals(f.ruleId()));
-        if (result.hasHotspotsAtOrAboveSeverity(failThreshold) || apiCveBreach) {
-            String msg = String.format(
-                    "NullGuard: build failed – hotspot(s) at or above severity '%s' or API-reachable CVE (NG401) detected. " +
-                    "Total hotspots: %d. Set nullguard.failBuild=false to suppress.",
-                    failThreshold, result.getHotspots().size());
-            getLog().error(msg);
-            throw new MojoFailureException(msg);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.nullguard.cli;
 
+import com.nullguard.bootstrap.BuildPolicy;
 import com.nullguard.bootstrap.EngineBootstrap;
 import com.nullguard.bootstrap.FinalAnalysisResult;
 import com.nullguard.bootstrap.HtmlDashboardRenderer;
@@ -94,6 +95,9 @@ public final class NullGuardCliApplication {
         // ── Argument parsing ──────────────────────────────────────────────────
         Path sourcePath         = null;
         boolean failBuild       = false;
+        boolean failOnApiCve = false;
+        boolean failOnIncomplete = false;
+        Path baselineFile = null;
         String  failThreshold   = "CRITICAL";
         double  decayFactor     = 0.85;
         double  extPenalty      = 1.2;
@@ -122,6 +126,12 @@ public final class NullGuardCliApplication {
             if (arg.startsWith("--")) {
                 if (arg.equals("--fail-build")) {
                     failBuild = true;
+                } else if (arg.equals("--fail-on-api-cve")) {
+                    failOnApiCve = true;
+                } else if (arg.equals("--fail-on-incomplete")) {
+                    failOnIncomplete = true;
+                } else if (arg.startsWith("--baseline=")) {
+                    baselineFile = Paths.get(arg.substring("--baseline=".length()));
                 } else if (arg.startsWith("--fail-threshold=")) {
                     failThreshold = arg.substring("--fail-threshold=".length()).toUpperCase();
                 } else if (arg.startsWith("--decay-factor=")) {
@@ -212,6 +222,7 @@ public final class NullGuardCliApplication {
                 sourceRoots.add(Paths.get(manifest.getProperty("root." + i)));
         }
 
+        BuildPolicy policy = new BuildPolicy(failBuild, failThreshold, failOnApiCve, failOnIncomplete, baselineFile);
         NullGuardConfig config = NullGuardConfig.defaults()
                 .failBuild(failBuild)
                 .failThreshold(failThreshold)
@@ -247,7 +258,7 @@ public final class NullGuardCliApplication {
             writeReports(result, outputDir, sourcePath);
 
             // ── Apply fail policy ─────────────────────────────────────────────
-            return applyFailPolicy(result, failBuild, failThreshold);
+            return applyFailPolicy(policy.violations(result));
 
         } catch (Exception e) {
             System.err.println("[NullGuard] ANALYSIS FAILED: " + e.getMessage());
@@ -357,14 +368,11 @@ public final class NullGuardCliApplication {
     /**
      * Returns exit code 1 if fail policy is triggered, 0 otherwise.
      */
-    private int applyFailPolicy(FinalAnalysisResult result, boolean failBuild, String failThreshold) {
-        if (failBuild) {
-            boolean apiCveBreach = result.getFindings().stream().anyMatch(f -> "NG401".equals(f.ruleId()));
-            if (result.hasHotspotsAtOrAboveSeverity(failThreshold) || apiCveBreach) {
-                System.err.println("[NullGuard] BUILD FAILED – hotspot severity ≥ " + failThreshold +
-                                   " or API-reachable CVE (NG401) detected.");
-                return EXIT_FAIL_POLICY;
-            }
+    private int applyFailPolicy(List<String> violations) {
+        if (!violations.isEmpty()) {
+            System.err.println("[NullGuard] BUILD FAILED. Policy violations:");
+            violations.forEach(violation -> System.err.println("  " + violation));
+            return EXIT_FAIL_POLICY;
         }
         System.out.println("[NullGuard] Analysis passed.");
         return EXIT_OK;
@@ -374,7 +382,10 @@ public final class NullGuardCliApplication {
         System.out.println("Multi-language preview: <path> --languages=auto | packs list/install/remove");
         System.out.println("Usage: nullguard-cli.jar <source-path> [options]");
         System.out.println("Options:");
-        System.out.println("  --fail-build                  Fail with exit 1 if threshold breached");
+        System.out.println("  --fail-build                  Fail on new hotspots at or above the threshold");
+        System.out.println("  --fail-on-api-cve             Fail on new endpoint paths to reviewed affected methods");
+        System.out.println("  --fail-on-incomplete          Fail on incomplete, unavailable or missing source analysis");
+        System.out.println("  --baseline=<file>             JSON file of accepted gate candidate IDs");
         System.out.println("  --fail-threshold=<SEVERITY>   CRITICAL|HIGH|MODERATE|LOW  (default: CRITICAL)");
         System.out.println("  --decay-factor=<float>        Risk propagation decay       (default: 0.85)");
         System.out.println("  --ext-penalty=<float>         External call penalty        (default: 1.2)");
