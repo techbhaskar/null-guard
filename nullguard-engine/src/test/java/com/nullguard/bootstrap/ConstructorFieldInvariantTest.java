@@ -98,7 +98,9 @@ class ConstructorFieldInvariantTest {
         for (String method : new String[]{"Safe#size()", "Guarded#size()", "Delegating#size()"})
             assertFalse(warnings.stream().anyMatch(f -> f.methodId().equals(method)), method + ": " + warnings);
         for (String method : new String[]{"Safe#shadow(String)", "Nullable#size()", "Mutable#size()", "Early#size()", "Escaped#size()", "Sub#read()",
-                "SuperCall#read()", "MixedBranches#size()", "Swallowed#size()", "Restored#size()", "Published#size()", "Deferred#callback()"})
+                "SuperCall#read()", "MixedBranches#size()", "Swallowed#size()", "Restored#size()", "Published#size()"})
             assertTrue(warnings.stream().anyMatch(f -> f.methodId().equals(method)), method + ": " + warnings);
+        assertTrue(warnings.stream().anyMatch(f -> f.methodId().startsWith("Deferred.$nullguard$") && f.methodId().endsWith("#size(String)")));
+        assertFalse(warnings.stream().anyMatch(f -> f.methodId().equals("Deferred#callback()")));
     }
 }

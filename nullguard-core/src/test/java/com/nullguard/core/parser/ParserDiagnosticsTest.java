@@ -26,6 +26,30 @@ class ParserDiagnosticsTest {
         assertEquals(List.of("Broken.java"), project.getParseDiagnostics().problemPaths());
     }
 
+    @Test void parsesJava21PatternSwitchAndLocatesUnsupportedDeclarations() throws Exception {
+        Files.writeString(root.resolve("Example.java"), """
+                class Example {
+                    int length(Object value) {
+                        return switch (value) {
+                            case String text when !text.isEmpty() -> text.length();
+                            case null, default -> 0;
+                        };
+                    }
+                }
+                record Data(String text) {
+                    Data { }
+                    int size() { return text.length(); }
+                }
+                """);
+        var diagnostics = new JavaParserAstParser().parse(root).getParseDiagnostics();
+        assertEquals(0, diagnostics.problemFiles());
+        assertEquals(3, diagnostics.discoveredExecutables());
+        assertEquals(List.of(11, 10), diagnostics.unsupportedExecutableLocations().stream()
+                .map(com.nullguard.core.model.SourceLocation::startLine).toList());
+        assertDoesNotThrow(() -> SourceExpressions.parseExpression(
+                "switch (value) { case String text when !text.isEmpty() -> 1; default -> 0; }"));
+    }
+
     @Test void missingRootRaisesAnalysisException() {
         var parser = new JavaParserAstParser(null, null);
         assertThrows(CoreAnalysisException.class, () -> parser.parse(root.resolve("missing")));

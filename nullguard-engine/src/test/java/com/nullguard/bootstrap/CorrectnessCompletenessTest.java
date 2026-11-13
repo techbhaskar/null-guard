@@ -90,6 +90,32 @@ class CorrectnessCompletenessTest {
         assertTrue(result.getFindings().stream().anyMatch(f -> f.ruleId().equals("NG004") && f.methodId().endsWith("#bad()")));
     }
 
+    @Test void analyzesEnumAndAnonymousBodiesUnderTheirOwnOwners() throws Exception {
+        var result = run("""
+                interface Task { int execute(); }
+                enum Choice {
+                    FIRST { public int execute() { String text = null; return text.length(); } };
+                    public abstract int execute();
+                    int own() { String text = null; return text.length(); }
+                }
+                class Factory {
+                    Task create() {
+                        return new Task() {
+                            public int execute() { String text = null; return text.length(); }
+                        };
+                    }
+                }
+                """);
+        var completeness = new ObjectMapper().readTree(result.getVisualizations().getJsonGraph()).path("analysisCompleteness");
+        assertEquals(0, completeness.path("unmodeledExecutables").asInt());
+        var owners = result.getFindings().stream().filter(f -> f.ruleId().equals("NG001"))
+                .map(Finding::methodId).toList();
+        assertTrue(owners.contains("Choice#own()"), owners.toString());
+        assertTrue(owners.stream().anyMatch(id -> id.startsWith("Choice.$nullguard$") && id.endsWith("#execute()")), owners.toString());
+        assertTrue(owners.stream().anyMatch(id -> id.startsWith("Factory.$nullguard$") && id.endsWith("#execute()")), owners.toString());
+        assertFalse(owners.contains("Factory#create()"), owners.toString());
+    }
+
     @Test void unsupportedRecordBodiesAreNotSilentlyCountedAsAnalyzed() throws Exception {
         var result = run("record Example(String name) { int size() { return name.length(); } }");
         var completeness = new ObjectMapper().readTree(result.getVisualizations().getJsonGraph()).path("analysisCompleteness");

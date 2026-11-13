@@ -67,6 +67,7 @@ final class AnalysisCompleteness {
         result.put("sourceProblemPaths", parse.problemPaths());
         result.put("modeledExecutables", methods.size());
         result.put("unmodeledExecutables", unmodeled);
+        result.put("unsupportedExecutableLocations", parse.unsupportedExecutableLocations());
         result.put("declaredBodies", bodies[0]);
         result.put("analyzedBodies", bodies[1]);
         result.put("cfgFailures", failedCfg);

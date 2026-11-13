@@ -2,7 +2,13 @@ package com.nullguard.core.parser;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.ast.DataKey;
+import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.EnumConstantDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
@@ -48,6 +54,8 @@ public final class JavaParserAstParser implements AstParser {
 
     private static final org.slf4j.Logger LOG =
             org.slf4j.LoggerFactory.getLogger(JavaParserAstParser.class);
+
+    private static final DataKey<String> MODELED_OWNER = new DataKey<>() {};
 
     private final List<Path> configuredSourceRoots;
     private final List<Path> classpathEntries;
@@ -120,8 +128,7 @@ public final class JavaParserAstParser implements AstParser {
                             .flatMap(type -> compilationUnit.findAll(type).stream()).toList();
                     counts[3] += executables.size();
                     executables.stream()
-                            .filter(declaration -> declaration.getParentNode()
-                                    .filter(ClassOrInterfaceDeclaration.class::isInstance).isEmpty())
+                            .filter(declaration -> !hasModeledOwner(declaration))
                             .forEach(declaration -> declaration.getRange().ifPresent(range ->
                                     unsupportedExecutables.add(new SourceLocation(relativePath, range.begin.line,
                                             range.begin.column, range.end.line, range.end.column))));
@@ -133,6 +140,16 @@ public final class JavaParserAstParser implements AstParser {
                 type.getFullyQualifiedName().ifPresent(name -> environment.memory().addDeclaration(name, type.isInterface()
                         ? new com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserInterfaceDeclaration(type, environment.types())
                         : new com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserClassDeclaration(type, environment.types())));
+            }));
+            units.forEach((path, unit) -> unit.findAll(MethodDeclaration.class).forEach(method -> {
+                Node owner = method.getParentNode().orElseThrow();
+                Path sourcePath = normalizedRoot.relativize(path);
+                if (owner instanceof EnumDeclaration declaration) {
+                    method.setData(MODELED_OWNER, declaration.getFullyQualifiedName()
+                            .orElseGet(() -> syntheticOwner(declaration, sourcePath)));
+                } else if (owner instanceof EnumConstantDeclaration || owner instanceof ObjectCreationExpr) {
+                    method.setData(MODELED_OWNER, syntheticOwner(owner, sourcePath));
+                }
             }));
             units.forEach((path, compilationUnit) -> {
                     String packageName = compilationUnit.getPackageDeclaration()
@@ -148,6 +165,23 @@ public final class JavaParserAstParser implements AstParser {
                                     .thenComparing(ClassOrInterfaceDeclaration::getNameAsString))
                             .forEach(type -> packageBuilder.addClass(
                                     buildClass(type, packageName, cfgBuilder, normalizedRoot.relativize(path), packageDefaults.getOrDefault(packageName, false))));
+                    Path sourcePath = normalizedRoot.relativize(path);
+                    boolean packageDefault = packageDefaults.getOrDefault(packageName, false);
+                    compilationUnit.findAll(EnumDeclaration.class).forEach(type -> {
+                        String owner = type.getFullyQualifiedName().orElseGet(() -> syntheticOwner(type, sourcePath));
+                        packageBuilder.addClass(buildAdditionalClass(owner, type.getMembers(), cfgBuilder,
+                                sourcePath, packageDefault));
+                    });
+                    compilationUnit.findAll(EnumConstantDeclaration.class).forEach(constant -> {
+                        if (!constant.getClassBody().isEmpty()) {
+                            packageBuilder.addClass(buildAdditionalClass(syntheticOwner(constant, sourcePath),
+                                    constant.getClassBody(), cfgBuilder, sourcePath, packageDefault));
+                        }
+                    });
+                    compilationUnit.findAll(ObjectCreationExpr.class).forEach(creation ->
+                            creation.getAnonymousClassBody().ifPresent(body -> packageBuilder.addClass(
+                                    buildAdditionalClass(syntheticOwner(creation, sourcePath), body,
+                                            cfgBuilder, sourcePath, packageDefault))));
             });
         } catch (IOException e) {
             throw new CoreAnalysisException("Failed to read project: " + normalizedRoot, e);
@@ -158,6 +192,45 @@ public final class JavaParserAstParser implements AstParser {
         projectBuilder.parseDiagnostics(new com.nullguard.core.model.ParseDiagnostics(
                 counts[0], counts[1], counts[2], counts[3], problemPaths, unsupportedExecutables));
         return projectBuilder.build();
+    }
+
+    private static boolean hasModeledOwner(Node declaration) {
+        Node owner = declaration.getParentNode().orElse(null);
+        return owner instanceof ClassOrInterfaceDeclaration || owner instanceof EnumDeclaration
+                || declaration instanceof MethodDeclaration
+                    && (owner instanceof ObjectCreationExpr || owner instanceof EnumConstantDeclaration);
+    }
+
+    private static String syntheticOwner(Node node, Path sourcePath) {
+        String enclosing = node.findAncestor(TypeDeclaration.class).flatMap(type -> ((TypeDeclaration<?>) type).getFullyQualifiedName())
+                .orElseGet(() -> sourcePath.toString().replace('\\', '/'));
+        var start = node.getBegin().orElseThrow();
+        return enclosing + ".$nullguard$" + start.line + "$" + start.column;
+    }
+
+    private ClassModel buildAdditionalClass(String owner, List<BodyDeclaration<?>> members,
+                                           BasicControlFlowBuilder cfgBuilder, Path sourcePath, boolean packageDefault) {
+        var builder = ClassModel.builder().className(owner.substring(owner.lastIndexOf('.') + 1)).qualifiedName(owner)
+                .addAssignableType(owner);
+        for (BodyDeclaration<?> member : members) {
+            if (member instanceof MethodDeclaration method) {
+                builder.addMethod(buildMethod(method, cfgBuilder, sourcePath, Set.of(), packageDefault));
+            } else if (member instanceof ConstructorDeclaration constructor) {
+                builder.addMethod(buildConstructor(constructor, cfgBuilder, sourcePath, packageDefault));
+            }
+        }
+        return builder.build();
+    }
+
+    private MethodModel buildConstructor(ConstructorDeclaration constructor, BasicControlFlowBuilder cfgBuilder,
+                                         Path sourcePath, boolean packageDefault) {
+        MethodDeclaration synthetic = new MethodDeclaration().setName(constructor.getNameAsString())
+                .setType("void").setParameters(new com.github.javaparser.ast.NodeList<>(
+                        constructor.getParameters().stream().map(p -> p.clone()).toList()))
+                .setBody(constructor.getBody().clone());
+        constructor.getRange().ifPresent(synthetic::setRange);
+        constructor.getParentNode().ifPresent(synthetic::setParentNode);
+        return buildMethod(synthetic, cfgBuilder, sourcePath, Set.of(), packageDefault, constructor);
     }
 
     private ClassModel buildClass(ClassOrInterfaceDeclaration declaration,
@@ -200,14 +273,7 @@ public final class JavaParserAstParser implements AstParser {
                 .sorted(Comparator.comparing(method -> method.getSignature().asString()))
                 .forEach(method -> classBuilder.addMethod(buildMethod(method, cfgBuilder, sourcePath, nonNullFields(declaration), packageDefault)));
         declaration.getConstructors().stream().sorted(Comparator.comparing(c -> c.getSignature().asString()))
-                .forEach(constructor -> {
-                    MethodDeclaration synthetic = new MethodDeclaration().setName(constructor.getNameAsString())
-                            .setType("void").setParameters(new com.github.javaparser.ast.NodeList<>(constructor.getParameters().stream().map(p -> p.clone()).toList()))
-                            .setBody(constructor.getBody().clone());
-                    constructor.getRange().ifPresent(synthetic::setRange);
-                    synthetic.setParentNode(declaration);
-                    classBuilder.addMethod(buildMethod(synthetic, cfgBuilder, sourcePath, Set.of(), packageDefault, constructor));
-                });
+                .forEach(constructor -> classBuilder.addMethod(buildConstructor(constructor, cfgBuilder, sourcePath, packageDefault)));
         return classBuilder.build();
     }
 
@@ -234,9 +300,20 @@ public final class JavaParserAstParser implements AstParser {
             method.getParameters().stream().filter(p -> constructorRequires(constructor, p.getNameAsString()))
                     .forEach(p -> assumptions.add("constructor parameter required by framework field assumption: " + p.getNameAsString()));
         }
+        // Anonymous methods run under their own executable, while instance initializers
+        // and constructor arguments still belong to the allocation expression.
+        MethodDeclaration flowMethod = method;
+        var anonymousClasses = method.findAll(ObjectCreationExpr.class,
+                creation -> creation.getAnonymousClassBody().isPresent());
+        if (!anonymousClasses.isEmpty()) {
+            flowMethod = method.clone();
+            flowMethod.findAll(ObjectCreationExpr.class).forEach(creation ->
+                    creation.getAnonymousClassBody().ifPresent(body ->
+                            body.removeIf(MethodDeclaration.class::isInstance)));
+        }
         ControlFlowModel cfg = null;
         try {
-            if (method.getBody().isPresent()) cfg = cfgBuilder.build(method);
+            if (method.getBody().isPresent()) cfg = cfgBuilder.build(flowMethod);
         } catch (Exception cfgFailure) {
             if (method.getBody().isPresent()) {
                 LOG.warn("CFG construction failed for {}; this method will contribute no risk.",
@@ -250,10 +327,11 @@ public final class JavaParserAstParser implements AstParser {
         String httpMethod = AstMetadataExtractor.extractHttpMethod(method);
         String httpPath = AstMetadataExtractor.extractHttpPath(method);
         Set<String> establishedFields = new LinkedHashSet<>(fields);
-        if (constructor == null) establishedFields.addAll(ConstructorFieldFacts.forMethod(method));
+        if (constructor == null && method.getParentNode().filter(ClassOrInterfaceDeclaration.class::isInstance).isPresent())
+            establishedFields.addAll(ConstructorFieldFacts.forMethod(method));
 
         return MethodModel.builder()
-                .bodySource(method.getBody().map(Object::toString).orElse(""))
+                .bodySource(flowMethod.getBody().map(Object::toString).orElse(""))
                 .origin(constructor != null && constructor.containsData(ConstructorExpansion.ORIGIN) ? constructor.getData(ConstructorExpansion.ORIGIN)
                         : method.containsData(ConstructorExpansion.ORIGIN) ? method.getData(ConstructorExpansion.ORIGIN) : "source")
                 .sourceLocation(method.getRange().map(r -> new com.nullguard.core.model.SourceLocation(
@@ -288,7 +366,8 @@ public final class JavaParserAstParser implements AstParser {
     }
 
     List<SemanticCallSite> resolveCallSites(com.github.javaparser.ast.Node method) {
-        List<MethodCallExpr> calls = new ArrayList<>(method.findAll(MethodCallExpr.class));
+        List<MethodCallExpr> calls = new ArrayList<>(method.findAll(MethodCallExpr.class,
+                call -> belongsToExecutable(call, method)));
         calls.sort(Comparator.comparing((MethodCallExpr call) -> sourcePosition(call))
                 .thenComparing(call -> call.toString()));
 
@@ -298,11 +377,12 @@ public final class JavaParserAstParser implements AstParser {
             String failure = "";
             try {
                 ResolvedMethodDeclaration resolved = call.resolve();
-                String signature = resolved.toAst(MethodDeclaration.class)
-                        .map(source -> source.getSignature().asString())
+                var declaration = resolved.toAst(MethodDeclaration.class);
+                String signature = declaration.map(source -> source.getSignature().asString())
                         .orElseGet(resolved::getSignature);
                 target = new ResolvedCallTarget(
-                        resolved.declaringType().getQualifiedName(),
+                        declaration.filter(d -> d.containsData(MODELED_OWNER)).map(d -> d.getData(MODELED_OWNER))
+                                .orElseGet(() -> resolved.declaringType().getQualifiedName()),
                         signature,
                         resolved.getName(),
                         resolved.getNumberOfParams(), resolved.getSignature(), !resolved.isStatic()
@@ -321,7 +401,7 @@ public final class JavaParserAstParser implements AstParser {
                     writtenCallName(call), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure,
                     target == null ? Set.of() : primitiveArguments(call.getArguments())));
         }
-        for (ObjectCreationExpr call : method.findAll(ObjectCreationExpr.class)) {
+        for (ObjectCreationExpr call : method.findAll(ObjectCreationExpr.class, creation -> belongsToExecutable(creation, method))) {
             ResolvedCallTarget target = null;
             String failure = "";
             try {
@@ -337,7 +417,7 @@ public final class JavaParserAstParser implements AstParser {
             semanticCalls.add(new SemanticCallSite("new:" + call.getType().asString(), call.getArguments().size(), target, call.toString(), call.getBegin().map(p -> p.line).orElse(-1), failure,
                     target == null ? Set.of() : primitiveArguments(call.getArguments())));
         }
-        for (var call : method.findAll(com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt.class)) {
+        for (var call : method.findAll(com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt.class, call -> belongsToExecutable(call, method))) {
             ResolvedCallTarget target = null;
             String failure = "";
             try {
@@ -354,6 +434,14 @@ public final class JavaParserAstParser implements AstParser {
                     target == null ? Set.of() : primitiveArguments(call.getArguments())));
         }
         return List.copyOf(semanticCalls);
+    }
+
+    private static boolean belongsToExecutable(Node node, Node executable) {
+        for (Node parent = node.getParentNode().orElse(null); parent != null; parent = parent.getParentNode().orElse(null)) {
+            if (parent == executable) return true;
+            if (parent instanceof BodyDeclaration<?>) return false;
+        }
+        return false;
     }
 
     /** Optional argument facts; failed resolution never establishes a primitive type. */
@@ -405,7 +493,8 @@ public final class JavaParserAstParser implements AstParser {
 
     private static boolean constructorRequires(ConstructorDeclaration constructor, String parameter) {
         if (constructor == null) return false;
-        var owner = constructor.findAncestor(ClassOrInterfaceDeclaration.class).orElse(null);
+        var owner = constructor.getParentNode().filter(ClassOrInterfaceDeclaration.class::isInstance)
+                .map(ClassOrInterfaceDeclaration.class::cast).orElse(null);
         if (owner == null) return false;
         Set<String> fields = nonNullFields(owner);
         return constructor.getBody().getStatements().stream().map(s -> s.toString().replaceAll("\\s+", ""))

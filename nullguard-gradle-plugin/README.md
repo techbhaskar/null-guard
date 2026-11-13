@@ -79,6 +79,19 @@ in the integration directory and configure `mavenLocal()` for plugin resolution.
 
 ## Configuration
 
+The current source build uses a separate Java 21 launcher by default. You can
+override the analyzer launcher on the `nullguard` task with a Java 21 or newer
+toolchain. The published 2.0.1 plugin inherits the application's Java toolchain,
+so configure the task's `javaLauncher` explicitly when the application uses Java 17.
+
+```kotlin
+tasks.named<JavaExec>("nullguard") {
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    })
+}
+```
+
 | Option | Default | Purpose |
 | --- | --- | --- |
 | `toolVersion` | `2.0.1` | CLI artifact version to resolve |

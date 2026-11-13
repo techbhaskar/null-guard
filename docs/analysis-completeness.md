@@ -61,7 +61,13 @@ remain outside static lifecycle coverage. No agent or JFR import was introduced.
 The JSON report adds `analysisCompleteness`; the Overview displays the same
 information separately from the stability, architecture and security scores.
 
-- Source files discovered/parsed, source problem paths, and unmodeled executables.
+- Source files discovered and parsed, source problem paths, and unmodeled executables.
+  `unsupportedExecutableLocations` identifies declarations outside the executable model,
+  including record methods and compact constructors.
+- Enum methods, explicit enum constructors, enum constant overrides, and anonymous class
+  methods have their own executable bodies and source locations. Anonymous owners use
+  source positions to distinguish declarations. Interface dispatch into these bodies and
+  their initialization behavior remain limited.
 - Declared versus successfully analyzed bodies, CFG failures and analysis failures.
 - Total and symbol-resolved call-site counts plus unresolved-call details.
 - Resolved dependency calls (without body analysis), accessor calls intentionally

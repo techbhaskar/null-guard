@@ -82,7 +82,9 @@ public final class NullGuardCondition {
         if (e.isInstanceOfExpr()) {
             var i = e.asInstanceOfExpr(); Map<String, NullState> yes = new LinkedHashMap<>();
             yes.put(i.getExpression().toString(), NullState.NON_NULL);
-            i.getPattern().ifPresent(p -> yes.put(p.getNameAsString(), NullState.NON_NULL));
+            i.getPattern().filter(com.github.javaparser.ast.expr.TypePatternExpr.class::isInstance)
+                    .map(com.github.javaparser.ast.expr.TypePatternExpr.class::cast)
+                    .ifPresent(p -> yes.put(p.getNameAsString(), NullState.NON_NULL));
             return new Refinement(Map.copyOf(yes), Map.of());
         }
         if (e.isMethodCallExpr()) {
