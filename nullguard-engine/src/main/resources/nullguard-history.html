@@ -251,7 +251,14 @@
         for (const report of match.reports) {
           const run = runs.find(run => run.report === report);
           const link = element('a', run ? timestamp(run.id) : report, links);
-          link.href = run?.dashboard || report;
+          const key = findingKey(finding);
+          const position = run?.findings?.findIndex(candidate => findingKey(candidate) === key) ?? -1;
+          // Text fragments also work in older dashboards that lack finding IDs.
+          const text = encodeURIComponent(finding.message ?? '').replace(/-/g, '%2D');
+          const anchor = position >= 0 ? 'finding-' + position : '';
+          link.href = run?.dashboard
+            ? run.dashboard + '#' + anchor + (text ? ':~:text=' + text : '')
+            : report;
         }
       }
     } catch (error) {

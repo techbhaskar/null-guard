@@ -747,7 +747,10 @@ public final class HtmlDashboardRenderer {
             function renderAllFindings() {
               panel('allFindingsTable', () => {
                 const q = searchQuery.toLowerCase();
-                const list = (data.findings || []).filter(f => {
+                const linkedIndex = /^#finding-([0-9]+)$/.exec(location.hash);
+                const linked = linkedIndex ? data.findings[Number(linkedIndex[1])] : null;
+                const indexes = new Map(data.findings.map((finding, index) => [finding, index]));
+                const list = data.findings.filter(f => {
                   const r = f.ruleId || '';
                   if (findingFilter === 'NULL' && !r.startsWith('NG0')) return false;
                   if (findingFilter === 'SUGG' && !r.startsWith('NG1')) return false;
@@ -761,12 +764,16 @@ public final class HtmlDashboardRenderer {
                     || (f.message || '').toLowerCase().includes(q)
                     || locStr.toLowerCase().includes(q);
                 });
+                if (linked && list.includes(linked) && list.indexOf(linked) >= 250) {
+                  list.splice(list.indexOf(linked), 1);
+                  list.unshift(linked);
+                }
                 document.getElementById('allFindingsTable').innerHTML = `
                   <thead><tr><th style="width:130px">Rule</th><th style="width:105px">Severity</th><th style="width:32%">Method &amp; Source Line</th><th>Finding Details</th></tr></thead>
                   <tbody>${list.length ? list.slice(0, 250).map(f => {
                     const m = splitMethod(f.methodId);
                     const loc = f.location ? `${f.location.path}:${f.location.startLine}` : '';
-                    return `<tr>
+                    return `<tr id="finding-${indexes.get(f)}"${f === linked ? ' style="outline:2px solid #57baf0;outline-offset:-2px"' : ''}>
                       <td><span class="badge badge-${f.severity}">${esc(f.ruleId)}</span><div class="loc-tag">${esc(RULE_TITLES[f.ruleId] || '')}</div></td>
                       <td><span class="badge badge-${f.severity}">${esc((f.severity || '').toUpperCase())}</span></td>
                       <td><div class="method-title mono">${esc(m.short)}</div>${m.pkg ? `<div class="pkg-sub">${esc(m.pkg)}</div>` : ''}${loc ? `<div class="loc-tag">📄 ${esc(loc)}</div>` : ''}</td>
@@ -1218,6 +1225,9 @@ public final class HtmlDashboardRenderer {
 
             renderAllDynamic();
             show('overview');
+            if (/^#finding-[0-9]+$/.test(location.hash)) {
+              requestAnimationFrame(() => document.getElementById(location.hash.slice(1))?.scrollIntoView({block:'center'}));
+            }
             </script></body></html>""");
     }
 
