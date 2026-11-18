@@ -517,6 +517,8 @@ public final class HtmlDashboardRenderer {
             "data.apiEndpoints = data.apiEndpoints || []; data.suggestions = data.suggestions || []; data.hotspots = data.hotspots || []; data.findings = data.findings || [];\n" +
             "const reasons = ");
         VisualizationBundle.writeValueForScript(result.getRiskReasonMap(), out);
+        out.write(";\n");
+        out.write(RunHistory.fixOptionsScript());
         out.write("""
             ;
             const s = data.summary || {};
@@ -744,6 +746,47 @@ public final class HtmlDashboardRenderer {
               renderAllFindings();
             }
 
+            const callsByMethod = new Map();
+            for (const edge of edges) {
+              if (!callsByMethod.has(edge.from)) callsByMethod.set(edge.from, new Set());
+              callsByMethod.get(edge.from).add(edge.to);
+            }
+            const endpointsByMethod = new Map(data.apiEndpoints.map(endpoint => [endpoint.endpointId, endpoint]));
+            const evidenceByMethod = new Map();
+            for (const finding of data.findings) {
+              if (!/^NG00[1-6]$/.test(finding.ruleId) || !finding.methodId) continue;
+              if (!evidenceByMethod.has(finding.methodId)) evidenceByMethod.set(finding.methodId, []);
+              evidenceByMethod.get(finding.methodId).push(finding);
+            }
+
+            function findingActions(finding) {
+              const endpoint = endpointsByMethod.get(finding.methodId);
+              const route = endpoint?.path ? [endpoint.httpMethod, endpoint.path].filter(Boolean).join(' ') : '';
+              const calls = [...(callsByMethod.get(finding.methodId) || [])].slice(0, 4);
+              const isPropagation = ['NG005', 'NG104', 'NG105'].includes(finding.ruleId);
+              const related = isPropagation
+                ? [...new Set([finding.methodId, ...(endpoint?.propagationChain || []), ...calls])]
+                    .flatMap(method => evidenceByMethod.get(method) || []).filter(item => item !== finding).slice(0, 4)
+                : [];
+              const options = fixOptions(finding.ruleId, {route, calls, related});
+              const query = [finding.ruleId, finding.message, finding.methodId, route].filter(Boolean).join(' ').slice(0, 500);
+              const history = 'nullguard-history.html?q=' + encodeURIComponent(query) + '#lookup';
+              const path = finding.location?.path;
+              const evidence = [
+                route && 'Endpoint ' + route,
+                path && 'Reported at ' + path + ':' + (finding.location.startLine ?? '?'),
+                isPropagation && calls.length && 'Direct calls in the scan: ' + calls.join(', '),
+                ...related.map(item => item.ruleId + ' ' + item.message + (item.location?.path
+                  ? ' (' + item.location.path + ':' + item.location.startLine + ')' : ' (' + item.methodId + ')'))
+              ].filter(Boolean);
+              const guidance = options.length ? `<details style="margin:8px 0">
+                <summary style="cursor:pointer">Fix options</summary>
+                ${evidence.length ? `<p><strong>Scan evidence</strong></p><ul>${evidence.map(item => `<li>${esc(item)}</li>`).join('')}</ul>` : ''}
+                <ol>${options.map(option => `<li>${esc(option)}</li>`).join('')}</ol>
+              </details>` : '';
+              return `${guidance}<div style="margin-top:6px"><a href="${esc(history)}">Find similar findings</a></div>`;
+            }
+
             function renderAllFindings() {
               panel('allFindingsTable', () => {
                 const q = searchQuery.toLowerCase();
@@ -777,7 +820,7 @@ public final class HtmlDashboardRenderer {
                       <td><span class="badge badge-${f.severity}">${esc(f.ruleId)}</span><div class="loc-tag">${esc(RULE_TITLES[f.ruleId] || '')}</div></td>
                       <td><span class="badge badge-${f.severity}">${esc((f.severity || '').toUpperCase())}</span></td>
                       <td><div class="method-title mono">${esc(m.short)}</div>${m.pkg ? `<div class="pkg-sub">${esc(m.pkg)}</div>` : ''}${loc ? `<div class="loc-tag">📄 ${esc(loc)}</div>` : ''}</td>
-                      <td>${esc(f.message)}</td>
+                      <td>${esc(f.message)}${findingActions(f)}</td>
                     </tr>`;
                   }).join('') : `<tr><td colspan="4" class="empty-state">No findings match the current filter.</td></tr>`}</tbody>`;
               });
@@ -785,6 +828,13 @@ public final class HtmlDashboardRenderer {
 
             function renderSuggestions() {
               panel('sTable', () => {
+                const suggestionRules = {
+                  ADD_NULL_GUARD: 'NG101',
+                  STRENGTHEN_CONTRACT: 'NG102',
+                  VALIDATE_EXTERNAL_RETURN: 'NG103',
+                  REFACTOR_HIGH_BLAST_RADIUS: 'NG104',
+                  BREAK_RISK_CHAIN: 'NG105'
+                };
                 const q = searchQuery.toLowerCase();
                 const rows = (data.suggestions || []).filter(item => !q
                   || (item.suggestionType || '').toLowerCase().includes(q)
@@ -797,7 +847,7 @@ public final class HtmlDashboardRenderer {
                     return `<tr>
                       <td><span class="badge badge-MEDIUM">${esc(item.suggestionType)}</span></td>
                       <td><div class="method-title mono">${esc(m.short)}</div><div class="pkg-sub">${esc(m.pkg)}</div></td>
-                      <td>${esc(item.message)}</td>
+                      <td>${esc(item.message)}${findingActions({ ...item, ruleId: suggestionRules[item.suggestionType] })}</td>
                       <td><strong class="mono">${Number(item.finalScore || 0).toFixed(2)}</strong></td>
                     </tr>`;
                   }).join('') : `<tr><td colspan="4" class="empty-state">No remediation suggestions match the current filter.</td></tr>`}</tbody>`;

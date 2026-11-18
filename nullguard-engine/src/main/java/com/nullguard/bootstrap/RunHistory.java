@@ -44,7 +44,15 @@ public final class RunHistory {
             template = new String(resource.readAllBytes(), StandardCharsets.UTF_8);
         }
         String data = JSON.writeValueAsString(runs.values()).replace("<", "\\u003c");
-        Files.writeString(directory.resolve("nullguard-history.html"), template.replace("{{RUN_DATA}}", data));
+        Files.writeString(directory.resolve("nullguard-history.html"),
+                template.replace("/*{{FIX_OPTIONS}}*/", fixOptionsScript()).replace("{{RUN_DATA}}", data));
+    }
+
+    static String fixOptionsScript() throws IOException {
+        try (var resource = RunHistory.class.getResourceAsStream("/nullguard-fix-options.js")) {
+            if (resource == null) throw new IOException("Finding fix options resource is missing");
+            return new String(resource.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     private static JsonNode readFindings(Path file) {

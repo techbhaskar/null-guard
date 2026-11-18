@@ -87,6 +87,7 @@
   </section>
 </main>
 <script type="application/json" id="run-data">{{RUN_DATA}}</script>
+<script>/*{{FIX_OPTIONS}}*/</script>
 <script>
   const rawData = document.getElementById('run-data').textContent;
   const sourceTemplate = !rawData.startsWith('[');
@@ -219,6 +220,9 @@
   const lookupForm = document.getElementById('lookup-form');
   const lookupStatus = document.getElementById('lookup-status');
   const lookupResults = document.getElementById('lookup-results');
+  const initialQuery = new URLSearchParams(location.search).get('q');
+  const lookupQuery = document.getElementById('lookup-query');
+  if (initialQuery) lookupQuery.value = initialQuery.slice(0, 500);
   if (location.protocol === 'file:') {
     lookupForm.hidden = true;
     lookupForm.style.display = 'none';
@@ -230,7 +234,7 @@
   }
   lookupForm.addEventListener('submit', async event => {
     event.preventDefault();
-    const query = document.getElementById('lookup-query').value.trim();
+    const query = lookupQuery.value.trim();
     if (!query) return;
     const button = lookupForm.querySelector('button');
     button.disabled = true;
@@ -247,6 +251,13 @@
         element('strong', [finding.ruleId, finding.message].filter(Boolean).join(' '), item);
         const location = finding.location;
         if (location?.path) element('div', location.path + ':' + (location.startLine ?? '?'), item);
+        const options = fixOptions(finding.ruleId);
+        if (options.length) {
+          const details = element('details', '', item);
+          element('summary', 'Fix options', details);
+          const list = element('ul', '', details);
+          for (const option of options) element('li', option, list);
+        }
         const links = element('div', '', item);
         for (const report of match.reports) {
           const run = runs.find(run => run.report === report);
@@ -267,6 +278,7 @@
       button.disabled = false;
     }
   });
+  if (initialQuery && location.protocol !== 'file:' && !sourceTemplate) lookupForm.requestSubmit();
 </script>
 </body>
 </html>
